@@ -119,6 +119,24 @@ a:hover {
   overflow: hidden;
 }
 
+.admin-link {
+  position: absolute;
+  top: 60px;
+  left: 24px;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: color 0.2s ease;
+  z-index: 1;
+}
+
+.admin-link:hover {
+  color: var(--amber);
+}
+
 .newsletter-header::before {
   content: '';
   position: absolute;
@@ -266,7 +284,6 @@ input[type="email"],
 input[type="tel"],
 input[type="date"],
 input[type="time"],
-input[type="datetime-local"],
 input[type="url"] {
   width: 100%;
   font-family: var(--body);
@@ -279,6 +296,25 @@ input[type="url"] {
   padding: 0.75rem var(--space-md);
   transition: border-color 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out);
   appearance: none;
+}
+
+input[type="datetime-local"] {
+  width: 100%;
+  font-family: var(--body);
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem var(--space-md);
+  transition: border-color 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out);
+}
+
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  color: #ccc;
+  filter: invert(0.8);
+  cursor: pointer;
 }
 
 input:focus {
@@ -389,13 +425,14 @@ input::placeholder {
 
 .rich-editor__content ol,
 .rich-editor__content ul {
-  margin-left: var(--space-lg);
+  padding-left: 0 !important;
+  margin-left: 0 !important;
   margin-top: var(--space-xs);
   margin-bottom: var(--space-xs);
 }
 
 .rich-editor__content li {
-  margin-left: var(--space-xs);
+  margin-left: 0;
 }
 
 /* ============================================================

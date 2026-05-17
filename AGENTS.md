@@ -15,27 +15,33 @@ A community newsletter submission & management app. Members submit event entries
 
 ## File Map
 ```
-server.js          — Express server, all API routes, admin auth, static file serving
-schema.js          — Drizzle table definition for `submissions` (12 columns)
-drizzle.config.js  — Drizzle Kit config (sqlite dialect, schema → ./drizzle)
-dev.db             — SQLite database file (auto-created by better-sqlite3)
-package.json       — Scripts: `dev`, `test`, `test:ui`
+server.js              — Express server, all API routes, admin auth, static file serving
+schema.js              — Drizzle table definition for `submissions` (12 columns)
+drizzle.config.js      — Drizzle Kit config (sqlite dialect, schema → ./drizzle)
+dev.db                 — SQLite database file (auto-created by better-sqlite3)
+package.json           — Scripts: `dev`, `test`, `test:ui`
+generate-newsletter.mjs — Newsletter generation script (reads template + DB → writes HTML)
 
 public/
-  index.html       — Public submission form page
-  admin.html       — Admin dashboard + login pages
-  css/style.css    — Full stylesheet (editorial/magazine aesthetic)
-  js/app.js        — All client-side JS (rich editor, form submit, admin auth, pagination, modals)
+  index.html              — Public submission form page
+  admin.html              — Admin dashboard + login pages
+  newsletter-template.html — Template for generated newsletter (inline CSS + placeholder slots)
+  newsletter-dark.html    — Generated newsletter output (overwritten each generation)
+  css/admin.css           — Admin dashboard stylesheet
+  css/newsletter-dark.css — Static dark theme stylesheet (NOT used by generated newsletter)
+  css/style.css           — Orphaned stylesheet (never loaded by any HTML page)
+  css/submit.css          — Public submission form stylesheet
+  js/app.js               — All client-side JS (rich editor, form submit, admin auth, pagination, modals)
 
 tests/
-  global-setup.js  — Spawns server before test suite
-  newsletter.spec.js — All E2E tests (R001–R010 + UI quality)
+  global-setup.js        — Spawns server before test suite
+  newsletter.spec.js     — All E2E tests (R001–R010 + UI quality)
 
-playwright.config.js — Test config (auto-starts server via globalSetup)
-REQUIREMENTS.md    — All requirement traceability docs (R001–R010)
-session-ses_1ce6.md — Session notes (historical)
+playwright.config.js   — Test config (auto-starts server via globalSetup)
+REQUIREMENTS.md        — All requirement traceability docs (R001–R010)
+session-ses_1ce6.md    — Session notes (historical)
 
-populate-db.mjs    — Script to populate dev.db with newsletter entries (create → PATCH sections)
+populate-db.mjs        — Script to populate dev.db with newsletter entries (create → PATCH sections)
 ```
 
 ## Key Architecture Decisions
@@ -66,6 +72,15 @@ populate-db.mjs    — Script to populate dev.db with newsletter entries (create
 - Single JS file (`public/js/app.js`) handles everything: rich text editor (contenteditable + `document.execCommand`), form submission, admin login/logout, entry listing with pagination, detail/delete modals.
 - CSS: Editorial/magazine aesthetic with Playfair Display + Source Serif 4 + DM Sans fonts. Warm parchment palette. Fully responsive (mobile-first).
 - Rich text editor: `contenteditable` div with toolbar. HTML synced to hidden `<input id="description">` on every input event.
+
+### Newsletter Generation
+- `generate-newsletter.mjs` reads `public/newsletter-template.html` + submissions from DB, fills placeholders (`{{NANTAN_SECTION}}`, `{{DYNAMIC_SECTIONS}}`, etc.), writes `newsletter-dark.html`.
+- Generated newsletter has **all CSS embedded inline** in the HTML — it does NOT load `newsletter-dark.css` or any external stylesheet.
+- The template (`newsletter-template.html`) contains the CSS that styles the generated output. This is where all newsletter CSS changes must be made.
+- `newsletter-dark.css` is only used by the static HTML file before regeneration; it is NOT used by the generated newsletter.
+- `style.css` is orphaned — never loaded by any HTML page.
+- Admin page (`admin.html`) loads `admin.css` separately. These are different CSS files for different views.
+- To regenerate: `node generate-newsletter.mjs`
 
 ### Testing
 - Playwright E2E tests cover all active requirements (R001–R010).
@@ -121,6 +136,8 @@ node populate-db.mjs # Populate dev.db with newsletter entries (creates → PATC
 - **Static file catch-all**: `app.get('{*path}', ...)` serves `index.html` for all non-API routes (SPA-style). This means any path other than `/admin` serves the submission form.
 - **Exported modules**: `server.js` exports `{ app, server }` for test teardown purposes.
 - **Tests use `page.request`** for API calls (bypasses browser auth state), making tests deterministic.
+- **Newsletter CSS is in the template**: The generated newsletter (`newsletter-dark.html`) has all CSS embedded inline from `newsletter-template.html`. It does NOT load `newsletter-dark.css` or `admin.css`. When fixing newsletter styling (e.g., list indentation), edit `newsletter-template.html`, NOT `newsletter-dark.css` or `admin.css`. After changes, run `node generate-newsletter.mjs` to regenerate.
+- **CSS reset strips list padding**: The newsletter template has a CSS reset (`*, *::before, *::after { padding: 0; }`) that zeros out list padding. The template also has explicit `padding-left: 0 !important` rules on `.event-desc ul/ol`, `.nantan-body ul/ol`, etc. When adding/modifying list styles in the newsletter, override these rules in `newsletter-template.html` with `padding-left: 1.5rem` (without `!important`).
 
 ## Testing Workflow
 - Tests run on a separate server (port 3001, `test.db`) to avoid polluting `dev.db`.

@@ -487,6 +487,7 @@ function buildEntryCard(entry) {
 
   return `
     <div class="entry-card entry-card--sectioned" data-entry-id="${id}" style="--section-accent: ${sectionAccent};">
+      ${entry.hero_image ? `<img class="entry-card__hero" src="${escapeHtml(entry.hero_image)}" alt="${escapeHtml(entry.title)}">` : ''}
       <div class="entry-card__header">
         <div>
           <h4 class="entry-card__title"><a href="#" class="entry-link">${escapeHtml(entry.title)}</a></h4>
@@ -1086,8 +1087,13 @@ function initHeroUpload() {
   const previewImg = document.getElementById('hero-preview-img');
   const removeBtn = document.getElementById('hero-remove');
   const hiddenInput = document.getElementById('hero_image');
+  const heroUpload = document.getElementById('hero-upload');
 
   if (!fileInput) return;
+
+  heroUpload.addEventListener('click', () => {
+    fileInput.click();
+  });
 
   fileInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
@@ -1117,7 +1123,8 @@ function initHeroUpload() {
   });
 
   if (removeBtn) {
-    removeBtn.addEventListener('click', () => {
+    removeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
       hiddenInput.value = '';
       previewImg.src = '';
       fileInput.value = '';

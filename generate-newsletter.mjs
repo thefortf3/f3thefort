@@ -114,7 +114,7 @@ function getHeaderDate() {
 function getSubmissions(dbPath) {
   const db = new Database(dbPath);
   const stmt = db.prepare(`
-    SELECT id, title, leader, start_date, end_time, location, description, link, section
+    SELECT id, title, leader, start_date, end_time, location, description, link, hero_image, section
     FROM submissions
     WHERE section IS NOT NULL AND section != 'null'
     ORDER BY
@@ -258,16 +258,12 @@ function buildDynamicSections(submissions) {
 }
 
 function buildEventCard(sub) {
-  const hasImage = sub.description && /<img\s+src/i.test(sub.description);
   let html = `
     <article class="event-card">`;
 
-  if (hasImage) {
-    const imgMatch = sub.description.match(/<img\s+src="([^"]+)"/i);
-    if (imgMatch) {
-      html += `
-      <img class="event-image" src="${escapeHtml(imgMatch[1])}" alt="">`;
-    }
+  if (sub.hero_image) {
+    html += `
+      <img class="event-image" src="${escapeHtml(sub.hero_image)}" alt="${escapeHtml(sub.title)}">`;
   }
 
   html += `
@@ -295,10 +291,8 @@ function buildEventCard(sub) {
   html += `
         </div>`;
 
-  // Strip HTML tags for plain description
-  const plainDesc = stripHtml(sub.description);
   html += `
-        <p class="event-desc">${plainDesc}</p>`;
+        <div class="event-desc">${sub.description || ''}</div>`;
 
   if (sub.link) {
     html += `
@@ -335,7 +329,7 @@ function buildInitiativeCard(sub) {
 
   html += `
       </div>
-      <p class="initiative-desc">${stripHtml(sub.description)}</p>`;
+      <div class="initiative-desc">${sub.description || ''}</div>`;
 
   if (sub.link) {
     html += `
@@ -404,7 +398,7 @@ function buildFreshCard(sub) {
 
   html += `
         </div>
-        <p class="event-desc">${stripHtml(sub.description)}</p>
+        <div class="event-desc">${sub.description || ''}</div>
       </div>
     </article>`;
 
