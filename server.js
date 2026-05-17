@@ -6,6 +6,10 @@ import { submissions } from './schema.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+
+const execFileAsync = promisify(execFile);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -73,6 +77,20 @@ app.get('/api/admin/check-auth', (req, res) => {
   const cookie = req.headers.cookie || '';
   const auth = cookie.includes(`adminAuth=${ADMIN_PASSWORD}`);
   res.json({ authenticated: auth });
+});
+
+// Generate dark-themed newsletter endpoint
+app.post('/api/newsletter/generate', requireAuth, async (req, res) => {
+  console.log('Newsletter generation requested');
+  try {
+    const outputPath = path.join(__dirname, 'newsletter-dark.html');
+    await execFileAsync('node', ['generate-newsletter.mjs', `--output=${outputPath}`], { cwd: __dirname });
+    console.log('Newsletter generated successfully');
+    res.json({ success: true, url: '/newsletter-dark.html' });
+  } catch (err) {
+    console.error('Newsletter generation failed:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to generate newsletter' });
+  }
 });
 
 function getCookieValue(cookieHeader, name) {
@@ -257,6 +275,11 @@ app.get('/admin', (req, res) => {
 // Serve newsletter.html for /newsletter route
 app.get('/newsletter', (req, res) => {
   res.sendFile(path.join(__dirname, 'newsletter.html'));
+});
+
+// Serve newsletter-dark.html for /newsletter-dark.html route
+app.get('/newsletter-dark.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'newsletter-dark.html'));
 });
 
 // Catch-all — serve index.html for any other route
