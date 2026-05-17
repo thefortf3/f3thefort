@@ -1,11 +1,13 @@
+import 'dotenv/config';
 import express from 'express';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { eq, desc, count } from 'drizzle-orm';
-import { submissions, fngs } from './schema.js';
+import { submissions, fngs, newsletter_sends } from './schema.js';
+import { createNewsletterCampaign, generateNewsletterHtml, getConfigStatus } from './lib/mailchimp.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { existsSync, rmSync } from 'fs';
+import { existsSync, rmSync, readFileSync } from 'fs';
 import multer from 'multer';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
@@ -71,6 +73,96 @@ app.use((err, req, res, next) => {
     return res.status(400).json({ error: err.message });
   }
   next(err);
+});
+
+// Newsletter send endpoints
+
+// GET /api/newsletter/config — Check Mailchimp configuration
+app.get('/api/newsletter/config', requireAuth, (req, res) => {
+  try {
+    res.json(getConfigStatus());
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to check Mailchimp config' });
+  }
+});
+
+// POST /api/newsletter/send — Generate and send newsletter via Mailchimp
+app.post('/api/newsletter/send', requireAuth, async (req, res) => {
+  console.log('Newsletter send requested');
+  try {
+    const outputPath = path.join(__dirname, 'newsletter-dark.html');
+    await execFileAsync('node', ['generate-newsletter.mjs', `--output=${outputPath}`], { cwd: __dirname });
+
+    const htmlContent = readFileSync(outputPath, 'utf-8');
+
+    const result = await createNewsletterCampaign(htmlContent, {
+      subject: req.body.subject,
+      title: req.body.title,
+    });
+
+    // Record send in DB
+    await db.insert(newsletter_sends).values({
+      campaign_id: result.campaignId,
+      subject: result.subject,
+      from_name: result.from_name,
+      from_email: result.from_email,
+      status: 'sent',
+      recipient_count: 0,
+    });
+
+    console.log('Newsletter sent successfully:', result.campaignId);
+    res.json({ success: true, campaignId: result.campaignId, ...result });
+  } catch (err) {
+    console.error('Newsletter send failed:', err.message);
+
+    // Record failure in DB
+    await db.insert(newsletter_sends).values({
+      status: 'failed',
+      error_message: err.message,
+    });
+
+    res.status(500).json({ error: err.message || 'Failed to send newsletter' });
+  }
+});
+
+// POST /api/newsletter/preview — Generate newsletter HTML for review
+app.post('/api/newsletter/preview', requireAuth, async (req, res) => {
+  console.log('Newsletter preview requested');
+  try {
+    const htmlContent = await generateNewsletterHtml();
+    res.json({ success: true, html: htmlContent });
+  } catch (err) {
+    console.error('Newsletter preview failed:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to generate preview' });
+  }
+});
+
+// GET /api/newsletter/history — Get newsletter send history
+app.get('/api/newsletter/history', requireAuth, async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
+    const offset = (page - 1) * limit;
+
+    const rows = await db.select().from(newsletter_sends)
+      .orderBy(desc(newsletter_sends.created_at))
+      .limit(limit)
+      .offset(offset);
+
+    const [{ total }] = await db.select({ total: count() }).from(newsletter_sends);
+
+    res.json({
+      items: rows,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch newsletter history' });
+  }
 });
 
 // Admin auth check endpoint
@@ -245,15 +337,6 @@ app.delete('/api/submissions/:id', requireAuth, async (req, res) => {
 
     const [row] = await db.delete(submissions).where(eq(submissions.id, id)).returning();
     if (!row) return res.status(404).json({ error: 'Submission not found' });
-
-    // Clean up hero image file if it exists
-    if (row.hero_image) {
-      const filename = path.basename(row.hero_image);
-      const filePath = path.join(uploadDir, filename);
-      if (existsSync(filePath)) {
-        try { rmSync(filePath); } catch {}
-      }
-    }
 
     res.json({ success: true });
   } catch (err) {

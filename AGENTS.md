@@ -139,6 +139,13 @@ node populate-db.mjs # Populate dev.db with newsletter entries (creates → PATC
 - **Newsletter CSS is in the template**: The generated newsletter (`newsletter-dark.html`) has all CSS embedded inline from `newsletter-template.html`. It does NOT load `newsletter-dark.css` or `admin.css`. When fixing newsletter styling (e.g., list indentation), edit `newsletter-template.html`, NOT `newsletter-dark.css` or `admin.css`. After changes, run `node generate-newsletter.mjs` to regenerate.
 - **CSS reset strips list padding**: The newsletter template has a CSS reset (`*, *::before, *::after { padding: 0; }`) that zeros out list padding. The template also has explicit `padding-left: 0 !important` rules on `.event-desc ul/ol`, `.nantan-body ul/ol`, etc. When adding/modifying list styles in the newsletter, override these rules in `newsletter-template.html` with `padding-left: 1.5rem` (without `!important`).
 
+## File Handling
+- **Never delete hosted images.** The DELETE endpoint for submissions must NOT remove uploaded files from disk. Images are persistent assets that may be referenced by other entries or the generated newsletter.
+
+## Email Policy
+- **You must never send out an email campaign without explicit user permission.** Do not trigger email sends, mail merge jobs, or any outbound email — not even to yourself or a test address — unless the user directly instructs you to do so.
+- **You must ONLY create campaigns, never send them.** All scheduling and sending is done by the user logging in manually. Never auto-send, never trigger a "Test Send", never blast to a mailing list.
+
 ## Testing Workflow
 - Tests run on a separate server (port 3001, `test.db`) to avoid polluting `dev.db`.
 - **After running E2E tests, respawn the dev server** — the test server may leave port 3001 occupied or interfere with the dev server on port 3000.
