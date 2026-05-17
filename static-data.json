@@ -1,0 +1,46 @@
+{
+  "masthead": {
+    "eyebrow": "Weekly Notification",
+    "title": "The <em>Fort</em>",
+    "subtitle": "Events &amp; notifications for this week"
+  },
+  "issue": {
+    "organization": "F3 The Fort"
+  },
+  "footer": {
+    "submitUrl": "https://submit.f3thefort.com",
+    "motto": "\"SYITG\""
+  },
+  "sections": [
+    {
+      "id": "fng-tracker",
+      "label": "2026 FNG Tracker",
+      "order": 0
+    },
+    {
+      "id": "desk",
+      "label": "Desk of the Nan'tan",
+      "order": 1
+    },
+    {
+      "id": "whats-hot",
+      "label": "What's Hot in The Fort",
+      "order": 2
+    },
+    {
+      "id": "individual-init",
+      "label": "Individual Initiative",
+      "order": 3
+    },
+    {
+      "id": "still-fresh",
+      "label": "Still Fresh",
+      "order": 4
+    },
+    {
+      "id": "helpful-links",
+      "label": "Helpful Links",
+      "order": 5
+    }
+  ]
+}

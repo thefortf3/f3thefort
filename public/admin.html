@@ -51,6 +51,10 @@
         <span class="admin-nav__brand">Newsletter Admin</span>
         <div class="admin-nav__links">
           <a href="/" class="admin-nav__link">Submit Entry</a>
+          <a href="#" class="admin-nav__link" id="nav-entries-btn">Entries</a>
+          <a href="#" class="admin-nav__link" id="nav-fngs-btn">FNG Tracker</a>
+          <a href="#" class="admin-nav__link" id="generate-newsletter-btn">Generate Newsletter</a>
+          <a href="/newsletter-dark.html" class="admin-nav__link" target="_blank">View Newsletter</a>
           <a href="#" class="admin-nav__link" id="logout-btn">Logout</a>
         </div>
       </nav>
@@ -75,6 +79,47 @@
         <div class="empty-state__icon">&#128230;</div>
         <h3 class="empty-state__title">No entries yet</h3>
         <p class="empty-state__text">Submissions will appear here once community members submit them.</p>
+      </div>
+
+      <!-- FNG Tracker View (hidden by default) -->
+      <div id="fng-view" style="display: none;">
+        <!-- Header -->
+        <header class="page-header">
+          <span class="page-header__eyebrow">FNG Tracking</span>
+          <h1 class="page-header__title">2026 FNG Progress</h1>
+          <p class="page-header__subtitle" id="fng-stats">Loading FNG stats...</p>
+        </header>
+
+        <!-- FNG Stats Card -->
+        <div id="fng-stats-card" class="card" style="margin-bottom: var(--space-xl);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md);">
+            <span style="font-family: var(--font-display); font-size: 1.3rem; font-weight: 700;">Goal: 226 FNGs</span>
+            <span style="font-family: var(--font-ui); font-size: 1.1rem; font-weight: 600;" id="fng-progress-text">Loading...</span>
+          </div>
+          <div style="background: var(--color-bg-alt); border-radius: var(--radius-md); height: 24px; overflow: hidden; margin-bottom: var(--space-md);">
+            <div id="fng-progress-bar" style="background: var(--color-success); height: 100%; width: 0%; border-radius: var(--radius-md); transition: width 0.5s ease;"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-family: var(--font-ui); font-size: 0.82rem; color: var(--color-text-muted);">
+            <span id="fng-days">Day 0 of 365</span>
+            <span id="fng-target">Target: 0 FNGs by now</span>
+            <span id="fng-status">Calculating...</span>
+          </div>
+        </div>
+
+        <!-- FNG List -->
+        <div id="fng-list" class="entry-list stagger-children">
+          <!-- FNGs will be injected here -->
+        </div>
+
+        <!-- FNG Pagination -->
+        <div id="fng-pagination" class="pagination" style="display: none;"></div>
+
+        <!-- Empty State -->
+        <div id="fng-empty-state" class="empty-state" style="display: none;">
+          <div class="empty-state__icon">&#128101;</div>
+          <h3 class="empty-state__title">No FNGs recorded</h3>
+          <p class="empty-state__text">FNG entries will appear here as they are added.</p>
+        </div>
       </div>
 
     </div>

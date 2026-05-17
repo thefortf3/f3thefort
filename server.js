@@ -2,7 +2,7 @@ import express from 'express';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { eq, desc, count } from 'drizzle-orm';
-import { submissions } from './schema.js';
+import { submissions, fngs } from './schema.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
@@ -84,7 +84,7 @@ app.post('/api/newsletter/generate', requireAuth, async (req, res) => {
   console.log('Newsletter generation requested');
   try {
     const outputPath = path.join(__dirname, 'newsletter-dark.html');
-    await execFileAsync('node', ['generate-newsletter.mjs', `--output=${outputPath}`], { cwd: __dirname });
+    await execFileAsync('node', ['generate-newsletter.mjs', `--output=${outputPath}`, '--auto-accept'], { cwd: __dirname });
     console.log('Newsletter generated successfully');
     res.json({ success: true, url: '/newsletter-dark.html' });
   } catch (err) {
@@ -243,6 +243,123 @@ app.delete('/api/submissions/:id', requireAuth, async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete submission' });
+  }
+});
+
+// ============================================================
+// FNG Routes
+// ============================================================
+
+// GET /api/fngs — List all FNGs with pagination
+app.get('/api/fngs', async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const offset = (page - 1) * limit;
+    const year = req.query.year ? parseInt(req.query.year) : null;
+
+    let query = db.select().from(fngs).orderBy(desc(fngs.timestamp)).limit(limit).offset(offset);
+
+    if (year) {
+      query = query.where(eq(fngs.year, year));
+    }
+
+    const rows = await query;
+
+    let countQuery = db.select({ total: count() }).from(fngs);
+    if (year) {
+      countQuery = countQuery.where(eq(fngs.year, year));
+    }
+    const [{ total }] = await countQuery;
+
+    res.json({
+      items: rows,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch FNGs' });
+  }
+});
+
+// GET /api/fngs/stats — FNG progress stats
+app.get('/api/fngs/stats', async (req, res) => {
+  try {
+    const goal = 226;
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const startOfYear = new Date(currentYear, 0, 1);
+    const daysElapsed = Math.floor((now - startOfYear) / (1000 * 60 * 60 * 24)) + 1;
+    const dailyRate = goal / 365;
+    const expectedFngs = Math.floor(daysElapsed * dailyRate);
+
+    const totalAll = await db.select({ total: count() }).from(fngs);
+    const total2026 = await db.select({ total: count() }).from(fngs).where(eq(fngs.year, currentYear));
+
+    res.json({
+      goal,
+      currentYear,
+      daysElapsed,
+      dailyRate: Math.round(dailyRate * 100) / 100,
+      expectedFngs,
+      totalAll: totalAll[0].total,
+      total2026: total2026[0].total,
+      remaining: goal - total2026[0].total,
+      onTrack: total2026[0].total >= expectedFngs,
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch FNG stats' });
+  }
+});
+
+// POST /api/fngs — Create FNG entry (admin only)
+app.post('/api/fngs', requireAuth, async (req, res) => {
+  try {
+    const { timestamp, first_name, last_name, email, f3_name, ehed_by, workout_q_f3_name, ao, phone_number } = req.body;
+
+    if (!timestamp || !f3_name) {
+      return res.status(400).json({ error: 'Missing required fields: timestamp, f3_name' });
+    }
+
+    const date = new Date(timestamp);
+    const year = isNaN(date.getTime()) ? null : date.getFullYear();
+
+    const [row] = await db.insert(fngs).values({
+      timestamp,
+      first_name: first_name || null,
+      last_name: last_name || null,
+      email: email || null,
+      f3_name,
+      ehed_by: ehed_by || null,
+      workout_q_f3_name: workout_q_f3_name || null,
+      ao: ao || null,
+      phone_number: phone_number || null,
+      year,
+    }).returning();
+
+    res.status(201).json(row);
+  } catch (err) {
+    console.error('POST /api/fngs error:', err.message);
+    res.status(500).json({ error: 'Failed to create FNG entry' });
+  }
+});
+
+// DELETE /api/fngs/:id — Delete FNG entry (admin only)
+app.delete('/api/fngs/:id', requireAuth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
+
+    const [row] = await db.delete(fngs).where(eq(fngs.id, id)).returning();
+    if (!row) return res.status(404).json({ error: 'FNG entry not found' });
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete FNG entry' });
   }
 });
 

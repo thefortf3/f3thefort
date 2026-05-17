@@ -240,8 +240,10 @@ function initAdmin() {
   checkAuth();
   setupLogin();
   setupLogout();
+  setupGenerateNewsletter();
   setupModals();
   setupSectionDropdowns();
+  setupNavTabs();
 }
 
 async function checkAuth() {
@@ -319,6 +321,30 @@ function setupLogout() {
       await fetch('/api/admin/logout', { method: 'POST' });
     } catch {}
     showLogin();
+  });
+}
+
+function setupGenerateNewsletter() {
+  const btn = document.getElementById('generate-newsletter-btn');
+  if (!btn) return;
+
+  btn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    btn.disabled = true;
+    btn.textContent = 'Generating...';
+    try {
+      const res = await fetch('/api/newsletter/generate', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        showAlert('dashboard-alert', 'Newsletter generated! View it <a href="' + data.url + '" target="_blank">here</a>.', 'success');
+      } else {
+        showAlert('dashboard-alert', 'Failed to generate newsletter: ' + (data.error || 'Unknown error'), 'error');
+      }
+    } catch (err) {
+      showAlert('dashboard-alert', 'Failed to generate newsletter: ' + err.message, 'error');
+    }
+    btn.disabled = false;
+    btn.textContent = 'Generate Newsletter';
   });
 }
 
@@ -1115,3 +1141,141 @@ function escapeHtml(str) {
 document.addEventListener('DOMContentLoaded', () => {
   setupSectionToggles();
 });
+
+/* ============================================================
+   FNG Tracker View
+   ============================================================ */
+function setupNavTabs() {
+  const entriesBtn = document.getElementById('nav-entries-btn');
+  const fngsBtn = document.getElementById('nav-fngs-btn');
+  if (!entriesBtn || !fngsBtn) return;
+
+  entriesBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('dashboard-view').style.display = 'block';
+    document.getElementById('fng-view').style.display = 'none';
+    entriesBtn.style.fontWeight = '700';
+    fngsBtn.style.fontWeight = '';
+    loadEntries();
+  });
+
+  fngsBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('dashboard-view').style.display = 'none';
+    document.getElementById('fng-view').style.display = 'block';
+    fngsBtn.style.fontWeight = '700';
+    entriesBtn.style.fontWeight = '';
+    loadFngs();
+  });
+}
+
+let fngPage = 1;
+const FNG_PAGE_SIZE = 20;
+
+async function loadFngs() {
+  try {
+    await loadFngStats();
+    const res = await fetch(`/api/fngs?page=${fngPage}&limit=${FNG_PAGE_SIZE}&year=2026`);
+    const data = await res.json();
+    renderFngList(data);
+    renderFngPagination(data.pagination);
+  } catch (err) {
+    console.error('Failed to load FNGs:', err);
+  }
+}
+
+async function loadFngStats() {
+  try {
+    const res = await fetch('/api/fngs/stats');
+    const stats = await res.json();
+    
+    const progressBar = document.getElementById('fng-progress-bar');
+    const progressText = document.getElementById('fng-progress-text');
+    const daysEl = document.getElementById('fng-days');
+    const targetEl = document.getElementById('fng-target');
+    const statusEl = document.getElementById('fng-status');
+    const statsEl = document.getElementById('fng-stats');
+
+    if (progressBar) progressBar.style.width = `${stats.progressPercent}%`;
+    if (progressBar) progressBar.style.background = stats.onTrack ? 'var(--color-success)' : 'var(--color-accent)';
+    if (progressText) progressText.textContent = `${stats.total2026} / ${stats.goal} (${stats.progressPercent}%)`;
+    if (daysEl) daysEl.textContent = `Day ${stats.daysElapsed} of 365`;
+    if (targetEl) targetEl.textContent = `Target: ${stats.expectedFngs} FNGs by now`;
+    if (statusEl) statusEl.textContent = stats.onTrack ? '✅ On track' : '⚠️ Behind pace';
+    if (statsEl) statsEl.textContent = `${stats.total2026} FNGs in 2026 · ${stats.totalAll} total · Goal: ${stats.goal}`;
+  } catch (err) {
+    console.error('Failed to load FNG stats:', err);
+  }
+}
+
+function renderFngList(data) {
+  const listEl = document.getElementById('fng-list');
+  const emptyState = document.getElementById('fng-empty-state');
+  
+  if (!data.items || data.items.length === 0) {
+    listEl.innerHTML = '';
+    emptyState.style.display = 'block';
+    return;
+  }
+  
+  emptyState.style.display = 'none';
+  listEl.innerHTML = data.items.map(fng => `
+    <div class="entry-card" style="margin-bottom: var(--space-md);">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-md);">
+        <div>
+          <h3 style="font-family: var(--font-display); font-size: 1.1rem; font-weight: 700; margin-bottom: var(--space-xs);">
+            ${escapeHtml(fng.f3_name)}
+          </h3>
+          <p style="font-family: var(--font-ui); font-size: 0.82rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);">
+            ${escapeHtml(fng.first_name)} ${escapeHtml(fng.last_name)}
+            ${fng.email ? ` · <a href="mailto:${escapeHtml(fng.email)}" style="color: var(--color-accent);">${escapeHtml(fng.email)}</a>` : ''}
+          </p>
+          <p style="font-family: var(--font-ui); font-size: 0.82rem; color: var(--color-text-muted);">
+            ${fng.ehed_by ? `EH'ed by: <strong>${escapeHtml(fng.ehed_by)}</strong>` : ''}
+            ${fng.ao ? ` · AO: ${escapeHtml(fng.ao)}` : ''}
+          </p>
+          ${fng.workout_q_f3_name ? `<p style="font-family: var(--font-ui); font-size: 0.78rem; color: var(--color-text-faint); margin-top: var(--space-xs);">Workout Q: ${escapeHtml(fng.workout_q_f3_name)}</p>` : ''}
+        </div>
+        <button class="btn btn--danger btn--sm fng-delete-btn" data-fng-id="${fng.id}" style="flex-shrink: 0;">Delete</button>
+      </div>
+    </div>
+  `).join('');
+
+  // Setup delete buttons
+  listEl.querySelectorAll('.fng-delete-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const id = e.target.dataset.fngId;
+      if (!confirm('Delete this FNG entry?')) return;
+      try {
+        const res = await fetch(`/api/fngs/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          loadFngs();
+        }
+      } catch (err) {
+        console.error('Failed to delete FNG:', err);
+      }
+    });
+  });
+}
+
+function renderFngPagination(pagination) {
+  const pagEl = document.getElementById('fng-pagination');
+  if (!pagination || pagination.totalPages <= 1) {
+    pagEl.style.display = 'none';
+    return;
+  }
+  
+  pagEl.style.display = 'flex';
+  pagEl.innerHTML = '';
+  
+  for (let i = 1; i <= pagination.totalPages; i++) {
+    const btn = document.createElement('button');
+    btn.className = `pagination__btn ${i === pagination.page ? 'active' : ''}`;
+    btn.textContent = i;
+    btn.addEventListener('click', () => {
+      fngPage = i;
+      loadFngs();
+    });
+    pagEl.appendChild(btn);
+  }
+}
