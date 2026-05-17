@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Fort — Weekly Notification</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,400;1,600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   The Fort — Weekly Newsletter
+   Editorial / Magazine aesthetic matched to F3 brand
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --color-bg: #F7F3EB;
+  --color-bg-alt: #EDE8DC;
+  --color-surface: #F0EBE0;
+  --color-text: #2C2420;
+  --color-text-muted: #7A6E64;
+  --color-text-faint: #A89B8F;
+  --color-accent: #8B2E2E;
+  --color-accent-light: #B54A4A;
+  --color-accent-pale: #F5E6E6;
+  --color-border: #DDD5C8;
+  --color-border-light: #EAE4D9;
+  --color-success: #3A7D5C;
+  --color-success-bg: #E8F5EE;
+  --font-display: 'Playfair Display', 'Georgia', serif;
+  --font-body: 'Source Serif 4', 'Georgia', serif;
+  --font-ui: 'DM Sans', 'Helvetica Neue', sans-serif;
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
+  --space-2xl: 4rem;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-sm: 0 1px 3px rgba(44, 36, 32, 0.06);
+  --shadow-md: 0 4px 12px rgba(44, 36, 32, 0.08);
+  --shadow-lg: 0 8px 30px rgba(44, 36, 32, 0.12);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html { font-size: 16px; scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+
+body {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(139, 46, 46, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(58, 125, 92, 0.03) 0%, transparent 50%);
+  pointer-events: none; z-index: 0;
+}
+
+.container {
+  position: relative; z-index: 1;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-lg);
+}
+
+/* --- Masthead --- */
+.masthead {
+  text-align: center;
+  padding: var(--space-2xl) 0 var(--space-xl);
+  position: relative;
+}
+
+.masthead::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%; transform: translateX(-50%);
+  width: 120px; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
+}
+
+.masthead__eyebrow {
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--color-accent);
+  margin-bottom: var(--space-sm);
+  display: block;
+}
+
+.masthead__title {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 6vw, 3.8rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-xs);
+}
+
+.masthead__title em {
+  font-style: italic;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.masthead__subtitle {
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  font-style: italic;
+  color: var(--color-text-muted);
+  margin-top: var(--space-sm);
+}
+
+/* --- Issue Bar --- */
+.issue-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  color: var(--color-text-faint);
+  letter-spacing: 0.04em;
+}
+
+.issue-bar__sep {
+  width: 4px; height: 4px;
+  background: var(--color-text-faint);
+  border-radius: 50%;
+  display: inline-block;
+  opacity: 0.5;
+}
+
+/* --- Section Header --- */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+  margin-top: var(--space-xl);
+}
+
+.section-header__label {
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--color-accent);
+  white-space: nowrap;
+}
+
+.section-header__rule {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--color-border), transparent);
+}
+
+/* --- Event Card --- */
+.event-card {
+  background: var(--color-bg-card, #FFFFFF);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-lg);
+  transition: box-shadow 0.3s var(--ease-out), transform 0.3s var(--ease-out);
+  position: relative;
+  overflow: hidden;
+  animation: slideUp 0.5s var(--ease-out) forwards;
+  opacity: 0;
+}
+
+.event-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.event-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: var(--color-accent);
+  opacity: 0;
+  transition: opacity 0.3s var(--ease-out);
+}
+
+.event-card:hover::before { opacity: 1; }
+
+/* stagger */
+.event-card:nth-child(1) { animation-delay: 0.05s; }
+.event-card:nth-child(2) { animation-delay: 0.1s; }
+.event-card:nth-child(3) { animation-delay: 0.15s; }
+.event-card:nth-child(4) { animation-delay: 0.2s; }
+.event-card:nth-child(5) { animation-delay: 0.25s; }
+.event-card:nth-child(6) { animation-delay: 0.3s; }
+.event-card:nth-child(7) { animation-delay: 0.35s; }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.event-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.event-card__title {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+
+.event-card__title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.event-card__title a:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-decoration-color: rgba(139, 46, 46, 0.3);
+  text-underline-offset: 3px;
+}
+
+.event-card__leader {
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-accent);
+  background: var(--color-accent-pale);
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.event-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-lg);
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-md);
+}
+
+.event-card__meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.event-card__meta-item .icon {
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.event-card__meta-item::before {
+  content: '';
+  width: 4px; height: 4px;
+  background: var(--color-text-faint);
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.event-card__meta-item:first-child::before { display: none; }
+
+.event-card__description {
+  font-size: 0.95rem;
+  line-height: 1.75;
+  color: var(--color-text);
+}
+
+.event-card__description img {
+  max-width: 100%;
+  border-radius: var(--radius-md);
+  margin: var(--space-md) 0;
+}
+
+.event-card__description a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-decoration-color: rgba(139, 46, 46, 0.3);
+  text-underline-offset: 2px;
+}
+
+.event-card__description a:hover {
+  color: var(--color-accent-light);
+}
+
+.event-card__description br { display: none; }
+
+.event-card__link {
+  margin-top: var(--space-md);
+  padding-top: var(--space-sm);
+}
+
+.event-card__link a {
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.event-card__link a:hover {
+  color: var(--color-accent-light);
+}
+
+.event-card__link a::after {
+  content: '→';
+  transition: transform 0.2s var(--ease-out);
+}
+
+.event-card__link a:hover::after {
+  transform: translateX(3px);
+}
+
+/* --- Footer --- */
+.newsletter-footer {
+  text-align: center;
+  padding: var(--space-2xl) 0 var(--space-xl);
+  margin-top: var(--space-2xl);
+  border-top: 1px solid var(--color-border-light);
+}
+
+.newsletter-footer__text {
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  color: var(--color-text-faint);
+  line-height: 1.8;
+}
+
+.newsletter-footer__text a {
+  color: var(--color-text-muted);
+  text-decoration: underline;
+  text-decoration-color: rgba(139, 46, 46, 0.2);
+}
+
+.newsletter-footer__motto {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-style: italic;
+  color: var(--color-text-muted);
+  margin-top: var(--space-md);
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+  .container { padding: var(--space-lg) var(--space-md); }
+  .event-card { padding: var(--space-lg); }
+  .event-card__top { flex-direction: column; }
+  .event-card__meta { flex-direction: column; gap: var(--space-xs); }
+  .event-card__meta-item::before { display: none; }
+}
+
+@media print {
+  body::before { display: none; }
+  .event-card { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
+  .event-card:hover { transform: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Masthead -->
+  <header class="masthead">
+    <span class="masthead__eyebrow">Weekly Notification</span>
+    <h1 class="masthead__title">The <em>Fort</em></h1>
+    <p class="masthead__subtitle">Events &amp; notifications for this week</p>
+    <div class="issue-bar">
+      <span>May 16 – 22, 2026</span>
+      <span class="issue-bar__sep"></span>
+      <span>7 Events</span>
+      <span class="issue-bar__sep"></span>
+      <span>F3 The Fort</span>
+    </div>
+  </header>
+
+  <!-- Events Section -->
+  <div class="section-header">
+    <span class="section-header__label">Events</span>
+    <span class="section-header__rule"></span>
+  </div>
+
+  <div class="events-list">
+
+    <!-- Event 1: Weekly Happy Hour -->
+    <article class="event-card">
+      <div class="event-card__top">
+        <h2 class="event-card__title">Weekly Happy Hour</h2>
+        <span class="event-card__leader">Leader: Double D</span>
+      </div>
+      <div class="event-card__meta">
+        <span class="event-card__meta-item">
+          <span class="icon">📅</span> Sat, May 22 — 2:30 PM
+        </span>
+        <span class="event-card__meta-item">
+          <span class="icon">📍</span> Amor Artis
+        </span>
+      </div>
+      <div class="event-card__description">
+        <p>Why? Because all work and no play makes pax a dull boy. Come sharpen yourself in a conversation that lasts longer than 2 breaths in the Gloom.</p>
+      </div>
+    </article>
+
+    <!-- Event 2: The Murph -->
+    <article class="event-card">
+      <div class="event-card__top">
+        <h2 class="event-card__title">The Murph</h2>
+        <span class="event-card__leader">Leader: Chiclets</span>
+      </div>
+      <div class="event-card__meta">
+        <span class="event-card__meta-item">
+          <span class="icon">📅</span> Fri, May 25 — 6:30 AM
+        </span>
+        <span class="event-card__meta-item">
+          <span class="icon">📍</span> Nation Ford HS
+        </span>
+      </div>
+      <div class="event-card__description">
+        <img src="https://mcusercontent.com/31d40047f4100a853e297353d/images/d393dc6f-b12f-80ec-bc66-3459a0866fa9.jpg" alt="Murph memorial">
+        <p>Come ready to honor the fallen the right way — no man left behind.</p>
+      </div>
+    </article>
+
+    <!-- Event 3: Post Murph Invergence -->
+    <article class="event-card">
+      <div class="event-card__top">
+        <h2 class="event-card__title">Post Murph Invergence</h2>
+        <span class="event-card__leader">Leader: Shady</span>
+      </div>
+      <div class="event-card__meta">
+        <span class="event-card__meta-item">
+          <span class="icon">📅</span> Fri, May 25 — 7:15 AM
+        </span>
+        <span class="event-card__meta-item">
+          <span class="icon">📍</span> Nation Ford HS
+        </span>
+      </div>
+      <div class="event-card__description">
+        <p>Invergence following Murph &amp; GT. AAR from Greater Than, hear from brothers their before and after, biggest takeaways and how this lights a fire for the Fort.</p>
+      </div>
+    </article>
+
+    <!-- Event 4: Bethel Men's Shelter -->
+    <article class="event-card">
+      <div class="event-card__top">
+        <h2 class="event-card__title">Bethel Men's Shelter</h2>
+        <span class="event-card__leader">Leader: Float Bridge</span>
+      </div>
+      <div class="event-card__meta">
+        <span class="event-card__meta-item">
+          <span class="icon">📅</span> Wed, Jun 4 — 5:30 PM
+        </span>
+        <span class="event-card__meta-item">
+          <span class="icon">📍</span> 1232 Curtis St, Rock Hill
+        </span>
+      </div>
+      <div class="event-card__description">
+        <p>The Fort supports the Bethel Men's Shelter by providing a meal to the homeless men. Every month a different shield lock leads meal planning. Signups in <strong>#bethelshelters</strong> channel.</p>
+        <p class="event-card__link"><a href="https://maps.app.goo.gl/GRNss7W5MujKXFWd9" target="_blank" rel="noopener">View on Google Maps</a></p>
+      </div>
+    </article>
+
+    <!-- Event 5: Adopt A Highway (2nd Quarter) -->
+    <article class="event-card">
+      <div class="event-card__top">
+        <h2 class="event-card__title">Adopt A Highway (2nd Quarter)</h2>
+        <span class="event-card__leader">Leader: Fogerty</span>
+      </div>
+      <div class="event-card__meta">
+        <span class="event-card__meta-item">
+          <span class="icon">📅</span> Mon, Jun 6 — 8:00 AM
+        </span>
+        <span class="event-card__meta-item">
+          <span class="icon">📍</span> Harris Street Park
+        </span>
+      </div>
+      <div class="event-card__description">
+        <p>Second pickup for 2026! All supplies provided — only need you and approximately 2 hours. SYITG.</p>
+      </div>
+    </article>
+
+    <!-- Event 6: 11th Annual TEC Dowling Memorial Tournament -->
+    <article class="event-card">
+      <div class="event-card__top">
+        <h2 class="event-card__title">11th Annual TEC Dowling Memorial Tournament</h2>
+        <span class="event-card__leader">Leader: Pusher</span>
+      </div>
+      <div class="event-card__meta">
+        <span class="event-card__meta-item">
+          <span class="icon">📅</span> Tue, Jun 11 — 9:00 AM
+        </span>
+        <span class="event-card__meta-item">
+          <span class="icon">⏰</span> Until 12:30 PM
+        </span>
+        <span class="event-card__meta-item">
+          <span class="icon">📍</span> Palisades Country Club
+        </span>
+      </div>
+      <div class="event-card__description">
+        <p>11th annual tournament at Palisades Country Club, 9:00 AM shotgun start. FFMS's largest fundraiser honoring TEC Dowling (Superintendent 1997–2005). Raised <strong>$300K+</strong> for technology, school supplies, and critical needs across our schools.</p>
+        <p class="event-card__link"><a href="https://www.foundationforfortmillschools.org/ffmsgolftour/page.html" target="_blank" rel="noopener">Register &amp; Learn More</a></p>
+      </div>
+    </article>
+
+    <!-- Event 7: Father's Day Dads & 2.0's Event -->
+    <article class="event-card">
+      <div class="event-card__top">
+        <h2 class="event-card__title">Father's Day Dads &amp; 2.0's Event</h2>
+        <span class="event-card__leader">Leaders: NASA / Suplex / Spectre</span>
+      </div>
+      <div class="event-card__meta">
+        <span class="event-card__meta-item">
+          <span class="icon">📅</span> Sun, Jun 20 — 9:00 AM
+        </span>
+        <span class="event-card__meta-item">
+          <span class="icon">📍</span> WEP
+        </span>
+      </div>
+      <div class="event-card__description">
+        <p>9–10 Kickball with 2.0's on Fathers day at WEP. Finale will include Water balloon fight &amp; Ice Pops. Show your 2.0's why you do F3.</p>
+        <p class="event-card__link"><a href="https://drive.google.com/file/d/1Kdn6Sj-Qw483soMf1XJXokYXLdA7MGDt/view?usp=drive_link" target="_blank" rel="noopener">Event Details</a></p>
+      </div>
+    </article>
+
+  </div>
+
+  <!-- Footer -->
+  <footer class="newsletter-footer">
+    <p class="newsletter-footer__text">
+      Submit your events at <a href="https://submit.f3thefort.com" target="_blank" rel="noopener">submit.f3thefort.com</a>
+    </p>
+    <p class="newsletter-footer__motto">"SYITG"</p>
+  </footer>
+
+</div>
+
+</body>
+</html>

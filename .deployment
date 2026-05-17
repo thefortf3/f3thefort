@@ -1,0 +1,6 @@
+[config]
+platform = "nodejs"
+version = "20"
+
+[SCM]
+do_build = false

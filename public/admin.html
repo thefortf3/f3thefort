@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Newsletter</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container container--wide">
+    <!-- Login View -->
+    <div id="login-view" class="login-container">
+      <div class="card">
+        <header class="page-header">
+          <span class="page-header__eyebrow">Restricted Area</span>
+          <h2 class="page-header__title">Admin Login</h2>
+          <p class="page-header__subtitle">Enter your credentials to manage newsletter entries</p>
+        </header>
+        <div id="login-alert"></div>
+        <form id="login-form">
+          <div class="form-group">
+            <label for="admin-password">Password</label>
+            <input
+              type="password"
+              id="admin-password"
+              name="password"
+              placeholder="Enter admin password"
+              required
+              autofocus
+            >
+          </div>
+          <div class="form-actions" style="border-top: none; padding-top: 0; margin-top: 0;">
+            <div class="form-actions__right" style="justify-content: center;">
+              <button type="submit" class="btn btn--primary" id="login-btn">
+                <span id="login-text">Login</span>
+                <span id="login-spinner" class="spinner" style="display:none;"></span>
+              </button>
+            </div>
+          </div>
+        </form>
+        <p style="margin-top: var(--space-lg);">
+          <a href="/" class="btn btn--ghost">&larr; Back to Newsletter</a>
+        </p>
+      </div>
+    </div>
+
+    <!-- Dashboard View (hidden until logged in) -->
+    <div id="dashboard-view" style="display: none;">
+      <!-- Nav -->
+      <nav class="admin-nav">
+        <span class="admin-nav__brand">Newsletter Admin</span>
+        <div class="admin-nav__links">
+          <a href="/" class="admin-nav__link">Submit Entry</a>
+          <a href="#" class="admin-nav__link" id="logout-btn">Logout</a>
+        </div>
+      </nav>
+
+      <!-- Header -->
+      <header class="page-header">
+        <span class="page-header__eyebrow">Dashboard</span>
+        <h1 class="page-header__title">All Entries</h1>
+        <p class="page-header__subtitle" id="entry-count">Loading entries...</p>
+      </header>
+
+      <!-- Alert Container -->
+      <div id="dashboard-alert"></div>
+
+      <!-- Entry List -->
+      <div id="entry-list" class="entry-list stagger-children">
+        <!-- Entries will be injected here -->
+      </div>
+
+      <!-- Empty State (hidden by default) -->
+      <div id="empty-state" class="empty-state" style="display: none;">
+        <div class="empty-state__icon">&#128230;</div>
+        <h3 class="empty-state__title">No entries yet</h3>
+        <p class="empty-state__text">Submissions will appear here once community members submit them.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div class="modal-overlay" id="detail-modal">
+    <div class="modal">
+      <div class="modal__header">
+        <h3 class="modal__title" id="modal-title">Entry Details</h3>
+        <button class="modal__close" id="modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal__body">
+        <div class="detail-view">
+          <div class="detail-view__header">
+            <h2 class="detail-view__title" id="detail-title"></h2>
+            <div class="detail-view__meta" id="detail-meta"></div>
+          </div>
+          <div class="detail-view__section" style="text-align: center; margin-bottom: var(--space-lg);">
+            <span style="font-family: var(--font-ui); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--color-text-muted); margin-right: var(--space-sm);">Section:</span>
+            <span id="modal-section-badge" class="section-badge" style="background: #F0EBE0; color: #A89B8F; border: 1px solid #DDD5C8;"></span>
+          </div>
+          <div class="detail-view__content" id="detail-content"></div>
+          <div class="detail-view__link" id="detail-link" style="display: none;"></div>
+          <div class="detail-view__submitter" id="detail-submitter"></div>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <select id="modal-section-dropdown" class="section-dropdown section-dropdown--modal" aria-label="Section">
+          <option value="">(none)</option>
+          <option value="fng-tracker">2026 FNG Tracker</option>
+          <option value="desk">Desk of the Nan'tan</option>
+          <option value="whats-hot">What's Hot in The Fort</option>
+          <option value="individual-init">Individual Initiative</option>
+          <option value="still-fresh">Still Fresh</option>
+          <option value="helpful-links">Helpful Links</option>
+        </select>
+        <button class="btn btn--danger btn--sm" id="modal-delete-btn">Delete Entry</button>
+        <button class="btn btn--ghost btn--sm" id="modal-close-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div class="modal-overlay" id="delete-modal">
+    <div class="modal" style="max-width: 420px;">
+      <div class="modal__header">
+        <h3 class="modal__title">Confirm Deletion</h3>
+        <button class="modal__close" id="delete-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal__body">
+        <p style="font-size: 1rem; line-height: 1.6;">
+          Are you sure you want to delete this entry? This action cannot be undone.
+        </p>
+        <p style="font-style: italic; color: var(--color-text-muted); margin-top: var(--space-md);" id="delete-entry-title"></p>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--ghost btn--sm" id="delete-cancel-btn">Cancel</button>
+        <button class="btn btn--danger btn--sm" id="delete-confirm-btn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script>
+    // Initialize admin page
+    document.addEventListener('DOMContentLoaded', () => {
+      initAdmin();
+    });
+  </script>
+</body>
+</html>
