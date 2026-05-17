@@ -1102,3 +1102,39 @@ select:focus {
   .card { box-shadow: none; border: 1px solid #333; }
   .btn, .admin-nav, .pagination, .entry-card__actions { display: none; }
 }
+
+/* ============================================================
+   Newsletter Bar
+   ============================================================ */
+.newsletter-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-md);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+}
+
+.newsletter-bar__label {
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.newsletter-bar__status {
+  margin-left: auto;
+  color: var(--text-dim);
+}
+
+.newsletter-bar__status--sent {
+  color: var(--green);
+}
+
+.newsletter-bar__status--error {
+  color: var(--rust);
+}

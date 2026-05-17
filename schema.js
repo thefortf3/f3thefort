@@ -18,6 +18,18 @@ export const submissions = sqliteTable('submissions', {
   created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const newsletter_sends = sqliteTable('newsletter_sends', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  campaign_id: text('campaign_id'),
+  subject: text('subject'),
+  from_name: text('from_name'),
+  from_email: text('from_email'),
+  status: text('status').notNull(), // 'sent', 'preview_sent', 'failed'
+  error_message: text('error_message'),
+  recipient_count: integer('recipient_count').default(0),
+  created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const fngs = sqliteTable('fngs', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   timestamp: text('timestamp'),

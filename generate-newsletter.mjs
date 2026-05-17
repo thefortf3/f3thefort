@@ -33,6 +33,11 @@ const dbPath = dbPathArg
 
 const templatePath = resolve(__dirname, 'public', 'newsletter-template.html');
 const previewOnly = args.includes('--preview');
+const baseUrl = process.env.BASE_URL;
+if (!baseUrl) {
+  console.error('Error: BASE_URL environment variable is required (e.g., https://news.thelucks.org)');
+  process.exit(1);
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 function escapeHtml(str) {
@@ -178,7 +183,7 @@ function buildNantanSection(submissions) {
     <div class="nantan-author">Desk of the Nan'tan — ${escapeHtml(desk.leader || 'Band Camp')}</div>
     <div class="nantan-title">${escapeHtml(desk.title)}</div>
     <div class="nantan-body">
-      ${desk.description}
+      ${rewriteHtmlImages(desk.description)}
     </div>
   </div>`;
 }
@@ -263,7 +268,7 @@ function buildEventCard(sub) {
 
   if (sub.hero_image) {
     html += `
-      <img class="event-image" src="${escapeHtml(sub.hero_image)}" alt="${escapeHtml(sub.title)}">`;
+      <img class="event-image" src="${escapeHtml(resolveAssetUrl(sub.hero_image))}" alt="${escapeHtml(sub.title)}">`;
   }
 
   html += `
@@ -292,7 +297,7 @@ function buildEventCard(sub) {
         </div>`;
 
   html += `
-        <div class="event-desc">${sub.description || ''}</div>`;
+        <div class="event-desc">${rewriteHtmlImages(sub.description || '')}</div>`;
 
   if (sub.link) {
     html += `
@@ -329,7 +334,7 @@ function buildInitiativeCard(sub) {
 
   html += `
       </div>
-      <div class="initiative-desc">${sub.description || ''}</div>`;
+      <div class="initiative-desc">${rewriteHtmlImages(sub.description || '')}</div>`;
 
   if (sub.link) {
     html += `
@@ -360,7 +365,7 @@ function buildFreshCard(sub) {
       <div class="word-label">${escapeHtml(month)}</div>
       <div class="word-main">${escapeHtml(word)}</div>
       <div class="word-body">
-        ${sub.description}
+        ${rewriteHtmlImages(sub.description)}
       </div>
     </div>`;
   }
@@ -398,7 +403,7 @@ function buildFreshCard(sub) {
 
   html += `
         </div>
-        <div class="event-desc">${sub.description || ''}</div>
+        <div class="event-desc">${rewriteHtmlImages(sub.description || '')}</div>
       </div>
     </article>`;
 
@@ -413,6 +418,18 @@ function buildLinkItem(sub) {
 function stripHtml(html) {
   if (!html) return '';
   return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').trim();
+}
+
+function resolveAssetUrl(url) {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (url.startsWith('/')) return baseUrl + url;
+  return url;
+}
+
+function rewriteHtmlImages(html) {
+  if (!html) return '';
+  return html.replace(/src="\/uploads\/([^"]+)"/g, `src="${baseUrl}/uploads/$1"`);
 }
 
 // ─── Main ────────────────────────────────────────────────────────────

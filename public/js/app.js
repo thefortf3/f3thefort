@@ -249,6 +249,9 @@ function initAdmin() {
   setupLogin();
   setupLogout();
   setupGenerateNewsletter();
+  setupCreateCampaign();
+  setupPreviewNewsletter();
+  loadNewsletterConfig();
   setupModals();
   setupSectionDropdowns();
 }
@@ -353,6 +356,97 @@ function setupGenerateNewsletter() {
     btn.disabled = false;
     btn.textContent = 'Generate Newsletter';
   });
+}
+
+function setupCreateCampaign() {
+  const btn = document.getElementById('newsletter-send-btn');
+  if (!btn) return;
+
+  btn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    btn.disabled = true;
+    btn.textContent = 'Creating...';
+
+    try {
+      const res = await fetch('/api/newsletter/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (data.success) {
+        updateNewsletterStatus('sent', 'Campaign created!');
+      } else {
+        updateNewsletterStatus('error', data.error || 'Failed to create');
+      }
+    } catch (err) {
+      updateNewsletterStatus('error', err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Create';
+    }
+  });
+}
+
+function setupPreviewNewsletter() {
+  const btn = document.getElementById('newsletter-preview-btn');
+  if (!btn) return;
+
+  btn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const email = prompt('Enter email address for preview:');
+    if (!email || !email.trim()) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+
+    try {
+      const res = await fetch('/api/newsletter/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        updateNewsletterStatus('sent', 'Preview sent!');
+      } else {
+        updateNewsletterStatus('error', data.error || 'Failed to send preview');
+      }
+    } catch (err) {
+      updateNewsletterStatus('error', err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Preview';
+    }
+  });
+}
+
+function updateNewsletterStatus(type, message) {
+  const statusEl = document.getElementById('newsletter-status');
+  if (!statusEl) return;
+
+  statusEl.className = 'newsletter-bar__status newsletter-bar__status--' + type;
+  statusEl.textContent = message;
+}
+
+async function loadNewsletterConfig() {
+  try {
+    const res = await fetch('/api/newsletter/config');
+    const config = await res.json();
+    const section = document.getElementById('newsletter-section');
+
+    if (section) {
+      section.style.display = 'flex';
+    }
+
+    if (!config.configured) {
+      updateNewsletterStatus('error', 'Mailchimp not configured');
+    } else {
+      updateNewsletterStatus('sent', config.fromName + ' — ' + config.fromEmail);
+    }
+  } catch {
+    // Non-critical — newsletter section still shows
+  }
 }
 
 function buildSectionSubtitle(items) {
