@@ -94,6 +94,11 @@ npx drizzle-kit studio # Open Drizzle Studio (DB viewer)
 node populate-db.mjs # Populate dev.db with newsletter entries (creates → PATCH sections)
 ```
 
+## Development Workflow
+- **Always keep the dev server running** after making changes. Frontend files are served statically, so the server must be up to see updates in the browser.
+- When asked to start the dev server, run it in the background using `nohup npm run dev &` so it doesn't block the terminal.
+- If it's already running, check for port conflicts (`fuser -k 3000/tcp 2>/dev/null`) before starting.
+
 ## Requirement Status (from REQUIREMENTS.md)
 | ID | Status | Description |
 |----|--------|-------------|

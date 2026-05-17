@@ -4,15 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Submit to the Newsletter</title>
-  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/submit.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,500&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="container">
     <!-- Header -->
-    <header class="page-header animate-fade-in">
-      <span class="page-header__eyebrow">F3 - The Fort</span>
-      <h1 class="page-header__title">Submit an Entry</h1>
-      <p class="page-header__subtitle">Share your event, gathering, or community announcement with everyone</p>
+    <header class="newsletter-header page-header animate-fade-in">
+      <span class="newsletter-header__eyebrow page-header__eyebrow">F3 - The Fort</span>
+      <h1 class="newsletter-header__title page-header__title">Submit an Entry</h1>
+      <p class="newsletter-header__subtitle">Share your event, gathering, or community announcement with everyone</p>
     </header>
 
     <!-- Alert Container -->
@@ -110,6 +113,26 @@
           <input type="hidden" id="description" name="description">
         </div>
 
+        <!-- Hero Image -->
+        <div class="form-group">
+          <label for="hero-image-input">Hero Image</label>
+          <div class="hero-upload" id="hero-upload">
+            <input type="file" id="hero-image-input" accept="image/*" style="display:none;">
+            <div class="hero-upload__placeholder" id="hero-placeholder">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span>Click to upload a hero image</span>
+              <span class="hero-upload__hint">Optional — appears at the top of your entry (max 5MB)</span>
+            </div>
+            <div class="hero-upload__preview" id="hero-preview" style="display:none;">
+              <img id="hero-preview-img" src="" alt="Hero preview">
+              <button type="button" class="hero-upload__remove" id="hero-remove" aria-label="Remove hero image">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          </div>
+          <input type="hidden" id="hero_image" name="hero_image">
+        </div>
+
         <!-- Specific Link -->
         <div class="form-group">
           <label for="link">Event Link</label>
@@ -180,17 +203,18 @@
     </div>
 
     <!-- Footer -->
-    <footer class="page-footer">
-      <p class="page-footer__text">F3 - The Fort</p>
+    <footer class="newsletter-footer">
+      <p class="newsletter-footer__text">F3 — The Fort</p>
     </footer>
   </div>
 
   <script src="/js/app.js"></script>
-  <script>
+   <script>
     // Initialize submission form
     document.addEventListener('DOMContentLoaded', () => {
       initRichEditor();
       initSubmissionForm();
+      initHeroUpload();
     });
   </script>
 </body>

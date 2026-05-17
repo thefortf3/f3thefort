@@ -10,6 +10,7 @@ export const submissions = sqliteTable('submissions', {
   location: text('location'),
   description: text('description').notNull(),
   link: text('link'),
+  hero_image: text('hero_image'),
   section: text('section'),
   submitter_name: text('submitter_name'),
   submitter_email: text('submitter_email'),

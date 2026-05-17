@@ -5,6 +5,7 @@ import { eq, desc, count } from 'drizzle-orm';
 import { submissions, fngs } from './schema.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { existsSync, rmSync } from 'fs';
 import multer from 'multer';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
@@ -84,9 +85,9 @@ app.post('/api/newsletter/generate', requireAuth, async (req, res) => {
   console.log('Newsletter generation requested');
   try {
     const outputPath = path.join(__dirname, 'newsletter-dark.html');
-    await execFileAsync('node', ['generate-newsletter.mjs', `--output=${outputPath}`, '--auto-accept'], { cwd: __dirname });
+    await execFileAsync('node', ['generate-newsletter.mjs', `--output=${outputPath}`], { cwd: __dirname });
     console.log('Newsletter generated successfully');
-    res.json({ success: true, url: '/newsletter-dark.html' });
+    res.json({ success: true, url: '/newsletter-dark' });
   } catch (err) {
     console.error('Newsletter generation failed:', err.message);
     res.status(500).json({ error: err.message || 'Failed to generate newsletter' });
@@ -168,7 +169,7 @@ app.get('/api/submissions/:id', async (req, res) => {
 // POST /api/submissions — Create new submission
 app.post('/api/submissions', async (req, res) => {
   try {
-    const { title, leader, start_date, end_time, location, description, link, submitter_name, submitter_email, submitter_phone } = req.body;
+    const { title, leader, start_date, end_time, location, description, link, hero_image, submitter_name, submitter_email, submitter_phone } = req.body;
 
     if (!title || !start_date || !description) {
       return res.status(400).json({ error: 'Missing required fields: title, start_date, description' });
@@ -190,6 +191,7 @@ app.post('/api/submissions', async (req, res) => {
       location: location || null,
       description,
       link: link || null,
+      hero_image: hero_image || null,
       submitter_name: submitter_name || null,
       submitter_email: submitter_email || null,
       submitter_phone: submitter_phone || null,
@@ -203,7 +205,7 @@ app.post('/api/submissions', async (req, res) => {
 });
 
 // PATCH /api/submissions/:id — Update submission section (admin only)
-const ALLOWED_SECTIONS = ['fng-tracker', 'desk', 'whats-hot', 'individual-init', 'still-fresh', 'helpful-links', null];
+const ALLOWED_SECTIONS = ['whats-hot', 'individual-init', 'desk', 'still-fresh', 'helpful-links', null];
 
 app.patch('/api/submissions/:id', requireAuth, async (req, res) => {
   try {
@@ -213,14 +215,18 @@ app.patch('/api/submissions/:id', requireAuth, async (req, res) => {
     const [existing] = await db.select().from(submissions).where(eq(submissions.id, id));
     if (!existing) return res.status(404).json({ error: 'Submission not found' });
 
-    const { section } = req.body;
+    const { section, hero_image } = req.body;
     if (!ALLOWED_SECTIONS.includes(section)) {
       return res.status(400).json({ error: 'Invalid section value' });
     }
 
+    const updates = {};
+    if (section !== undefined) updates.section = section;
+    if (hero_image !== undefined) updates.hero_image = hero_image;
+
     const [row] = await db
       .update(submissions)
-      .set({ section })
+      .set(updates)
       .where(eq(submissions.id, id))
       .returning();
 
@@ -239,6 +245,15 @@ app.delete('/api/submissions/:id', requireAuth, async (req, res) => {
 
     const [row] = await db.delete(submissions).where(eq(submissions.id, id)).returning();
     if (!row) return res.status(404).json({ error: 'Submission not found' });
+
+    // Clean up hero image file if it exists
+    if (row.hero_image) {
+      const filename = path.basename(row.hero_image);
+      const filePath = path.join(uploadDir, filename);
+      if (existsSync(filePath)) {
+        try { rmSync(filePath); } catch {}
+      }
+    }
 
     res.json({ success: true });
   } catch (err) {
@@ -394,9 +409,14 @@ app.get('/newsletter', (req, res) => {
   res.sendFile(path.join(__dirname, 'newsletter.html'));
 });
 
-// Serve newsletter-dark.html for /newsletter-dark.html route
-app.get('/newsletter-dark.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'newsletter-dark.html'));
+// Serve newsletter-dark.html for /newsletter-dark route
+app.get('/newsletter-dark', (req, res) => {
+  const filePath = path.join(__dirname, 'newsletter-dark.html');
+  if (existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send('Newsletter not generated yet. Use admin dashboard to generate.');
+  }
 });
 
 // Catch-all — serve index.html for any other route

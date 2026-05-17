@@ -7,7 +7,6 @@
    Section Definitions
    ============================================================ */
 const SECTIONS = [
-  { id: 'fng-tracker',   label: '2026 FNG Tracker',        accent: '#2C3E50' },
   { id: 'desk',          label: "Desk of the Nan'tan",     accent: '#6C3483' },
   { id: 'whats-hot',     label: "What's Hot in The Fort",  accent: '#8B2E2E' },
   { id: 'individual-init', label: 'Individual Initiative', accent: '#3A7D5C' },
@@ -177,6 +176,9 @@ function initSubmissionForm() {
       if (email) body.submitter_email = email;
       if (phone) body.submitter_phone = phone;
 
+      const heroImage = form.querySelector('#hero_image').value.trim();
+      if (heroImage) body.hero_image = heroImage;
+
       const response = await fetch('/api/submissions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -187,6 +189,12 @@ function initSubmissionForm() {
         form.reset();
         document.getElementById('editor-content').innerHTML = '';
         document.getElementById('description').value = '';
+        const heroPlaceholder = document.getElementById('hero-placeholder');
+        const heroPreview = document.getElementById('hero-preview');
+        const heroHidden = document.getElementById('hero_image');
+        if (heroPlaceholder) heroPlaceholder.style.display = 'flex';
+        if (heroPreview) heroPreview.style.display = 'none';
+        if (heroHidden) heroHidden.value = '';
         window.scrollTo({ top: 0, behavior: 'smooth' });
         showAlert('alert-container', 'Your entry has been submitted successfully! Thank you.', 'success');
       } else {
@@ -243,7 +251,6 @@ function initAdmin() {
   setupGenerateNewsletter();
   setupModals();
   setupSectionDropdowns();
-  setupNavTabs();
 }
 
 async function checkAuth() {
@@ -336,7 +343,7 @@ function setupGenerateNewsletter() {
       const res = await fetch('/api/newsletter/generate', { method: 'POST' });
       const data = await res.json();
       if (data.success) {
-        showAlert('dashboard-alert', 'Newsletter generated! View it <a href="' + data.url + '" target="_blank">here</a>.', 'success');
+        showAlert('dashboard-alert', 'Newsletter generated! <a href="/newsletter-dark" target="_blank">View Newsletter</a> →', 'success');
       } else {
         showAlert('dashboard-alert', 'Failed to generate newsletter: ' + (data.error || 'Unknown error'), 'error');
       }
@@ -377,7 +384,7 @@ function buildSectionSubtitle(items) {
     return 'No entries yet';
   }
 
-  return parts.join(' &middot; ');
+  return parts.join(' \u00B7 ');
 }
 
 async function loadEntries() {
@@ -428,54 +435,6 @@ function buildSectionedList(items) {
 
   let html = '';
 
-  // Static FNG Tracker template
-  html += `
-    <div class="section-group" data-section="fng-tracker" style="border-left: 4px solid #2C3E50;">
-      <div class="section-header" style="color: #2C3E50;">
-        <span class="section-header__title">2026 FNG Tracker</span>
-      </div>
-      <div class="section-entries">
-        <div style="display: flex; gap: var(--space-lg); flex-wrap: wrap; font-family: var(--font-display);">
-          <div style="text-align: center;">
-            <div style="font-size: 2rem; font-weight: 700; line-height: 1;">27 / 226</div>
-            <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--color-text-muted); margin-top: var(--space-xs);">FNGs</div>
-          </div>
-          <div style="text-align: center;">
-            <div style="font-size: 2rem; font-weight: 700; line-height: 1;">136 / 365</div>
-            <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--color-text-muted); margin-top: var(--space-xs);">Days</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-
-  // Static Desk of the Nan'tan template
-  html += `
-    <div class="section-group" data-section="desk" style="border-left: 4px solid #6C3483;">
-      <div class="section-header" style="color: #6C3483;">
-        <span class="section-header__title">Desk of the Nan'tan</span>
-      </div>
-      <div class="section-entries">
-        <div style="font-size: 1.1rem; line-height: 1.7;">
-          <p style="font-style: italic; font-weight: 600; margin-bottom: var(--space-md);">Why should we EH?</p>
-          <p style="margin-bottom: var(--space-md);">New PAX bring energy, accountability, and breathe life into AOs. A region full of veterans gets stale; stale feels like deceleration. FNGs remind us why F3 matters.</p>
-          <p style="font-weight: 700; margin-bottom: var(--space-xs);">FNGs</p>
-          <ul style="margin-bottom: var(--space-md); padding-left: var(--space-lg);">
-            <li>Pillsbury</li>
-            <li>Fosbury</li>
-            <li>Dr. Suluki</li>
-            <li>Resort Wear</li>
-            <li>Small Pint</li>
-          </ul>
-          <p style="font-weight: 700; margin-bottom: var(--space-xs);">VQs</p>
-          <ul style="margin-bottom: 0; padding-left: var(--space-lg);">
-            <li>🥳 Wheaties</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  `;
-
   // Render sections in order
   SECTIONS.forEach(section => {
     const entries = grouped[section.id];
@@ -510,41 +469,6 @@ function buildSectionedList(items) {
       </div>
     `;
   }
-
-  // Static footer template
-  html += `
-    <div class="section-group" data-section="footer" style="border-top: 2px solid #DDD5C8; padding-top: var(--space-lg); margin-top: var(--space-lg);">
-      <div style="display: flex; gap: var(--space-md); justify-content: center; flex-wrap: wrap; margin-bottom: var(--space-lg);">
-        <a href="mailto:thefort@f3nation.com" style="color: var(--color-text); text-decoration: none; display: flex; align-items: center; gap: var(--space-xs);">
-          <span style="font-size: 1.2rem;">&#9993;</span> thefort@f3nation.com
-        </a>
-        <a href="https://f3thefort.com/" target="_blank" rel="noopener" style="color: var(--color-text); text-decoration: none; display: flex; align-items: center; gap: var(--space-xs);">
-          <span style="font-size: 1.2rem;">&#127760;</span> f3thefort.com
-        </a>
-        <a href="https://www.instagram.com/f3_the_fort/" target="_blank" rel="noopener" style="color: var(--color-text); text-decoration: none; display: flex; align-items: center; gap: var(--space-xs);">
-          <span style="font-size: 1.2rem;">&#128247;</span> @f3_the_fort
-        </a>
-      </div>
-      <div style="background: #F7F3E9; padding: var(--space-lg); border-radius: var(--radius-md); margin-bottom: var(--space-md);">
-        <h4 style="font-family: var(--font-display); margin-bottom: var(--space-md); color: var(--color-heading);">Shared Leadership Team (SLT)</h4>
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--space-sm) var(--space-lg); font-size: 0.95rem; line-height: 1.6;">
-          <div><strong>Nan'tan:</strong> Band Camp</div>
-          <div><strong>1st F (East):</strong> Time Machine</div>
-          <div><strong>1st F (West):</strong> Bonsai</div>
-          <div><strong>2nd F:</strong> Liberty Bibberty</div>
-          <div><strong>3rd F:</strong> Cornerstone</div>
-          <div><strong>Weasel Shaker:</strong> Poppins</div>
-          <div><strong>LDP:</strong> Cyclops</div>
-          <div><strong>Comz:</strong> 38 Special, Console</div>
-          <div><strong>Newsletter:</strong> Bitcoin, Console, Ruby Slippers</div>
-        </div>
-      </div>
-      <div style="text-align: center; font-size: 0.8rem; color: var(--color-text-muted); line-height: 1.6;">
-        <p>Copyright (C) 2026 The Fort F3. All rights reserved.</p>
-        <p>Our mailing address is: The Fort F3</p>
-      </div>
-    </div>
-  `;
 
   return html;
 }
@@ -734,7 +658,7 @@ function buildSectionSubtitleFromDOM() {
     return 'No entries yet';
   }
 
-  return parts.join(' &middot; ');
+  return parts.join(' \u00B7 ');
 }
 
 /* ============================================================
@@ -965,6 +889,16 @@ async function openDetailModal(id) {
     if (entry.leader) metaHtml += `<span>Led by ${escapeHtml(entry.leader)}</span>`;
     metaEl.innerHTML = metaHtml;
 
+    // Hero image
+    const heroEl = document.getElementById('detail-hero');
+    const heroImgEl = document.getElementById('detail-hero-img');
+    if (heroEl && heroImgEl && entry.hero_image) {
+      heroImgEl.src = entry.hero_image;
+      heroEl.style.display = 'block';
+    } else if (heroEl) {
+      heroEl.style.display = 'none';
+    }
+
     let whereHtml = '';
     if (entry.location) {
       whereHtml = `<div class="detail-view__where"><strong>Where:</strong> ${escapeHtml(entry.location)}</div>`;
@@ -978,7 +912,7 @@ async function openDetailModal(id) {
       if (entry.submitter_name) parts.push(escapeHtml(entry.submitter_name));
       if (entry.submitter_email) parts.push(`<a href="mailto:${escapeHtml(entry.submitter_email)}">${escapeHtml(entry.submitter_email)}</a>`);
       if (entry.submitter_phone) parts.push(escapeHtml(entry.submitter_phone));
-      submitterHtml = `<p>Submitted by ${parts.join(' &middot; ')}</p>`;
+      submitterHtml = `<p>Submitted by ${parts.join(' \u00B7 ')}</p>`;
     }
     submitterEl.innerHTML = submitterHtml;
 
@@ -1136,146 +1070,59 @@ function escapeHtml(str) {
 }
 
 /* ============================================================
-   Initialize section toggles after DOM is ready
-   ============================================================ */
+    Initialize section toggles after DOM is ready
+    ============================================================ */
 document.addEventListener('DOMContentLoaded', () => {
   setupSectionToggles();
 });
 
 /* ============================================================
-   FNG Tracker View
+   Hero Image Upload
    ============================================================ */
-function setupNavTabs() {
-  const entriesBtn = document.getElementById('nav-entries-btn');
-  const fngsBtn = document.getElementById('nav-fngs-btn');
-  if (!entriesBtn || !fngsBtn) return;
+function initHeroUpload() {
+  const fileInput = document.getElementById('hero-image-input');
+  const placeholder = document.getElementById('hero-placeholder');
+  const preview = document.getElementById('hero-preview');
+  const previewImg = document.getElementById('hero-preview-img');
+  const removeBtn = document.getElementById('hero-remove');
+  const hiddenInput = document.getElementById('hero_image');
 
-  entriesBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    document.getElementById('dashboard-view').style.display = 'block';
-    document.getElementById('fng-view').style.display = 'none';
-    entriesBtn.style.fontWeight = '700';
-    fngsBtn.style.fontWeight = '';
-    loadEntries();
-  });
+  if (!fileInput) return;
 
-  fngsBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    document.getElementById('dashboard-view').style.display = 'none';
-    document.getElementById('fng-view').style.display = 'block';
-    fngsBtn.style.fontWeight = '700';
-    entriesBtn.style.fontWeight = '';
-    loadFngs();
-  });
-}
+  fileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-let fngPage = 1;
-const FNG_PAGE_SIZE = 20;
-
-async function loadFngs() {
-  try {
-    await loadFngStats();
-    const res = await fetch(`/api/fngs?page=${fngPage}&limit=${FNG_PAGE_SIZE}&year=2026`);
-    const data = await res.json();
-    renderFngList(data);
-    renderFngPagination(data.pagination);
-  } catch (err) {
-    console.error('Failed to load FNGs:', err);
-  }
-}
-
-async function loadFngStats() {
-  try {
-    const res = await fetch('/api/fngs/stats');
-    const stats = await res.json();
-    
-    const progressBar = document.getElementById('fng-progress-bar');
-    const progressText = document.getElementById('fng-progress-text');
-    const daysEl = document.getElementById('fng-days');
-    const targetEl = document.getElementById('fng-target');
-    const statusEl = document.getElementById('fng-status');
-    const statsEl = document.getElementById('fng-stats');
-
-    if (progressBar) progressBar.style.width = `${stats.progressPercent}%`;
-    if (progressBar) progressBar.style.background = stats.onTrack ? 'var(--color-success)' : 'var(--color-accent)';
-    if (progressText) progressText.textContent = `${stats.total2026} / ${stats.goal} (${stats.progressPercent}%)`;
-    if (daysEl) daysEl.textContent = `Day ${stats.daysElapsed} of 365`;
-    if (targetEl) targetEl.textContent = `Target: ${stats.expectedFngs} FNGs by now`;
-    if (statusEl) statusEl.textContent = stats.onTrack ? '✅ On track' : '⚠️ Behind pace';
-    if (statsEl) statsEl.textContent = `${stats.total2026} FNGs in 2026 · ${stats.totalAll} total · Goal: ${stats.goal}`;
-  } catch (err) {
-    console.error('Failed to load FNG stats:', err);
-  }
-}
-
-function renderFngList(data) {
-  const listEl = document.getElementById('fng-list');
-  const emptyState = document.getElementById('fng-empty-state');
-  
-  if (!data.items || data.items.length === 0) {
-    listEl.innerHTML = '';
-    emptyState.style.display = 'block';
-    return;
-  }
-  
-  emptyState.style.display = 'none';
-  listEl.innerHTML = data.items.map(fng => `
-    <div class="entry-card" style="margin-bottom: var(--space-md);">
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-md);">
-        <div>
-          <h3 style="font-family: var(--font-display); font-size: 1.1rem; font-weight: 700; margin-bottom: var(--space-xs);">
-            ${escapeHtml(fng.f3_name)}
-          </h3>
-          <p style="font-family: var(--font-ui); font-size: 0.82rem; color: var(--color-text-muted); margin-bottom: var(--space-xs);">
-            ${escapeHtml(fng.first_name)} ${escapeHtml(fng.last_name)}
-            ${fng.email ? ` · <a href="mailto:${escapeHtml(fng.email)}" style="color: var(--color-accent);">${escapeHtml(fng.email)}</a>` : ''}
-          </p>
-          <p style="font-family: var(--font-ui); font-size: 0.82rem; color: var(--color-text-muted);">
-            ${fng.ehed_by ? `EH'ed by: <strong>${escapeHtml(fng.ehed_by)}</strong>` : ''}
-            ${fng.ao ? ` · AO: ${escapeHtml(fng.ao)}` : ''}
-          </p>
-          ${fng.workout_q_f3_name ? `<p style="font-family: var(--font-ui); font-size: 0.78rem; color: var(--color-text-faint); margin-top: var(--space-xs);">Workout Q: ${escapeHtml(fng.workout_q_f3_name)}</p>` : ''}
-        </div>
-        <button class="btn btn--danger btn--sm fng-delete-btn" data-fng-id="${fng.id}" style="flex-shrink: 0;">Delete</button>
-      </div>
-    </div>
-  `).join('');
-
-  // Setup delete buttons
-  listEl.querySelectorAll('.fng-delete-btn').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const id = e.target.dataset.fngId;
-      if (!confirm('Delete this FNG entry?')) return;
-      try {
-        const res = await fetch(`/api/fngs/${id}`, { method: 'DELETE' });
-        if (res.ok) {
-          loadFngs();
-        }
-      } catch (err) {
-        console.error('Failed to delete FNG:', err);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const response = await fetch('/api/upload/image', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        alert(data.error || 'Failed to upload image.');
+        return;
       }
-    });
+      const data = await response.json();
+      const url = data.url;
+      hiddenInput.value = url;
+      previewImg.src = url;
+      placeholder.style.display = 'none';
+      preview.style.display = 'block';
+    } catch {
+      alert('Network error. Could not upload image.');
+    }
   });
-}
 
-function renderFngPagination(pagination) {
-  const pagEl = document.getElementById('fng-pagination');
-  if (!pagination || pagination.totalPages <= 1) {
-    pagEl.style.display = 'none';
-    return;
-  }
-  
-  pagEl.style.display = 'flex';
-  pagEl.innerHTML = '';
-  
-  for (let i = 1; i <= pagination.totalPages; i++) {
-    const btn = document.createElement('button');
-    btn.className = `pagination__btn ${i === pagination.page ? 'active' : ''}`;
-    btn.textContent = i;
-    btn.addEventListener('click', () => {
-      fngPage = i;
-      loadFngs();
+  if (removeBtn) {
+    removeBtn.addEventListener('click', () => {
+      hiddenInput.value = '';
+      previewImg.src = '';
+      fileInput.value = '';
+      placeholder.style.display = 'flex';
+      preview.style.display = 'none';
     });
-    pagEl.appendChild(btn);
   }
 }

@@ -982,7 +982,7 @@ test.describe('UI Design Quality', () => {
     await expect(page.locator('.card')).toBeVisible();
 
     // Form should have labels
-    await expect(page.locator('label')).toHaveCount(10);
+    await expect(page.locator('label')).toHaveCount(11);
 
     // Submit button should be styled (primary class)
     await expect(page.locator('.btn--primary')).toBeVisible();
