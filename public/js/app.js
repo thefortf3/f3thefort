@@ -421,6 +421,14 @@ function setupGenerateNewsletter() {
   modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
   confirmBtn.addEventListener('click', runGenerate);
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') runGenerate(); });
+
+  const dismissBtn = document.getElementById('preview-dismiss-btn');
+  if (dismissBtn && previewSection && iframe) {
+    dismissBtn.addEventListener('click', () => {
+      previewSection.style.display = 'none';
+      iframe.src = '';
+    });
+  }
 }
 
 let refreshCampaignStatus = () => {};
