@@ -73,6 +73,7 @@
 
       <!-- Newsletter Preview Bar -->
       <div class="newsletter-preview-bar">
+        <button class="btn btn--ghost btn--sm" id="changelog-btn">Changes This Week</button>
         <button class="btn btn--primary btn--sm" id="generate-newsletter-btn">&#9654; Preview Newsletter</button>
       </div>
 
@@ -196,6 +197,23 @@
       <div class="modal__footer">
         <button class="btn btn--ghost btn--sm" id="vq-modal-cancel">Cancel</button>
         <button class="btn btn--primary btn--sm" id="vq-modal-confirm">Generate &amp; Preview</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Changelog Modal -->
+  <div class="modal-overlay" id="changelog-modal">
+    <div class="modal modal--wide">
+      <div class="modal__header">
+        <h3 class="modal__title">Changes This Week</h3>
+        <button class="modal__close" id="changelog-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal__body">
+        <pre id="changelog-output" class="changelog-output">Loading…</pre>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--secondary btn--sm" id="changelog-copy-btn">Copy to Clipboard</button>
+        <button class="btn btn--ghost btn--sm" id="changelog-close-btn">Close</button>
       </div>
     </div>
   </div>

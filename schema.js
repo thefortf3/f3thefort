@@ -31,6 +31,15 @@ export const newsletter_sends = sqliteTable('newsletter_sends', {
   created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const audit_log = sqliteTable('audit_log', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  submission_id: integer('submission_id'),
+  action: text('action').notNull(), // 'created' | 'updated' | 'moved' | 'archived' | 'restored' | 'deleted'
+  detail: text('detail'),           // JSON string with relevant change info
+  submission_title: text('submission_title'),
+  created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const fngs = sqliteTable('fngs', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   timestamp: text('timestamp'),

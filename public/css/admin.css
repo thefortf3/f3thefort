@@ -465,6 +465,25 @@ select:focus {
 }
 
 /* ============================================================
+   Changelog Output
+   ============================================================ */
+.changelog-output {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--bg-base, #0d0d0d);
+  color: var(--text, #e8e2d9);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  max-height: 60vh;
+  overflow-y: auto;
+  margin: 0;
+}
+
+/* ============================================================
    Admin Tabs
    ============================================================ */
 .admin-tabs {

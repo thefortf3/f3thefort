@@ -3,7 +3,7 @@ import express from 'express';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { eq, desc, count, isNull, isNotNull } from 'drizzle-orm';
-import { submissions, fngs, newsletter_sends } from './schema.js'; // newsletter_sends kept for history route
+import { submissions, fngs, newsletter_sends, audit_log } from './schema.js'; // newsletter_sends kept for history route
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync, readFileSync } from 'fs';
@@ -35,6 +35,22 @@ try {
   sqlite.exec(`ALTER TABLE submissions ADD COLUMN archived_at TEXT`);
 } catch (e) {
   if (!e.message.includes('duplicate column name')) throw e;
+}
+
+// Idempotent migration: create audit_log table
+sqlite.exec(`CREATE TABLE IF NOT EXISTS audit_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  submission_id INTEGER,
+  action TEXT NOT NULL,
+  detail TEXT,
+  submission_title TEXT,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+)`);
+
+function logAudit(submissionId, action, title, detail = null) {
+  sqlite.prepare(
+    `INSERT INTO audit_log (submission_id, action, submission_title, detail) VALUES (?, ?, ?, ?)`
+  ).run(submissionId, action, title, detail ? JSON.stringify(detail) : null);
 }
 
 // Image upload
@@ -297,6 +313,7 @@ app.post('/api/submissions', async (req, res) => {
       submitter_phone: submitter_phone || null,
     }).returning();
 
+    logAudit(row.id, 'created', row.title, { section: null });
     res.status(201).json(row);
   } catch (err) {
     console.error('POST /api/submissions error:', err.message);
@@ -338,6 +355,18 @@ app.patch('/api/submissions/:id', requireAuth, async (req, res) => {
       .where(eq(submissions.id, id))
       .returning();
 
+    // Audit log: section move
+    if (section !== undefined && section !== existing.section) {
+      logAudit(id, 'moved', row.title, { from: existing.section, to: section });
+    }
+
+    // Audit log: field updates (excluding section and hero_image)
+    const CONTENT_FIELDS = ['title', 'leader', 'start_date', 'end_time', 'location', 'description', 'link'];
+    const changedFields = CONTENT_FIELDS.filter(f => f in updates && updates[f] !== existing[f]);
+    if (changedFields.length > 0) {
+      logAudit(id, 'updated', row.title, { fields: changedFields });
+    }
+
     res.json(row);
   } catch (err) {
     console.error('PATCH /api/submissions/:id error:', err.message);
@@ -358,6 +387,7 @@ app.delete('/api/submissions/:id', requireAuth, async (req, res) => {
       .set({ archived_at: new Date().toISOString() })
       .where(eq(submissions.id, id));
 
+    logAudit(id, 'archived', existing.title);
     res.json({ success: true, archived: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed to archive submission' });
@@ -378,6 +408,7 @@ app.post('/api/submissions/:id/restore', requireAuth, async (req, res) => {
       .set({ archived_at: null })
       .where(eq(submissions.id, id));
 
+    logAudit(id, 'restored', existing.title);
     res.json({ success: true, restored: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed to restore submission' });
@@ -394,10 +425,57 @@ app.delete('/api/submissions/:id/permanent', requireAuth, async (req, res) => {
     if (!existing) return res.status(404).json({ error: 'Submission not found' });
     if (!existing.archived_at) return res.status(400).json({ error: 'Only archived submissions can be permanently deleted' });
 
+    logAudit(id, 'deleted', existing.title);
     await db.delete(submissions).where(eq(submissions.id, id));
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed to permanently delete submission' });
+  }
+});
+
+// ============================================================
+// Changelog
+// ============================================================
+
+// GET /api/changelog — Changes since a given date (admin only)
+app.get('/api/changelog', requireAuth, (req, res) => {
+  try {
+    const since = req.query.since
+      ? new Date(req.query.since).toISOString()
+      : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const until = new Date().toISOString();
+
+    const rows = sqlite.prepare(
+      `SELECT id, submission_id, action, submission_title, detail, created_at
+       FROM audit_log WHERE created_at >= ? ORDER BY created_at ASC`
+    ).all(since);
+
+    const ACTION_ORDER = ['created', 'moved', 'updated', 'archived', 'restored', 'deleted'];
+    const groups = {};
+    ACTION_ORDER.forEach(a => { groups[a] = []; });
+
+    // Deduplicate per action per submission: keep latest
+    const seen = {}; // key: `${action}:${submission_id}`
+    for (const row of rows) {
+      const key = `${row.action}:${row.submission_id}`;
+      seen[key] = row; // last write wins (rows are ASC so latest overwrites)
+    }
+
+    for (const row of Object.values(seen)) {
+      if (groups[row.action]) {
+        groups[row.action].push({
+          submission_id: row.submission_id,
+          title: row.submission_title,
+          detail: row.detail ? JSON.parse(row.detail) : null,
+          created_at: row.created_at,
+        });
+      }
+    }
+
+    const total = Object.values(groups).reduce((n, g) => n + g.length, 0);
+    res.json({ period: { since, until }, groups, total });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch changelog' });
   }
 });
 

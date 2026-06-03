@@ -255,6 +255,7 @@ function initAdmin() {
   setupModals();
   setupSectionDropdowns();
   setupTabs();
+  setupChangelogModal();
 }
 
 function setupTabs() {
@@ -305,6 +306,135 @@ function showDashboard() {
   document.getElementById('dashboard-view').style.display = 'block';
   loadEntries();
   refreshCampaignStatus();
+}
+
+function setupChangelogModal() {
+  const modal = document.getElementById('changelog-modal');
+  if (!modal) return;
+
+  document.getElementById('changelog-btn')?.addEventListener('click', openChangelogModal);
+  document.getElementById('changelog-modal-close').addEventListener('click', closeChangelogModal);
+  document.getElementById('changelog-close-btn').addEventListener('click', closeChangelogModal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeChangelogModal(); });
+
+  document.getElementById('changelog-copy-btn').addEventListener('click', () => {
+    const text = document.getElementById('changelog-output').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('changelog-copy-btn');
+      const orig = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = orig; }, 2000);
+    }).catch(() => {
+      showAlert('dashboard-alert', 'Could not copy to clipboard.', 'error');
+    });
+  });
+}
+
+function closeChangelogModal() {
+  document.getElementById('changelog-modal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+async function openChangelogModal() {
+  const modal = document.getElementById('changelog-modal');
+  const output = document.getElementById('changelog-output');
+  output.textContent = 'Loading…';
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+
+  try {
+    const res = await fetch('/api/changelog');
+    if (!res.ok) throw new Error('Failed');
+    const data = await res.json();
+    output.textContent = formatChangelog(data);
+  } catch {
+    output.textContent = 'Could not load changelog.';
+  }
+}
+
+function formatChangelog(data) {
+  const sectionLabel = (id) => {
+    if (!id) return 'Unclassified';
+    return SECTIONS.find(s => s.id === id)?.label || id;
+  };
+
+  const fmt = (iso) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const since = fmt(data.period.since);
+  const until = fmt(data.period.until);
+  const divider = '─'.repeat(44);
+
+  const lines = [];
+  lines.push(`NEWSLETTER CHANGES — ${since} to ${until}`);
+  lines.push(divider);
+
+  const { groups } = data;
+
+  if (groups.created?.length) {
+    lines.push('');
+    lines.push(`NEW (${groups.created.length})`);
+    for (const e of groups.created) {
+      lines.push(`  • ${e.title}`);
+    }
+  }
+
+  if (groups.moved?.length) {
+    lines.push('');
+    lines.push(`SECTION MOVES (${groups.moved.length})`);
+    for (const e of groups.moved) {
+      const from = sectionLabel(e.detail?.from);
+      const to = sectionLabel(e.detail?.to);
+      lines.push(`  • ${e.title} — ${from} → ${to}`);
+    }
+  }
+
+  if (groups.updated?.length) {
+    lines.push('');
+    lines.push(`UPDATED (${groups.updated.length})`);
+    for (const e of groups.updated) {
+      const fields = e.detail?.fields?.join(', ') || '';
+      lines.push(`  • ${e.title}${fields ? ` (${fields})` : ''}`);
+    }
+  }
+
+  if (groups.archived?.length) {
+    lines.push('');
+    lines.push(`ARCHIVED (${groups.archived.length})`);
+    for (const e of groups.archived) {
+      lines.push(`  • ${e.title}`);
+    }
+  }
+
+  if (groups.restored?.length) {
+    lines.push('');
+    lines.push(`RESTORED (${groups.restored.length})`);
+    for (const e of groups.restored) {
+      lines.push(`  • ${e.title}`);
+    }
+  }
+
+  if (groups.deleted?.length) {
+    lines.push('');
+    lines.push(`PERMANENTLY DELETED (${groups.deleted.length})`);
+    for (const e of groups.deleted) {
+      lines.push(`  • ${e.title}`);
+    }
+  }
+
+  if (data.total === 0) {
+    lines.push('');
+    lines.push('  No changes recorded this week.');
+  }
+
+  lines.push('');
+  lines.push(divider);
+  lines.push(`Generated ${fmt(data.period.until)}`);
+
+  return lines.join('\n');
 }
 
 function setupLogin() {
@@ -978,6 +1108,7 @@ function setupModals() {
     if (e.key === 'Escape') {
       closeDetailModal();
       closeDeleteModal();
+      closeChangelogModal();
       document.getElementById('vq-modal')?.classList.remove('active');
       document.body.style.overflow = '';
     }
