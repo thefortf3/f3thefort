@@ -30,7 +30,53 @@ const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'dev.db');
 const sqlite = new Database(DB_PATH);
 const db = drizzle(sqlite);
 
-// Idempotent migration: add archived_at column if not present
+// Bootstrap: create tables if they don't exist (safe on existing DBs)
+sqlite.exec(`
+  CREATE TABLE IF NOT EXISTS submissions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    leader TEXT,
+    start_date TEXT NOT NULL,
+    end_time TEXT,
+    location TEXT,
+    description TEXT NOT NULL,
+    link TEXT,
+    hero_image TEXT,
+    section TEXT,
+    submitter_name TEXT,
+    submitter_email TEXT,
+    submitter_phone TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    archived_at TEXT
+  );
+  CREATE TABLE IF NOT EXISTS newsletter_sends (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    campaign_id TEXT,
+    subject TEXT,
+    from_name TEXT,
+    from_email TEXT,
+    status TEXT NOT NULL,
+    error_message TEXT,
+    recipient_count INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE TABLE IF NOT EXISTS fngs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT,
+    first_name TEXT,
+    last_name TEXT,
+    email TEXT,
+    f3_name TEXT,
+    ehed_by TEXT,
+    workout_q_f3_name TEXT,
+    ao TEXT,
+    phone_number TEXT,
+    year INTEGER,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  );
+`);
+
+// Idempotent migration: add archived_at to existing DBs that predate the column
 try {
   sqlite.exec(`ALTER TABLE submissions ADD COLUMN archived_at TEXT`);
 } catch (e) {
