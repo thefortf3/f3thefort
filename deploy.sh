@@ -55,8 +55,14 @@ rsync -avz --delete \
   --exclude 'node_modules' \
   --exclude 'dev.db' \
   --exclude 'test.db' \
+  --exclude 'data' \
   --exclude 'test-results' \
   --exclude '.git' \
+  --exclude '.env' \
+  --exclude '.mcp.json' \
+  --exclude '.claude' \
+  --exclude '.agents' \
+  --exclude 'public/uploads' \
   -e "ssh -p ${SSH_PORT}" \
   ./ \
   "${SSH_USER}@${SSH_HOST}:${REMOTE_DIR}/"

@@ -1,6 +1,7 @@
 node_modules
 dev.db
 test.db
+data
 test-results
 .git
 .ssh
@@ -8,3 +9,7 @@ test-results
 .playwright
 drizzle
 .env
+.mcp.json
+.claude
+.agents
+public/uploads
