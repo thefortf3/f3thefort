@@ -7,6 +7,11 @@ services:
       - PORT=3000
       - DB_PATH=/app/data/news.db
       - BASE_URL=https://submit.f3thefort.com
+      - MAILCHIMP_API_KEY=${MAILCHIMP_API_KEY}
+      - MAILCHIMP_LIST_ID=${MAILCHIMP_LIST_ID}
+      - MAILCHIMP_SERVER=${MAILCHIMP_SERVER:-us10}
+      - MAILCHIMP_FROM_NAME=${MAILCHIMP_FROM_NAME:-The Fort Weekly}
+      - MAILCHIMP_FROM_EMAIL=${MAILCHIMP_FROM_EMAIL}
     volumes:
       - ./data:/app/data
       - ./public/uploads:/app/public/uploads
