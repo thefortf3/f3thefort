@@ -7,3 +7,12 @@ dist/
 coverage/
 fng-data.csv
 .env
+# Generated newsletter output
+newsletter-dark.html
+newsletter-email.html
+newsletter-email-rendered.html
+newsletter-preview.html
+# Agent/session artifacts
+session-*.md
+session-*.mreset
+variety-plan.json

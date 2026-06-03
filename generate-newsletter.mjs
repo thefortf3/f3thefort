@@ -21,15 +21,19 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // ─── CLI args ────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
-const outputFlag = args.find(a => a.startsWith('--output=')) || args.find(a => a.startsWith('--output'));
-const outputPath = outputFlag
-  ? outputFlag.replace('--output=', '').replace('--output ', '')
-  : resolve(__dirname, 'newsletter-dark.html');
 
-const dbPathArg = args.find(a => a.startsWith('--db=')) || args.find(a => a.startsWith('--db'));
-const dbPath = dbPathArg
-  ? dbPathArg.replace('--db=', '').replace('--db ', '')
-  : (process.env.TEST_DB || resolve(__dirname, 'dev.db'));
+function getArg(name) {
+  const eqForm = args.find(a => a.startsWith(`--${name}=`));
+  if (eqForm) return eqForm.slice(`--${name}=`.length);
+  const idx = args.indexOf(`--${name}`);
+  if (idx !== -1 && idx + 1 < args.length) return args[idx + 1];
+  return null;
+}
+
+const outputPath = getArg('output') || resolve(__dirname, 'newsletter-dark.html');
+const dbPath = getArg('db') || process.env.TEST_DB || resolve(__dirname, 'dev.db');
+const vqArg = getArg('vqs') || '';
+const vqNames = vqArg ? vqArg.split(',').map(s => s.trim()).filter(Boolean) : [];
 
 const templatePath = resolve(__dirname, 'public', 'newsletter-template.html');
 const previewOnly = args.includes('--preview');
@@ -172,6 +176,31 @@ function getFngStats(dbPath) {
   };
 }
 
+function getWeeklyFngs(dbPath) {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + mondayOffset);
+  monday.setHours(0, 0, 0, 0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+
+  const db = new Database(dbPath);
+  const currentYear = now.getFullYear();
+  const rows = db.prepare(
+    'SELECT f3_name, ehed_by, ao FROM fngs WHERE year = ? ORDER BY timestamp ASC'
+  ).all(currentYear);
+  db.close();
+
+  return rows.filter(row => {
+    if (!row.timestamp) return false;
+    const d = new Date(row.timestamp);
+    return !isNaN(d.getTime()) && d >= monday && d <= sunday;
+  });
+}
+
 // ─── Section builders ────────────────────────────────────────────────
 function buildNantanSection(submissions) {
   const desk = submissions.find(s => s.section === 'desk');
@@ -188,11 +217,25 @@ function buildNantanSection(submissions) {
   </div>`;
 }
 
-function buildRosterSection(submissions) {
-  const fngs = submissions.filter(s => s.section === 'fngs');
-  const vqs = submissions.filter(s => s.section === 'vqs');
+function buildRosterSection(weeklyFngs, vqNames) {
+  if (weeklyFngs.length === 0 && vqNames.length === 0) return '';
 
-  if (fngs.length === 0 && vqs.length === 0) return '';
+  const fngItems = weeklyFngs.map(f => {
+    const detail = f.ehed_by ? ` <span class="roster-detail">EH: ${escapeHtml(f.ehed_by)}</span>` : '';
+    return `        <li>${escapeHtml(f.f3_name)}${detail}</li>`;
+  }).join('\n');
+
+  const vqItems = vqNames.map(v =>
+    `        <li class="celebration">🥳 ${escapeHtml(v)}</li>`
+  ).join('\n');
+
+  const vqBlock = vqNames.length > 0 ? `
+    <div class="roster-card vq">
+      <div class="roster-type">VQs</div>
+      <ul class="roster-names">
+${vqItems}
+      </ul>
+    </div>` : '';
 
   return `
   <!-- ===== FNG / VQ ROSTER ===== -->
@@ -200,15 +243,9 @@ function buildRosterSection(submissions) {
     <div class="roster-card fng">
       <div class="roster-type">FNGs</div>
       <ul class="roster-names">
-${fngs.map(f => `        <li>${escapeHtml(f.leader || f.title)}</li>`).join('\n')}
+${weeklyFngs.length > 0 ? fngItems : '        <li style="color:#888;font-style:italic;">None this week</li>'}
       </ul>
-    </div>
-    <div class="roster-card vq">
-      <div class="roster-type">VQs</div>
-      <ul class="roster-names">
-${vqs.map(v => `        <li class="celebration">🥳 ${escapeHtml(v.leader || v.title)}</li>`).join('\n')}
-      </ul>
-    </div>
+    </div>${vqBlock}
   </div>`;
 }
 
@@ -348,40 +385,10 @@ function buildInitiativeCard(sub) {
 }
 
 function buildFreshCard(sub) {
-  // Check if this is a "word of the month" style entry
-  if (sub.title && sub.description && (
-    sub.title.toLowerCase().includes('word') ||
-    sub.description.toLowerCase().includes('integrity') ||
-    sub.description.toLowerCase().includes('sacrifice') ||
-    sub.description.toLowerCase().includes('alignment')
-  )) {
-    const wordMatch = sub.title?.match(/(\w+)$/i) || sub.description?.match(/(\w+)\s+is\s+being/i);
-    const word = wordMatch ? wordMatch[1] : 'Integrity';
-    const monthMatch = sub.description?.match(/May Theme[:\s]*(\w+)/i);
-    const month = monthMatch ? `May: ${monthMatch[1]}` : 'May Theme';
-
-    return `
-    <div class="word-card">
-      <div class="word-label">${escapeHtml(month)}</div>
-      <div class="word-main">${escapeHtml(word)}</div>
-      <div class="word-body">
-        ${rewriteHtmlImages(sub.description)}
-      </div>
-    </div>`;
-  }
-
-  // Regular fresh card
   let html = `
     <article class="fresh-card">
       <div class="fresh-header">
-        <div class="fresh-title">${escapeHtml(sub.title)}</div>`;
-
-  if (sub.title && sub.title.toLowerCase().includes('yes')) {
-    html += `
-        <div class="fresh-tag">YES</div>`;
-  }
-
-  html += `
+        <div class="fresh-title">${escapeHtml(sub.title)}</div>
       </div>
       <div class="fresh-body">
         <div class="event-meta">`;
@@ -442,7 +449,8 @@ function main() {
 
   // Build dynamic sections
   const nantanSection = buildNantanSection(submissions);
-  const rosterSection = buildRosterSection(submissions);
+  const weeklyFngs = getWeeklyFngs(dbPath);
+  const rosterSection = buildRosterSection(weeklyFngs, vqNames);
   const dynamicSections = buildDynamicSections(submissions);
 
   // Replace placeholders
