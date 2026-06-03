@@ -206,9 +206,15 @@ function buildNantanSection(submissions) {
   const desk = submissions.find(s => s.section === 'desk');
   if (!desk) return '';
 
+  const hasHero = !!desk.hero_image;
+  const heroHtml = hasHero
+    ? `\n    <img class="nantan-hero" src="${escapeHtml(resolveAssetUrl(desk.hero_image))}" alt="${escapeHtml(desk.title)}">`
+    : '';
+
   return `
   <!-- ===== DESK OF THE NANTAN ===== -->
-  <div class="nantan">
+  <div class="nantan${hasHero ? ' nantan--has-hero' : ''}">
+    ${heroHtml}
     <div class="nantan-author">Desk of the Nan'tan — ${escapeHtml(desk.leader || 'Band Camp')}</div>
     <div class="nantan-title">${escapeHtml(desk.title)}</div>
     <div class="nantan-body">

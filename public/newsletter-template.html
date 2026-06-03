@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{TITLE}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #111214;
+  --bg-deep: #0a0b0d;
+  --bg-card: #181a1e;
+  --bg-card-alt: #1e2025;
+  --amber: #d4a03c;
+  --amber-bright: #e8b94a;
+  --amber-dim: #8a6a2a;
+  --steel: #3a3d44;
+  --steel-light: #555860;
+  --text: #d8d6d0;
+  --text-dim: #8a8a82;
+  --text-bright: #f0ece4;
+  --rust: #a0522d;
+  --green: #5a7a4a;
+  --border: #2a2c30;
+  --mono: 'JetBrains Mono', monospace;
+  --display: 'Oswald', sans-serif;
+  --body: 'Source Serif 4', Georgia, serif;
+}
+
+html { font-size: 16px; scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.container {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ===== HEADER ===== */
+.header {
+  position: relative;
+  padding: 60px 0 0;
+  text-align: center;
+  overflow: hidden;
+}
+
+.header::before {
+  content: '';
+  position: absolute;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 900px;
+  height: 600px;
+  background: radial-gradient(ellipse at center, rgba(212,160,60,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.header-rule {
+  width: 60px;
+  height: 2px;
+  background: var(--amber);
+  margin: 0 auto 32px;
+}
+
+.header-date {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--amber-dim);
+  margin-bottom: 20px;
+}
+
+.header h1 {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(2.8rem, 8vw, 4.5rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-bright);
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.header h1 span {
+  color: var(--amber);
+}
+
+.header-sub {
+  font-family: var(--body);
+  font-style: italic;
+  font-size: 1.1rem;
+  color: var(--text-dim);
+  margin-bottom: 48px;
+}
+
+/* ===== FNG TRACKER ===== */
+.tracker {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-bottom: 56px;
+}
+
+.tracker-cell {
+  background: var(--bg-card);
+  padding: 16px 24px;
+  text-align: center;
+  position: relative;
+}
+
+.tracker-cell::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--amber-dim), transparent);
+}
+
+.tracker-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.tracker-value {
+  font-family: var(--display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--amber);
+  line-height: 1;
+}
+
+.tracker-value .total {
+  color: var(--steel-light);
+  font-size: 0.95rem;
+}
+
+.tracker-bar {
+  width: 100%;
+  height: 2px;
+  background: var(--bg);
+  margin-top: 8px;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.tracker-bar-fill {
+  height: 100%;
+  background: var(--amber);
+  border-radius: 2px;
+}
+
+/* ===== SECTION HEADERS ===== */
+.section {
+  margin-bottom: 56px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.section-number {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  color: var(--amber-dim);
+  white-space: nowrap;
+}
+
+.section-name {
+  font-family: var(--display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-bright);
+}
+
+.section-accent {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--amber-dim), transparent);
+}
+
+/* ===== NANTAN ===== */
+.nantan {
+  background: var(--bg-card);
+  border-left: 3px solid var(--amber);
+  padding: 32px 36px;
+  margin-bottom: 56px;
+  position: relative;
+}
+
+.nantan::before {
+  content: '"';
+  font-family: var(--display);
+  font-size: 6rem;
+  color: var(--amber-dim);
+  position: absolute;
+  top: -10px;
+  left: 16px;
+  line-height: 1;
+  opacity: 0.4;
+}
+
+.nantan-author {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--amber-dim);
+  margin-bottom: 16px;
+}
+
+.nantan-title {
+  font-family: var(--display);
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-bright);
+  margin-bottom: 20px;
+}
+
+.nantan-body {
+  font-size: 1.05rem;
+  line-height: 1.8;
+  color: var(--text);
+  padding-left: 20px;
+}
+
+.nantan-hero {
+  display: block;
+  width: calc(100% + 72px);
+  margin: -32px -36px 28px -36px;
+  height: 240px;
+  object-fit: cover;
+}
+
+.nantan--has-hero::before {
+  display: none;
+}
+
+/* ===== FNG / VQ ROSTER ===== */
+.roster-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  margin-bottom: 48px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.roster-card {
+  background: var(--bg-card);
+  padding: 20px 24px;
+  position: relative;
+}
+
+.roster-card:first-child {
+  border-right: 1px solid var(--border);
+}
+
+.roster-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+}
+
+.roster-card.fng::after { background: var(--amber); }
+.roster-card.vq::after { background: var(--green); }
+
+.roster-type {
+  font-family: var(--display);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.roster-card.fng .roster-type { color: var(--amber); }
+.roster-card.vq .roster-type { color: var(--green); }
+
+.roster-names {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.roster-names li {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  padding: 4px 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.roster-names li.celebration {
+  background: rgba(232,185,74,0.1);
+  border-color: var(--amber-dim);
+  color: var(--amber-bright);
+}
+
+/* ===== EVENT CARDS ===== */
+.event-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  margin-bottom: 20px;
+  overflow: hidden;
+  transition: border-color 0.3s ease;
+}
+
+.event-card:hover {
+  border-color: var(--amber-dim);
+}
+
+.event-image {
+  width: 100%;
+  height: 240px;
+  object-fit: cover;
+  display: block;
+  filter: brightness(0.85) saturate(0.9);
+  transition: filter 0.3s ease;
+}
+
+.event-card:hover .event-image {
+  filter: brightness(0.95) saturate(1);
+}
+
+.event-body {
+  padding: 28px 32px;
+}
+
+.event-title {
+  font-family: var(--display);
+  font-size: 1.4rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-bright);
+  margin-bottom: 6px;
+}
+
+.event-q {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  color: var(--amber-dim);
+  margin-bottom: 18px;
+}
+
+.event-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 28px;
+  margin-bottom: 16px;
+}
+
+.event-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.event-meta-item .icon {
+  font-size: 1rem;
+  width: 20px;
+  text-align: center;
+}
+
+.event-desc {
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.event-desc ol,
+.event-desc ul {
+  margin-top: 8px;
+  padding-left: 1.5rem;
+  margin-left: 0;
+}
+
+.event-desc ol li,
+.event-desc ul li {
+  padding: 4px 0;
+}
+
+.nantan-body ol,
+.nantan-body ul,
+.initiative-desc ol,
+.initiative-desc ul,
+.fresh-body ol,
+.fresh-body ul,
+.word-body ol,
+.word-body ul {
+  padding-left: 1.5rem;
+  margin-left: 0;
+  margin-top: 8px;
+}
+
+.nantan-body ol li,
+.nantan-body ul li,
+.initiative-desc ol li,
+.initiative-desc ul li,
+.fresh-body ol li,
+.fresh-body ul li,
+.word-body ol li,
+.word-body ul li {
+  padding: 4px 0;
+}
+
+.event-desc img,
+.initiative-desc img,
+.fresh-body .event-desc img,
+.nantan-body img,
+.word-body img {
+  max-width: 100%;
+  max-height: 400px;
+  height: auto;
+  display: block;
+  margin: 12px 0;
+  object-fit: contain;
+}
+
+.event-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--amber);
+  text-decoration: none;
+  padding: 6px 0;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.event-link:hover {
+  border-bottom-color: var(--amber);
+}
+
+/* ===== INITIATIVE CARDS ===== */
+.initiative-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 28px 32px;
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.initiative-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--steel);
+}
+
+.initiative-card:hover::before {
+  background: var(--amber);
+}
+
+.initiative-title {
+  font-family: var(--display);
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-bright);
+  margin-bottom: 14px;
+}
+
+.initiative-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-bottom: 14px;
+}
+
+.initiative-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.initiative-desc {
+  font-size: 0.95rem;
+  line-height: 1.75;
+  color: var(--text);
+}
+
+/* ===== STILL FRESH ===== */
+.fresh-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.fresh-card:hover {
+  border-color: var(--amber-dim);
+}
+
+.fresh-header {
+  padding: 20px 28px;
+  background: var(--bg-card-alt);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fresh-title {
+  font-family: var(--display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-bright);
+}
+
+.fresh-tag {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--amber-dim);
+  background: rgba(212,160,60,0.08);
+  padding: 4px 10px;
+  border: 1px solid var(--amber-dim);
+}
+
+.fresh-body {
+  padding: 20px 28px;
+}
+
+.fresh-body .event-meta {
+  margin-bottom: 12px;
+}
+
+.fresh-body .event-desc {
+  font-size: 0.95rem;
+}
+
+/* ===== WORD OF THE MONTH ===== */
+.word-card {
+  background: var(--bg-card);
+  border: 1px solid var(--amber-dim);
+  padding: 36px 40px;
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.word-card::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgba(212,160,60,0.1);
+  pointer-events: none;
+}
+
+.word-label {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--amber-dim);
+  margin-bottom: 12px;
+}
+
+.word-main {
+  font-family: var(--display);
+  font-size: 2.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 20px;
+  line-height: 1.1;
+}
+
+.word-body {
+  font-size: 1.05rem;
+  line-height: 1.85;
+  color: var(--text);
+}
+
+/* ===== F SECTIONS ===== */
+.f-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.f-header {
+  padding: 18px 28px;
+  background: var(--bg-card-alt);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.f-number {
+  font-family: var(--display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--amber);
+  line-height: 1;
+}
+
+.f-name {
+  font-family: var(--display);
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-bright);
+}
+
+.f-body {
+  padding: 24px 28px;
+}
+
+.f-event {
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+
+.f-event:last-child { border-bottom: none; }
+
+.f-event-name {
+  font-family: var(--body);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-bright);
+  margin-bottom: 4px;
+}
+
+.f-event-detail {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+.f-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber);
+  text-decoration: none;
+  margin-top: 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.f-link:hover { border-bottom-color: var(--amber); }
+
+/* ===== SLT ===== */
+.slt-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 24px;
+}
+
+.slt-item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+
+.slt-role {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  white-space: nowrap;
+  min-width: 110px;
+}
+
+.slt-person {
+  font-family: var(--body);
+  font-size: 0.95rem;
+  color: var(--text-bright);
+}
+
+/* ===== LINKS ===== */
+.links-list {
+  list-style: none;
+}
+
+.links-list li {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.links-list li:last-child { border-bottom: none; }
+
+.links-list a {
+  font-family: var(--body);
+  font-size: 0.95rem;
+  color: var(--amber);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.links-list a:hover { color: var(--amber-bright); }
+
+.links-list .link-label {
+  color: var(--text);
+  margin-right: 6px;
+}
+
+/* ===== FOOTER ===== */
+.footer {
+  margin-top: 64px;
+  padding: 40px 0;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+.footer-social {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.footer-social a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 1.1rem;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.footer-social a:hover {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.footer-copy {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 640px) {
+  .event-desc img,
+  .initiative-desc img,
+  .fresh-body .event-desc img {
+    max-height: 280px;
+  }
+  .container { padding: 0 16px; }
+  .header { padding: 40px 0 0; }
+  .tracker { grid-template-columns: 1fr; }
+  .roster-grid { grid-template-columns: 1fr; }
+  .event-body { padding: 20px 20px; }
+  .event-image { height: 180px; }
+  .event-meta { gap: 10px 16px; }
+  .nantan { padding: 28px 24px; }
+  .nantan-hero { width: calc(100% + 48px); margin: -28px -24px 24px -24px; height: 200px; }
+  .word-card { padding: 28px 24px; }
+  .word-main { font-size: 2rem; }
+  .slt-grid { grid-template-columns: 1fr; }
+  .slt-role { min-width: 90px; }
+  .initiative-card { padding: 20px 20px; }
+  .fresh-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .f-body { padding: 20px; }
+  .f-header { padding: 14px 20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="header">
+  <div class="container">
+    <div class="header-rule"></div>
+    <div class="header-date">{{HEADER_DATE}}</div>
+    <h1>THE FORT <span>WEEKLY</span></h1>
+    <p class="header-sub">Upcoming events for the region</p>
+  </div>
+</header>
+
+<div class="container">
+
+<!-- ===== FNG TRACKER ===== -->
+<div class="tracker">
+  <div class="tracker-cell">
+    <div class="tracker-label">FNGs Onboarded</div>
+    <div class="tracker-value">{{FNG_COUNT}} <span class="total">/ 226</span></div>
+    <div class="tracker-bar"><div class="tracker-bar-fill" style="width:{{FNG_PROGRESS_PCT}}%"></div></div>
+  </div>
+  <div class="tracker-cell">
+    <div class="tracker-label">Days in {{ISSUE_YEAR}}</div>
+    <div class="tracker-value">{{FNG_DAYS}} <span class="total">/ 365</span></div>
+    <div class="tracker-bar"><div class="tracker-bar-fill" style="width:{{DAYS_PCT}}%"></div></div>
+  </div>
+</div>
+
+<!-- ===== NANTAN ===== -->
+{{NANTAN_SECTION}}
+
+<!-- ===== FNG / VQ ROSTER ===== -->
+{{ROSTER_SECTION}}
+
+<!-- ===== DYNAMIC SECTIONS ===== -->
+{{DYNAMIC_SECTIONS}}
+
+<!-- ===== FOOTER ===== -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-social">
+      <a href="mailto:thefort@f3nation.com" title="Email">✉</a>
+      <a href="https://f3thefort.com/" target="_blank" rel="noopener" title="Website">⌘</a>
+      <a href="https://www.instagram.com/f3_thefort/" target="_blank" rel="noopener" title="Instagram">◉</a>
+    </div>
+    <p class="footer-copy">Copyright &copy; {{ISSUE_YEAR}} The Fort F3 · All rights reserved</p>
+  </div>
+</footer>
+
+</div>
+
+</body>
+</html>
