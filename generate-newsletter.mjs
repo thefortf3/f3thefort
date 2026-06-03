@@ -31,7 +31,7 @@ function getArg(name) {
 }
 
 const outputPath = getArg('output') || resolve(__dirname, 'newsletter-dark.html');
-const dbPath = getArg('db') || process.env.TEST_DB || resolve(__dirname, 'dev.db');
+const dbPath = getArg('db') || process.env.TEST_DB || process.env.DB_PATH || resolve(__dirname, 'dev.db');
 const vqArg = getArg('vqs') || '';
 const vqNames = vqArg ? vqArg.split(',').map(s => s.trim()).filter(Boolean) : [];
 
