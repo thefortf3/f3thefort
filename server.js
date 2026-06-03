@@ -108,6 +108,39 @@ app.get('/api/admin/check-auth', (req, res) => {
   res.json({ authenticated: auth });
 });
 
+// GET /api/newsletter/preview-data — weekly FNGs for the generate modal
+app.get('/api/newsletter/preview-data', requireAuth, async (req, res) => {
+  try {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + mondayOffset);
+    monday.setHours(0, 0, 0, 0);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+
+    const currentYear = now.getFullYear();
+    const allFngs = await db.select({
+      f3_name: fngs.f3_name,
+      ehed_by: fngs.ehed_by,
+      ao: fngs.ao,
+      timestamp: fngs.timestamp,
+    }).from(fngs).where(eq(fngs.year, currentYear));
+
+    const weeklyFngs = allFngs.filter(f => {
+      if (!f.timestamp) return false;
+      const d = new Date(f.timestamp);
+      return !isNaN(d.getTime()) && d >= monday && d <= sunday;
+    });
+
+    res.json({ weeklyFngs });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch preview data' });
+  }
+});
+
 // GET /api/newsletter/campaign-status — check if a campaign exists for next Sunday
 app.get('/api/newsletter/campaign-status', requireAuth, async (req, res) => {
   try {

@@ -65,10 +65,21 @@
       <!-- Alert Container -->
       <div id="dashboard-alert"></div>
 
-      <!-- Newsletter Preview -->
+      <!-- Newsletter Preview Bar -->
       <div class="newsletter-preview-bar">
         <button class="btn btn--primary btn--sm" id="generate-newsletter-btn">&#9654; Preview Newsletter</button>
-        <button class="btn btn--ghost btn--sm" id="campaign-btn" style="display:none;">Create Campaign</button>
+      </div>
+
+      <!-- Inline Newsletter Preview -->
+      <div id="newsletter-preview-section" style="display:none;">
+        <div class="preview-toolbar">
+          <span class="preview-toolbar__label">Newsletter Preview</span>
+          <div class="preview-toolbar__actions">
+            <a href="/newsletter-dark" target="_blank" class="btn btn--ghost btn--sm">Open in Tab &#8599;</a>
+            <button class="btn btn--secondary btn--sm" id="campaign-btn" style="display:none;">Create Campaign</button>
+          </div>
+        </div>
+        <iframe id="newsletter-iframe" src="" frameborder="0" scrolling="yes"></iframe>
       </div>
 
       <!-- Entry List -->
@@ -128,12 +139,16 @@
 
   <!-- VQ Names Modal -->
   <div class="modal-overlay" id="vq-modal">
-    <div class="modal" style="max-width: 440px;">
+    <div class="modal" style="max-width: 520px;">
       <div class="modal__header">
         <h3 class="modal__title">Generate Newsletter Preview</h3>
         <button class="modal__close" id="vq-modal-close" aria-label="Close">&times;</button>
       </div>
       <div class="modal__body">
+        <div class="form-group">
+          <label>FNGs This Week</label>
+          <div id="vq-modal-fngs" class="vq-modal-fngs">—</div>
+        </div>
         <div class="form-group" style="margin-bottom: 0;">
           <label for="vq-names-input">VQ Names This Week</label>
           <input

@@ -340,14 +340,44 @@ function setupGenerateNewsletter() {
   const cancelBtn = document.getElementById('vq-modal-cancel');
   const confirmBtn = document.getElementById('vq-modal-confirm');
   const input = document.getElementById('vq-names-input');
+  const fngsContainer = document.getElementById('vq-modal-fngs');
+  const previewSection = document.getElementById('newsletter-preview-section');
+  const iframe = document.getElementById('newsletter-iframe');
 
   if (!triggerBtn || !modal) return;
 
-  function openModal() {
-    input.value = '';
+  async function openModal() {
+    // Pre-populate VQs from last session
+    input.value = localStorage.getItem('newsletter_last_vqs') || '';
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
     setTimeout(() => input.focus(), 50);
+
+    // Load weekly FNGs async
+    if (fngsContainer) {
+      fngsContainer.innerHTML = '<span style="color:var(--text-dim);font-style:italic;">Loading...</span>';
+      try {
+        const res = await fetch('/api/newsletter/preview-data');
+        if (res.ok) {
+          const data = await res.json();
+          const list = data.weeklyFngs || [];
+          if (list.length === 0) {
+            fngsContainer.innerHTML = '<span style="color:var(--text-dim);font-style:italic;">None recorded this week.</span>';
+          } else {
+            fngsContainer.innerHTML = list.map(f => {
+              let s = `<span>${escapeHtml(f.f3_name)}</span>`;
+              if (f.ehed_by) s += ` <span style="color:var(--text-dim);">EH: ${escapeHtml(f.ehed_by)}</span>`;
+              if (f.ao) s += ` <span style="color:var(--text-dim);">@ ${escapeHtml(f.ao)}</span>`;
+              return `<div>${s}</div>`;
+            }).join('');
+          }
+        } else {
+          fngsContainer.innerHTML = '<span style="color:var(--text-dim);font-style:italic;">Could not load.</span>';
+        }
+      } catch {
+        fngsContainer.innerHTML = '<span style="color:var(--text-dim);font-style:italic;">Could not load.</span>';
+      }
+    }
   }
 
   function closeModal() {
@@ -357,11 +387,13 @@ function setupGenerateNewsletter() {
 
   async function runGenerate() {
     closeModal();
+    const vqs = input.value.trim();
+    localStorage.setItem('newsletter_last_vqs', vqs);
+
     triggerBtn.disabled = true;
     triggerBtn.textContent = 'Generating...';
     try {
       const body = {};
-      const vqs = input.value.trim();
       if (vqs) body.vqs = vqs;
       const res = await fetch('/api/newsletter/generate', {
         method: 'POST',
@@ -370,7 +402,9 @@ function setupGenerateNewsletter() {
       });
       const data = await res.json();
       if (data.success) {
-        window.open('/newsletter-dark', '_blank');
+        if (previewSection) previewSection.style.display = 'block';
+        if (iframe) iframe.src = '/newsletter-dark?t=' + Date.now();
+        await refreshCampaignStatus();
       } else {
         showAlert('dashboard-alert', 'Failed to generate newsletter: ' + (data.error || 'Unknown error'), 'error');
       }
