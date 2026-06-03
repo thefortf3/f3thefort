@@ -249,9 +249,7 @@ function initAdmin() {
   setupLogin();
   setupLogout();
   setupGenerateNewsletter();
-  setupCreateCampaign();
-  setupPreviewNewsletter();
-  loadNewsletterConfig();
+  setupCampaignButton();
   setupModals();
   setupSectionDropdowns();
 }
@@ -279,6 +277,7 @@ function showDashboard() {
   document.getElementById('login-view').style.display = 'none';
   document.getElementById('dashboard-view').style.display = 'block';
   loadEntries();
+  refreshCampaignStatus();
 }
 
 function setupLogin() {
@@ -335,118 +334,110 @@ function setupLogout() {
 }
 
 function setupGenerateNewsletter() {
-  const btn = document.getElementById('generate-newsletter-btn');
-  if (!btn) return;
+  const triggerBtn = document.getElementById('generate-newsletter-btn');
+  const modal = document.getElementById('vq-modal');
+  const closeBtn = document.getElementById('vq-modal-close');
+  const cancelBtn = document.getElementById('vq-modal-cancel');
+  const confirmBtn = document.getElementById('vq-modal-confirm');
+  const input = document.getElementById('vq-names-input');
 
-  btn.addEventListener('click', async (e) => {
-    e.preventDefault();
-    btn.disabled = true;
-    btn.textContent = 'Generating...';
+  if (!triggerBtn || !modal) return;
+
+  function openModal() {
+    input.value = '';
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => input.focus(), 50);
+  }
+
+  function closeModal() {
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  async function runGenerate() {
+    closeModal();
+    triggerBtn.disabled = true;
+    triggerBtn.textContent = 'Generating...';
     try {
-      const res = await fetch('/api/newsletter/generate', { method: 'POST' });
+      const body = {};
+      const vqs = input.value.trim();
+      if (vqs) body.vqs = vqs;
+      const res = await fetch('/api/newsletter/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
       const data = await res.json();
       if (data.success) {
-        showAlert('dashboard-alert', 'Newsletter generated! <a href="/newsletter-dark" target="_blank">View Newsletter</a> →', 'success');
+        window.open('/newsletter-dark', '_blank');
       } else {
         showAlert('dashboard-alert', 'Failed to generate newsletter: ' + (data.error || 'Unknown error'), 'error');
       }
     } catch (err) {
       showAlert('dashboard-alert', 'Failed to generate newsletter: ' + err.message, 'error');
     }
-    btn.disabled = false;
-    btn.textContent = 'Generate Newsletter';
-  });
-}
-
-function setupCreateCampaign() {
-  const btn = document.getElementById('newsletter-send-btn');
-  if (!btn) return;
-
-  btn.addEventListener('click', async (e) => {
-    e.preventDefault();
-    btn.disabled = true;
-    btn.textContent = 'Creating...';
-
-    try {
-      const res = await fetch('/api/newsletter/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-      const data = await res.json();
-      if (data.success) {
-        updateNewsletterStatus('sent', 'Campaign created!');
-      } else {
-        updateNewsletterStatus('error', data.error || 'Failed to create');
-      }
-    } catch (err) {
-      updateNewsletterStatus('error', err.message);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Create';
-    }
-  });
-}
-
-function setupPreviewNewsletter() {
-  const btn = document.getElementById('newsletter-preview-btn');
-  if (!btn) return;
-
-  btn.addEventListener('click', async (e) => {
-    e.preventDefault();
-    const email = prompt('Enter email address for preview:');
-    if (!email || !email.trim()) return;
-
-    btn.disabled = true;
-    btn.textContent = 'Sending...';
-
-    try {
-      const res = await fetch('/api/newsletter/preview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        updateNewsletterStatus('sent', 'Preview sent!');
-      } else {
-        updateNewsletterStatus('error', data.error || 'Failed to send preview');
-      }
-    } catch (err) {
-      updateNewsletterStatus('error', err.message);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Preview';
-    }
-  });
-}
-
-function updateNewsletterStatus(type, message) {
-  const statusEl = document.getElementById('newsletter-status');
-  if (!statusEl) return;
-
-  statusEl.className = 'newsletter-bar__status newsletter-bar__status--' + type;
-  statusEl.textContent = message;
-}
-
-async function loadNewsletterConfig() {
-  try {
-    const res = await fetch('/api/newsletter/config');
-    const config = await res.json();
-    const section = document.getElementById('newsletter-section');
-
-    if (section) {
-      section.style.display = 'flex';
-    }
-
-    if (!config.configured) {
-      updateNewsletterStatus('error', 'Mailchimp not configured');
-    } else {
-      updateNewsletterStatus('sent', config.fromName + ' — ' + config.fromEmail);
-    }
-  } catch {
-    // Non-critical — newsletter section still shows
+    triggerBtn.disabled = false;
+    triggerBtn.textContent = '▶ Preview Newsletter';
   }
+
+  triggerBtn.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
+  closeBtn.addEventListener('click', closeModal);
+  cancelBtn.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+  confirmBtn.addEventListener('click', runGenerate);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') runGenerate(); });
+}
+
+let refreshCampaignStatus = () => {};
+
+function setupCampaignButton() {
+  const btn = document.getElementById('campaign-btn');
+  if (!btn) return;
+
+  refreshCampaignStatus = async function () {
+    try {
+      const res = await fetch('/api/newsletter/campaign-status');
+      if (!res.ok) { btn.style.display = 'none'; return; }
+      const data = await res.json();
+      if (!data.configured) { btn.style.display = 'none'; return; }
+      btn.style.display = '';
+      btn.dataset.exists = data.exists ? '1' : '0';
+      btn.textContent = data.exists ? 'Update Campaign' : 'Create Campaign';
+    } catch {
+      btn.style.display = 'none';
+    }
+  };
+
+  btn.addEventListener('click', async () => {
+    const isUpdate = btn.dataset.exists === '1';
+    btn.disabled = true;
+    btn.textContent = isUpdate ? 'Updating...' : 'Creating...';
+
+    try {
+      const res = await fetch('/api/newsletter/campaign', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        const timeStr = data.scheduleTime
+          ? new Date(data.scheduleTime).toLocaleString('en-US', {
+              weekday: 'short', month: 'short', day: 'numeric',
+              hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
+            })
+          : data.dateStr;
+        showAlert('dashboard-alert', `Campaign ${data.action} — scheduled for ${timeStr}`, 'success');
+        btn.textContent = 'Update Campaign';
+        btn.dataset.exists = '1';
+      } else {
+        showAlert('dashboard-alert', data.error || 'Failed to create campaign.', 'error');
+        btn.textContent = isUpdate ? 'Update Campaign' : 'Create Campaign';
+      }
+    } catch {
+      showAlert('dashboard-alert', 'Network error. Could not create campaign.', 'error');
+      btn.textContent = isUpdate ? 'Update Campaign' : 'Create Campaign';
+    }
+
+    btn.disabled = false;
+  });
 }
 
 function buildSectionSubtitle(items) {
@@ -466,7 +457,6 @@ function buildSectionSubtitle(items) {
   for (const sectionId of SECTIONS.map(s => s.id)) {
     if (counts[sectionId]) {
       const label = getSectionLabel(sectionId);
-      const word = counts[sectionId] === 1 ? 'entry' : 'entries';
       parts.push(`${counts[sectionId]} in ${label}`);
     }
   }
@@ -705,16 +695,8 @@ function setupSectionDropdowns() {
 }
 
 function updateSectionSubtitle() {
-  const listEl = document.getElementById('entry-list');
-  const cards = listEl.querySelectorAll('.entry-card');
-  const entries = [];
-  cards.forEach(card => {
-    const id = card.dataset.entryId;
-    // We need to fetch entries to build the subtitle properly
-    // But we can approximate from the DOM
-    const countEl = document.getElementById('entry-count');
-    countEl.textContent = buildSectionSubtitleFromDOM();
-  });
+  const countEl = document.getElementById('entry-count');
+  if (countEl) countEl.textContent = buildSectionSubtitleFromDOM();
 }
 
 function buildSectionSubtitleFromDOM() {
@@ -741,7 +723,6 @@ function buildSectionSubtitleFromDOM() {
   for (const sectionId of SECTIONS.map(s => s.id)) {
     if (counts[sectionId] > 0) {
       const label = getSectionLabel(sectionId);
-      const word = counts[sectionId] === 1 ? 'entry' : 'entries';
       parts.push(`${counts[sectionId]} in ${label}`);
     }
   }
@@ -847,6 +828,8 @@ function setupModals() {
     if (e.key === 'Escape') {
       closeDetailModal();
       closeDeleteModal();
+      document.getElementById('vq-modal')?.classList.remove('active');
+      document.body.style.overflow = '';
     }
   });
 

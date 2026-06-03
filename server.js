@@ -3,11 +3,11 @@ import express from 'express';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { eq, desc, count } from 'drizzle-orm';
-import { submissions, fngs, newsletter_sends } from './schema.js';
-import { createDraftCampaign, getConfigStatus, sendPreviewEmail } from './lib/mailchimp.js';
+import { submissions, fngs, newsletter_sends } from './schema.js'; // newsletter_sends kept for history route
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync, readFileSync } from 'fs';
+import { getCampaignStatusForDate, upsertScheduledCampaign, getNextSundayDateStr } from './lib/mailchimp.js';
 import multer from 'multer';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
@@ -57,8 +57,6 @@ app.use('/uploads', express.static(uploadDir));
 app.post('/api/upload/image', upload.single('image'), (req, res) => {
   if (req.file) {
     res.json({ url: `/uploads/${req.file.filename}` });
-  } else if (req.error) {
-    res.status(400).json({ error: req.error.message || 'Only image files are allowed' });
   } else {
     res.status(400).json({ error: 'No image provided' });
   }
@@ -73,79 +71,6 @@ app.use((err, req, res, next) => {
     return res.status(400).json({ error: err.message });
   }
   next(err);
-});
-
-// Newsletter send endpoints
-
-// GET /api/newsletter/config — Check Mailchimp configuration
-app.get('/api/newsletter/config', requireAuth, (req, res) => {
-  try {
-    res.json(getConfigStatus());
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to check Mailchimp config' });
-  }
-});
-
-// POST /api/newsletter/create — Generate newsletter and create draft campaign in Mailchimp (does not send)
-app.post('/api/newsletter/create', requireAuth, async (req, res) => {
-  console.log('Newsletter campaign create requested');
-  try {
-    const outputPath = path.join(__dirname, 'newsletter-dark.html');
-    await execFileAsync('node', ['generate-newsletter.mjs', `--output=${outputPath}`], { cwd: __dirname });
-
-    const htmlContent = readFileSync(outputPath, 'utf-8');
-
-    const result = await createDraftCampaign(htmlContent, {
-      subject: req.body.subject,
-      title: req.body.title,
-    });
-
-    // Record in DB
-    await db.insert(newsletter_sends).values({
-      campaign_id: result.campaignId,
-      subject: result.subject,
-      from_name: result.from_name,
-      from_email: result.from_email,
-      status: 'draft',
-      recipient_count: 0,
-    });
-
-    console.log('Newsletter campaign created (draft):', result.campaignId);
-    res.json({ success: true, campaignId: result.campaignId, ...result });
-  } catch (err) {
-    console.error('Newsletter campaign create failed:', err.message);
-
-    await db.insert(newsletter_sends).values({
-      status: 'failed',
-      error_message: err.message,
-    });
-
-    res.status(500).json({ error: err.message || 'Failed to create campaign' });
-  }
-});
-
-// POST /api/newsletter/preview — Send preview email with generated newsletter
-app.post('/api/newsletter/preview', requireAuth, async (req, res) => {
-  console.log('Newsletter preview requested');
-  try {
-    const { email } = req.body;
-    if (!email) {
-      return res.status(400).json({ error: 'Email address required' });
-    }
-
-    const outputPath = path.join(__dirname, 'newsletter-dark.html');
-    await execFileAsync('node', ['generate-newsletter.mjs', `--output=${outputPath}`], { cwd: __dirname });
-
-    const htmlContent = readFileSync(outputPath, 'utf-8');
-
-    await sendPreviewEmail(htmlContent, email);
-
-    console.log('Preview email sent to:', email);
-    res.json({ success: true });
-  } catch (err) {
-    console.error('Newsletter preview failed:', err.message);
-    res.status(500).json({ error: err.message || 'Failed to send preview' });
-  }
 });
 
 // GET /api/newsletter/history — Get newsletter send history
@@ -183,12 +108,40 @@ app.get('/api/admin/check-auth', (req, res) => {
   res.json({ authenticated: auth });
 });
 
+// GET /api/newsletter/campaign-status — check if a campaign exists for next Sunday
+app.get('/api/newsletter/campaign-status', requireAuth, async (req, res) => {
+  try {
+    const dateStr = getNextSundayDateStr();
+    const status = await getCampaignStatusForDate(dateStr);
+    res.json({ ...status, dateStr });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to get campaign status' });
+  }
+});
+
+// POST /api/newsletter/campaign — create or update the scheduled Mailchimp campaign
+app.post('/api/newsletter/campaign', requireAuth, async (req, res) => {
+  const filePath = path.join(__dirname, 'newsletter-dark.html');
+  if (!existsSync(filePath)) {
+    return res.status(400).json({ error: 'Newsletter not generated yet. Please preview the newsletter first.' });
+  }
+  try {
+    const htmlContent = readFileSync(filePath, 'utf8');
+    const result = await upsertScheduledCampaign(htmlContent);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to create campaign' });
+  }
+});
+
 // Generate dark-themed newsletter endpoint
 app.post('/api/newsletter/generate', requireAuth, async (req, res) => {
   console.log('Newsletter generation requested');
   try {
     const outputPath = path.join(__dirname, 'newsletter-dark.html');
-    await execFileAsync('node', ['generate-newsletter.mjs', `--output=${outputPath}`], { cwd: __dirname });
+    const args = [`--output=${outputPath}`];
+    if (req.body.vqs) args.push(`--vqs=${req.body.vqs}`);
+    await execFileAsync('node', ['generate-newsletter.mjs', ...args], { cwd: __dirname, env: { ...process.env, BASE_URL: process.env.BASE_URL || `http://localhost:${PORT}` } });
     console.log('Newsletter generated successfully');
     res.json({ success: true, url: '/newsletter-dark' });
   } catch (err) {
