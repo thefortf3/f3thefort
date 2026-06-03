@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { eq, desc, count } from 'drizzle-orm';
+import { eq, desc, count, isNull, isNotNull } from 'drizzle-orm';
 import { submissions, fngs, newsletter_sends } from './schema.js'; // newsletter_sends kept for history route
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -29,6 +29,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'dev.db');
 const sqlite = new Database(DB_PATH);
 const db = drizzle(sqlite);
+
+// Idempotent migration: add archived_at column if not present
+try {
+  sqlite.exec(`ALTER TABLE submissions ADD COLUMN archived_at TEXT`);
+} catch (e) {
+  if (!e.message.includes('duplicate column name')) throw e;
+}
 
 // Image upload
 const uploadDir = path.join(__dirname, 'public', 'uploads');
@@ -218,13 +225,17 @@ app.get('/api/submissions', async (req, res) => {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 8));
     const offset = (page - 1) * limit;
+    const showArchived = req.query.archived === 'true';
+
+    const condition = showArchived ? isNotNull(submissions.archived_at) : isNull(submissions.archived_at);
 
     const rows = await db.select().from(submissions)
+      .where(condition)
       .orderBy(desc(submissions.start_date))
       .limit(limit)
       .offset(offset);
 
-    const [{ total }] = await db.select({ total: count() }).from(submissions);
+    const [{ total }] = await db.select({ total: count() }).from(submissions).where(condition);
 
     res.json({
       items: rows,
@@ -293,7 +304,7 @@ app.post('/api/submissions', async (req, res) => {
   }
 });
 
-// PATCH /api/submissions/:id — Update submission section (admin only)
+// PATCH /api/submissions/:id — Update submission fields (admin only)
 const ALLOWED_SECTIONS = ['whats-hot', 'individual-init', 'desk', 'still-fresh', 'helpful-links', null];
 
 app.patch('/api/submissions/:id', requireAuth, async (req, res) => {
@@ -304,14 +315,22 @@ app.patch('/api/submissions/:id', requireAuth, async (req, res) => {
     const [existing] = await db.select().from(submissions).where(eq(submissions.id, id));
     if (!existing) return res.status(404).json({ error: 'Submission not found' });
 
-    const { section, hero_image } = req.body;
-    if (!ALLOWED_SECTIONS.includes(section)) {
+    const { section, hero_image, title, leader, start_date, end_time, location, description, link } = req.body;
+
+    if (section !== undefined && !ALLOWED_SECTIONS.includes(section)) {
       return res.status(400).json({ error: 'Invalid section value' });
     }
 
     const updates = {};
     if (section !== undefined) updates.section = section;
     if (hero_image !== undefined) updates.hero_image = hero_image;
+    if (title !== undefined) updates.title = title;
+    if (leader !== undefined) updates.leader = leader || null;
+    if (start_date !== undefined) updates.start_date = start_date;
+    if (end_time !== undefined) updates.end_time = end_time || null;
+    if (location !== undefined) updates.location = location || null;
+    if (description !== undefined) updates.description = description;
+    if (link !== undefined) updates.link = link || null;
 
     const [row] = await db
       .update(submissions)
@@ -326,18 +345,59 @@ app.patch('/api/submissions/:id', requireAuth, async (req, res) => {
   }
 });
 
-// DELETE /api/submissions/:id — Delete submission (admin only)
+// DELETE /api/submissions/:id — Archive submission (soft-delete, admin only)
 app.delete('/api/submissions/:id', requireAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
 
-    const [row] = await db.delete(submissions).where(eq(submissions.id, id)).returning();
-    if (!row) return res.status(404).json({ error: 'Submission not found' });
+    const [existing] = await db.select().from(submissions).where(eq(submissions.id, id));
+    if (!existing) return res.status(404).json({ error: 'Submission not found' });
 
+    await db.update(submissions)
+      .set({ archived_at: new Date().toISOString() })
+      .where(eq(submissions.id, id));
+
+    res.json({ success: true, archived: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to archive submission' });
+  }
+});
+
+// POST /api/submissions/:id/restore — Restore archived submission (admin only)
+app.post('/api/submissions/:id/restore', requireAuth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
+
+    const [existing] = await db.select().from(submissions).where(eq(submissions.id, id));
+    if (!existing) return res.status(404).json({ error: 'Submission not found' });
+    if (!existing.archived_at) return res.status(400).json({ error: 'Submission is not archived' });
+
+    await db.update(submissions)
+      .set({ archived_at: null })
+      .where(eq(submissions.id, id));
+
+    res.json({ success: true, restored: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to restore submission' });
+  }
+});
+
+// DELETE /api/submissions/:id/permanent — Permanently delete an archived submission (admin only)
+app.delete('/api/submissions/:id/permanent', requireAuth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
+
+    const [existing] = await db.select().from(submissions).where(eq(submissions.id, id));
+    if (!existing) return res.status(404).json({ error: 'Submission not found' });
+    if (!existing.archived_at) return res.status(400).json({ error: 'Only archived submissions can be permanently deleted' });
+
+    await db.delete(submissions).where(eq(submissions.id, id));
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to delete submission' });
+    res.status(500).json({ error: 'Failed to permanently delete submission' });
   }
 });
 

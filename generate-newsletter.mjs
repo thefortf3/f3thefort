@@ -125,7 +125,7 @@ function getSubmissions(dbPath) {
   const stmt = db.prepare(`
     SELECT id, title, leader, start_date, end_time, location, description, link, hero_image, section
     FROM submissions
-    WHERE section IS NOT NULL AND section != 'null'
+    WHERE section IS NOT NULL AND section != 'null' AND archived_at IS NULL
     ORDER BY
       CASE section
         WHEN 'desk' THEN 0

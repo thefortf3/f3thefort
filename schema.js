@@ -16,6 +16,7 @@ export const submissions = sqliteTable('submissions', {
   submitter_email: text('submitter_email'),
   submitter_phone: text('submitter_phone'),
   created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+  archived_at: text('archived_at'),
 });
 
 export const newsletter_sends = sqliteTable('newsletter_sends', {

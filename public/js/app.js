@@ -243,6 +243,8 @@ function showAlert(containerId, message, type) {
    Admin Page
    ============================================================ */
 let currentEntryId = null;
+let currentTab = 'active'; // 'active' | 'archive'
+let pendingAction = 'archive'; // 'archive' | 'restore' | 'delete-forever'
 
 function initAdmin() {
   checkAuth();
@@ -252,6 +254,31 @@ function initAdmin() {
   setupCampaignButton();
   setupModals();
   setupSectionDropdowns();
+  setupTabs();
+}
+
+function setupTabs() {
+  document.addEventListener('click', (e) => {
+    const tab = e.target.closest('.admin-tab');
+    if (!tab) return;
+
+    const tabName = tab.dataset.tab;
+    if (tabName === currentTab) return;
+
+    currentTab = tabName;
+
+    document.querySelectorAll('.admin-tab').forEach(t => {
+      t.classList.toggle('admin-tab--active', t.dataset.tab === tabName);
+    });
+
+    const previewBar = document.querySelector('.newsletter-preview-bar');
+    if (previewBar) previewBar.style.display = tabName === 'archive' ? 'none' : '';
+
+    const previewSection = document.getElementById('newsletter-preview-section');
+    if (previewSection) previewSection.style.display = 'none';
+
+    loadEntries();
+  });
 }
 
 async function checkAuth() {
@@ -523,21 +550,35 @@ async function loadEntries() {
   countEl.textContent = 'Loading entries...';
 
   try {
-    const response = await fetch('/api/submissions?limit=1000');
+    const isArchive = currentTab === 'archive';
+    const url = isArchive ? '/api/submissions?limit=1000&archived=true' : '/api/submissions?limit=1000';
+    const response = await fetch(url);
     if (!response.ok) throw new Error('Failed to load entries');
 
     const data = await response.json();
     const { items } = data;
 
-    countEl.textContent = buildSectionSubtitle(items);
-
-    if (items.length === 0) {
-      emptyEl.style.display = 'block';
-      return;
+    if (isArchive) {
+      countEl.textContent = `${items.length} archived ${items.length === 1 ? 'entry' : 'entries'}`;
+      if (items.length === 0) {
+        emptyEl.querySelector('.empty-state__title').textContent = 'Archive is empty';
+        emptyEl.querySelector('.empty-state__text').textContent = 'Archived entries will appear here.';
+        emptyEl.style.display = 'block';
+        return;
+      }
+      listEl.style.display = 'flex';
+      listEl.innerHTML = buildArchivedList(items);
+    } else {
+      countEl.textContent = buildSectionSubtitle(items);
+      if (items.length === 0) {
+        emptyEl.querySelector('.empty-state__title').textContent = 'No entries yet';
+        emptyEl.querySelector('.empty-state__text').textContent = 'Submissions will appear here once community members submit them.';
+        emptyEl.style.display = 'block';
+        return;
+      }
+      listEl.style.display = 'flex';
+      listEl.innerHTML = buildSectionedList(items);
     }
-
-    listEl.style.display = 'flex';
-    listEl.innerHTML = buildSectionedList(items);
   } catch (err) {
     listEl.innerHTML = `<div class="alert alert--error"><span>Error loading entries. Please refresh the page.</span></div>`;
   }
@@ -599,6 +640,36 @@ function buildSectionedList(items) {
   return html;
 }
 
+function buildArchivedList(items) {
+  return items.map(entry => {
+    const dateStr = formatDate(entry.start_date);
+    const archivedDate = entry.archived_at
+      ? new Date(entry.archived_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      : '';
+    const excerpt = stripHtml(entry.description || '').slice(0, 120);
+
+    return `
+      <div class="entry-card entry-card--archived" data-entry-id="${entry.id}">
+        ${entry.hero_image ? `<img class="entry-card__hero" src="${escapeHtml(entry.hero_image)}" alt="${escapeHtml(entry.title)}">` : ''}
+        <div class="entry-card__header">
+          <div>
+            <h4 class="entry-card__title"><a href="#" class="entry-link" data-entry-id="${entry.id}">${escapeHtml(entry.title)}</a></h4>
+            <div class="entry-card__meta">
+              ${dateStr ? `<span class="entry-card__meta-item">${dateStr}</span>` : ''}
+              ${archivedDate ? `<span class="entry-card__meta-item entry-card__meta-item--archived">Archived ${archivedDate}</span>` : ''}
+            </div>
+            ${excerpt ? `<p class="entry-card__excerpt">${escapeHtml(excerpt)}${entry.description && entry.description.length > 120 ? '…' : ''}</p>` : ''}
+          </div>
+          <div class="entry-card__actions">
+            <button class="btn btn--secondary btn--sm restore-btn" data-entry-id="${entry.id}">Restore</button>
+            <button class="btn btn--ghost btn--sm delete-forever-btn" data-entry-id="${entry.id}" style="color: var(--color-error);">Delete Forever</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
 function buildEntryCard(entry) {
   const dateStr = formatDate(entry.start_date);
   const timeStr = formatTimeRange(entry.start_date, entry.end_time);
@@ -630,7 +701,7 @@ function buildEntryCard(entry) {
             ${sectionOptions}
           </select>
           <button class="btn btn--ghost btn--sm view-btn" data-entry-id="${id}">View</button>
-          <button class="btn btn--ghost btn--sm delete-btn" data-entry-id="${id}" style="color: var(--color-error);">Delete</button>
+          <button class="btn btn--ghost btn--sm delete-btn" data-entry-id="${id}">Archive</button>
         </div>
       </div>
     </div>
@@ -831,7 +902,21 @@ function setupModals() {
     if (deleteBtn) {
       e.preventDefault();
       const id = deleteBtn.dataset.entryId;
-      if (id) openDeleteModal(id, deleteBtn.closest('.entry-card').querySelector('.entry-card__title a').textContent);
+      if (id) openConfirmModal(id, deleteBtn.closest('.entry-card').querySelector('.entry-card__title a').textContent, 'archive');
+    }
+
+    const restoreBtn = e.target.closest('.restore-btn');
+    if (restoreBtn) {
+      e.preventDefault();
+      const id = restoreBtn.dataset.entryId;
+      if (id) openConfirmModal(id, restoreBtn.closest('.entry-card').querySelector('.entry-card__title a').textContent, 'restore');
+    }
+
+    const deleteForeverBtn = e.target.closest('.delete-forever-btn');
+    if (deleteForeverBtn) {
+      e.preventDefault();
+      const id = deleteForeverBtn.dataset.entryId;
+      if (id) openConfirmModal(id, deleteForeverBtn.closest('.entry-card').querySelector('.entry-card__title a').textContent, 'delete-forever');
     }
   });
 
@@ -842,12 +927,33 @@ function setupModals() {
     if (e.target === detailModal) closeDetailModal();
   });
 
-  // Delete from detail modal
+  // Save changes from detail modal
+  document.getElementById('modal-save-btn').addEventListener('click', async () => {
+    if (currentEntryId) await saveEntry(currentEntryId);
+  });
+
+  // Archive/Restore from detail modal
   document.getElementById('modal-delete-btn').addEventListener('click', async () => {
     if (currentEntryId) {
+      const action = document.getElementById('modal-delete-btn').dataset.action || 'archive';
+      const title = document.getElementById('edit-title').value;
       closeDetailModal();
-      openDeleteModal(currentEntryId, document.getElementById('detail-title').textContent);
+      openConfirmModal(currentEntryId, title, action);
     }
+  });
+
+  // Rich text toolbar in edit modal
+  document.querySelectorAll('.edit-rich-toolbar button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cmd = btn.dataset.cmd;
+      if (cmd === 'createLink') {
+        const url = prompt('Enter URL:', 'https://');
+        if (url) document.execCommand('createLink', false, url);
+      } else {
+        document.execCommand(cmd, false, null);
+      }
+      document.getElementById('edit-description').focus();
+    });
   });
 
   // Close delete modal
@@ -857,10 +963,12 @@ function setupModals() {
     if (e.target === deleteModal) closeDeleteModal();
   });
 
-  // Confirm delete
+  // Confirm action (archive / restore / delete-forever)
   document.getElementById('delete-confirm-btn').addEventListener('click', async () => {
     if (currentEntryId) {
-      await deleteEntry(currentEntryId);
+      if (pendingAction === 'archive') await archiveEntry(currentEntryId);
+      else if (pendingAction === 'restore') await restoreEntry(currentEntryId);
+      else if (pendingAction === 'delete-forever') await deleteEntryForever(currentEntryId);
       closeDeleteModal();
     }
   });
@@ -950,10 +1058,6 @@ function setupModals() {
 
 async function openDetailModal(id) {
   const modal = document.getElementById('detail-modal');
-  const titleEl = document.getElementById('detail-title');
-  const metaEl = document.getElementById('detail-meta');
-  const contentEl = document.getElementById('detail-content');
-  const submitterEl = document.getElementById('detail-submitter');
 
   try {
     const response = await fetch(`/api/submissions/${id}`);
@@ -961,112 +1065,40 @@ async function openDetailModal(id) {
 
     const entry = await response.json();
 
-    titleEl.textContent = entry.title;
-    let metaHtml = '';
-    if (entry.start_date) {
-      const suffix = (d) => {
-        if (d >= 11 && d <= 13) return 'th';
-        switch (d % 10) {
-          case 1: return 'st';
-          case 2: return 'nd';
-          case 3: return 'rd';
-          default: return 'th';
-        }
-      };
-      const formatTime = (t) => {
-        if (!t) return '';
-        const timePart = t.includes('T') ? t.split('T')[1] : t;
-        if (!timePart) return '';
-        const [h, m] = timePart.split(':');
-        return `${h}${m}`;
-      };
-      const formatD = (dt) => {
-        if (!dt) return '';
-        const [datePart] = dt.split('T');
-        const [y, m, d] = datePart.split('-');
-        const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
-        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        return `${days[date.getDay()]} ${months[date.getMonth()]} ${parseInt(d)}${suffix(parseInt(d))}`;
-      };
-      const startDate = formatD(entry.start_date);
-      const startTime = formatTime(entry.start_date);
-      const endDate = formatD(entry.end_time);
-      const endTime = formatTime(entry.end_time);
-      if (startDate && startTime) {
-        metaHtml += `<div>Start: ${startDate} - ${startTime}</div>`;
-      } else if (startDate) {
-        metaHtml += `<div>Start: ${startDate}</div>`;
-      }
-      if (endDate && endTime) {
-        metaHtml += `<div>End: ${endDate} - ${endTime}</div>`;
-      } else if (endDate) {
-        metaHtml += `<div>End: ${endDate}</div>`;
-      } else if (endTime) {
-        metaHtml += `<div>End: ${endTime}</div>`;
-      }
-    }
-    if (entry.leader) metaHtml += `<span>Led by ${escapeHtml(entry.leader)}</span>`;
-    metaEl.innerHTML = metaHtml;
+    // Populate edit form fields
+    document.getElementById('edit-title').value = entry.title || '';
+    document.getElementById('edit-leader').value = entry.leader || '';
+    document.getElementById('edit-start-date').value = entry.start_date ? entry.start_date.slice(0, 16) : '';
+    document.getElementById('edit-end-time').value = entry.end_time ? entry.end_time.slice(0, 16) : '';
+    document.getElementById('edit-location').value = entry.location || '';
+    document.getElementById('edit-link').value = entry.link || '';
+    document.getElementById('edit-description').innerHTML = entry.description || '';
 
-    // Hero image
-    const heroEl = document.getElementById('detail-hero');
-    const heroImgEl = document.getElementById('detail-hero-img');
-    if (heroEl && heroImgEl && entry.hero_image) {
-      heroImgEl.src = entry.hero_image;
-      heroEl.style.display = 'block';
-    } else if (heroEl) {
-      heroEl.style.display = 'none';
-    }
-
-    let whereHtml = '';
-    if (entry.location) {
-      whereHtml = `<div class="detail-view__where"><strong>Where:</strong> ${escapeHtml(entry.location)}</div>`;
-    }
-
-    contentEl.innerHTML = entry.description || '<p style="color: var(--color-text-faint); font-style: italic;">No description provided.</p>';
-
-    let submitterHtml = '';
-    if (entry.submitter_name || entry.submitter_email || entry.submitter_phone) {
-      const parts = [];
-      if (entry.submitter_name) parts.push(escapeHtml(entry.submitter_name));
-      if (entry.submitter_email) parts.push(`<a href="mailto:${escapeHtml(entry.submitter_email)}">${escapeHtml(entry.submitter_email)}</a>`);
-      if (entry.submitter_phone) parts.push(escapeHtml(entry.submitter_phone));
-      submitterHtml = `<p>Submitted by ${parts.join(' \u00B7 ')}</p>`;
-    }
-    submitterEl.innerHTML = submitterHtml;
-
-    const linkEl = document.getElementById('detail-link');
-    if (linkEl) {
-      if (entry.link) {
-        linkEl.innerHTML = `<a href="${escapeHtml(entry.link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(entry.link)}</a>`;
-        linkEl.style.display = 'block';
-      } else {
-        linkEl.style.display = 'none';
-      }
-    }
-
-    // Section badge
-    const sectionBadge = document.getElementById('modal-section-badge');
-    if (sectionBadge) {
-      const section = getSectionById(entry.section);
-      if (section) {
-        sectionBadge.textContent = section.label;
-        sectionBadge.style.background = section.accent + '22';
-        sectionBadge.style.color = section.accent;
-        sectionBadge.style.borderColor = section.accent + '44';
-      } else {
-        sectionBadge.textContent = 'Unclassified';
-        sectionBadge.style.background = '#F0EBE0';
-        sectionBadge.style.color = '#A89B8F';
-        sectionBadge.style.borderColor = '#DDD5C8';
-      }
+    // Submitter info (read-only)
+    const submitterEl = document.getElementById('edit-submitter-info');
+    if (submitterEl) {
+      const parts = [entry.submitter_name, entry.submitter_email, entry.submitter_phone].filter(Boolean);
+      submitterEl.textContent = parts.length ? `Submitted by ${parts.join(' · ')}` : '';
     }
 
     // Section dropdown in modal
     const sectionDropdown = document.getElementById('modal-section-dropdown');
     if (sectionDropdown) {
       sectionDropdown.value = entry.section || '';
+    }
+
+    // Archive/Restore button label
+    const modalDeleteBtn = document.getElementById('modal-delete-btn');
+    if (modalDeleteBtn) {
+      if (entry.archived_at) {
+        modalDeleteBtn.textContent = 'Restore Entry';
+        modalDeleteBtn.dataset.action = 'restore';
+        modalDeleteBtn.className = 'btn btn--secondary btn--sm';
+      } else {
+        modalDeleteBtn.textContent = 'Archive Entry';
+        modalDeleteBtn.dataset.action = 'archive';
+        modalDeleteBtn.className = 'btn btn--danger btn--sm';
+      }
     }
 
     currentEntryId = id;
@@ -1084,12 +1116,82 @@ function closeDetailModal() {
   currentEntryId = null;
 }
 
-function openDeleteModal(id, title) {
+async function saveEntry(id) {
+  const saveBtn = document.getElementById('modal-save-btn');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving…';
+
+  try {
+    const body = {
+      title: document.getElementById('edit-title').value.trim(),
+      leader: document.getElementById('edit-leader').value.trim(),
+      start_date: document.getElementById('edit-start-date').value,
+      end_time: document.getElementById('edit-end-time').value,
+      location: document.getElementById('edit-location').value.trim(),
+      link: document.getElementById('edit-link').value.trim(),
+      description: document.getElementById('edit-description').innerHTML.trim(),
+    };
+
+    if (!body.title || !body.start_date) {
+      showAlert('dashboard-alert', 'Title and start date are required.', 'error');
+      return;
+    }
+
+    const response = await fetch(`/api/submissions/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (response.ok) {
+      closeDetailModal();
+      showAlert('dashboard-alert', 'Entry updated.', 'success');
+      loadEntries();
+    } else {
+      const data = await response.json().catch(() => ({}));
+      showAlert('dashboard-alert', data.error || 'Failed to save entry.', 'error');
+    }
+  } catch {
+    showAlert('dashboard-alert', 'Network error. Could not save entry.', 'error');
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save Changes';
+  }
+}
+
+function openConfirmModal(id, title, action = 'archive') {
+  pendingAction = action;
   const modal = document.getElementById('delete-modal');
+  const modalTitle = document.getElementById('delete-modal-title');
+  const modalBody = document.getElementById('delete-modal-body');
+  const confirmBtn = document.getElementById('delete-confirm-btn');
+
   document.getElementById('delete-entry-title').textContent = `"${title}"`;
   currentEntryId = id;
+
+  if (action === 'restore') {
+    modalTitle.textContent = 'Restore Entry';
+    modalBody.textContent = 'This entry will be moved back to active entries.';
+    confirmBtn.textContent = 'Restore';
+    confirmBtn.className = 'btn btn--primary btn--sm';
+  } else if (action === 'delete-forever') {
+    modalTitle.textContent = 'Delete Forever';
+    modalBody.textContent = 'This entry will be permanently deleted and cannot be recovered.';
+    confirmBtn.textContent = 'Delete Forever';
+    confirmBtn.className = 'btn btn--danger btn--sm';
+  } else {
+    modalTitle.textContent = 'Confirm Archive';
+    modalBody.textContent = 'This entry will be moved to the archive. You can restore it at any time.';
+    confirmBtn.textContent = 'Archive';
+    confirmBtn.className = 'btn btn--danger btn--sm';
+  }
+
   modal.classList.add('active');
   document.body.style.overflow = 'hidden';
+}
+
+function openDeleteModal(id, title) {
+  openConfirmModal(id, title, 'archive');
 }
 
 function closeDeleteModal() {
@@ -1098,13 +1200,41 @@ function closeDeleteModal() {
   document.body.style.overflow = '';
 }
 
-async function deleteEntry(id) {
-  const alertEl = document.getElementById('dashboard-alert');
-
+async function archiveEntry(id) {
   try {
     const response = await fetch(`/api/submissions/${id}`, { method: 'DELETE' });
     if (response.ok) {
-      showAlert('dashboard-alert', 'Entry deleted successfully.', 'success');
+      showAlert('dashboard-alert', 'Entry moved to archive.', 'success');
+      loadEntries();
+    } else {
+      const data = await response.json().catch(() => ({}));
+      showAlert('dashboard-alert', data.error || 'Failed to archive entry.', 'error');
+    }
+  } catch {
+    showAlert('dashboard-alert', 'Network error. Could not archive entry.', 'error');
+  }
+}
+
+async function restoreEntry(id) {
+  try {
+    const response = await fetch(`/api/submissions/${id}/restore`, { method: 'POST' });
+    if (response.ok) {
+      showAlert('dashboard-alert', 'Entry restored to active.', 'success');
+      loadEntries();
+    } else {
+      const data = await response.json().catch(() => ({}));
+      showAlert('dashboard-alert', data.error || 'Failed to restore entry.', 'error');
+    }
+  } catch {
+    showAlert('dashboard-alert', 'Network error. Could not restore entry.', 'error');
+  }
+}
+
+async function deleteEntryForever(id) {
+  try {
+    const response = await fetch(`/api/submissions/${id}/permanent`, { method: 'DELETE' });
+    if (response.ok) {
+      showAlert('dashboard-alert', 'Entry permanently deleted.', 'success');
       loadEntries();
     } else {
       const data = await response.json().catch(() => ({}));
