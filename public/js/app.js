@@ -31,12 +31,12 @@ function getSectionAccent(sectionId) {
 /* ============================================================
    Rich Text Editor
    ============================================================ */
-function initRichEditor() {
-  const editor = document.getElementById('rich-editor');
+function initRichEditor(editorId = 'rich-editor', contentId = 'editor-content', hiddenId = 'description') {
+  const editor = document.getElementById(editorId);
   if (!editor) return;
 
-  const content = document.getElementById('editor-content');
-  const hiddenInput = document.getElementById('description');
+  const content = document.getElementById(contentId);
+  const hiddenInput = document.getElementById(hiddenId);
   const toolbarButtons = editor.querySelectorAll('.rich-editor__toolbar button');
 
   function syncContent() {
@@ -256,6 +256,17 @@ function initAdmin() {
   setupSectionDropdowns();
   setupTabs();
   setupChangelogModal();
+  // Initialize rich editor and hero upload inside the edit modal
+  initRichEditor('modal-rich-editor', 'modal-editor-content', 'modal-description');
+  initHeroUpload({
+    fileInput: 'modal-hero-input',
+    placeholder: 'modal-hero-placeholder',
+    preview: 'modal-hero-preview',
+    previewImg: 'modal-hero-img',
+    removeBtn: 'modal-hero-remove',
+    hiddenInput: 'modal-hero-value',
+    heroUpload: 'modal-hero-upload',
+  });
 }
 
 function setupTabs() {
@@ -1072,20 +1083,6 @@ function setupModals() {
     }
   });
 
-  // Rich text toolbar in edit modal
-  document.querySelectorAll('.edit-rich-toolbar button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const cmd = btn.dataset.cmd;
-      if (cmd === 'createLink') {
-        const url = prompt('Enter URL:', 'https://');
-        if (url) document.execCommand('createLink', false, url);
-      } else {
-        document.execCommand(cmd, false, null);
-      }
-      document.getElementById('edit-description').focus();
-    });
-  });
-
   // Close delete modal
   document.getElementById('delete-modal-close').addEventListener('click', () => closeDeleteModal());
   document.getElementById('delete-cancel-btn').addEventListener('click', () => closeDeleteModal());
@@ -1203,7 +1200,29 @@ async function openDetailModal(id) {
     document.getElementById('edit-end-time').value = entry.end_time ? entry.end_time.slice(0, 16) : '';
     document.getElementById('edit-location').value = entry.location || '';
     document.getElementById('edit-link').value = entry.link || '';
-    document.getElementById('edit-description').innerHTML = entry.description || '';
+
+    // Populate rich editor content and sync hidden input
+    const editorContent = document.getElementById('modal-editor-content');
+    const descHidden = document.getElementById('modal-description');
+    if (editorContent) editorContent.innerHTML = entry.description || '';
+    if (descHidden) descHidden.value = entry.description || '';
+
+    // Populate hero image
+    const heroHidden = document.getElementById('modal-hero-value');
+    const heroPlaceholder = document.getElementById('modal-hero-placeholder');
+    const heroPreview = document.getElementById('modal-hero-preview');
+    const heroImg = document.getElementById('modal-hero-img');
+    const heroInput = document.getElementById('modal-hero-input');
+    if (heroHidden) heroHidden.value = entry.hero_image || '';
+    if (heroInput) heroInput.value = '';
+    if (entry.hero_image && heroImg && heroPreview && heroPlaceholder) {
+      heroImg.src = entry.hero_image;
+      heroPreview.style.display = 'block';
+      heroPlaceholder.style.display = 'none';
+    } else if (heroPlaceholder && heroPreview) {
+      heroPreview.style.display = 'none';
+      heroPlaceholder.style.display = 'flex';
+    }
 
     // Submitter info (read-only)
     const submitterEl = document.getElementById('edit-submitter-info');
@@ -1260,7 +1279,8 @@ async function saveEntry(id) {
       end_time: document.getElementById('edit-end-time').value,
       location: document.getElementById('edit-location').value.trim(),
       link: document.getElementById('edit-link').value.trim(),
-      description: document.getElementById('edit-description').innerHTML.trim(),
+      description: document.getElementById('modal-description').value.trim(),
+      hero_image: document.getElementById('modal-hero-value').value.trim(),
     };
 
     if (!body.title || !body.start_date) {
@@ -1460,14 +1480,14 @@ document.addEventListener('DOMContentLoaded', () => {
 /* ============================================================
    Hero Image Upload
    ============================================================ */
-function initHeroUpload() {
-  const fileInput = document.getElementById('hero-image-input');
-  const placeholder = document.getElementById('hero-placeholder');
-  const preview = document.getElementById('hero-preview');
-  const previewImg = document.getElementById('hero-preview-img');
-  const removeBtn = document.getElementById('hero-remove');
-  const hiddenInput = document.getElementById('hero_image');
-  const heroUpload = document.getElementById('hero-upload');
+function initHeroUpload(ids = {}) {
+  const fileInput = document.getElementById(ids.fileInput || 'hero-image-input');
+  const placeholder = document.getElementById(ids.placeholder || 'hero-placeholder');
+  const preview = document.getElementById(ids.preview || 'hero-preview');
+  const previewImg = document.getElementById(ids.previewImg || 'hero-preview-img');
+  const removeBtn = document.getElementById(ids.removeBtn || 'hero-remove');
+  const hiddenInput = document.getElementById(ids.hiddenInput || 'hero_image');
+  const heroUpload = document.getElementById(ids.heroUpload || 'hero-upload');
 
   if (!fileInput) return;
 

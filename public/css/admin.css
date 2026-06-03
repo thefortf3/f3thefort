@@ -1008,44 +1008,114 @@ select:focus {
   color: var(--text-dim);
 }
 
-.edit-rich-toolbar {
+/* Rich editor inside the edit modal — reuse submit form structure */
+#modal-rich-editor .rich-editor__toolbar {
   display: flex;
-  gap: var(--space-xs);
-  margin-bottom: var(--space-xs);
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: var(--space-sm);
+  background: var(--bg-card-alt);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
-.edit-rich-toolbar button {
-  font-size: 0.75rem;
-  padding: 2px 8px;
+#modal-rich-editor .rich-editor__toolbar button {
+  font-size: 0.78rem;
+  padding: 3px 8px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--bg-card-alt);
+  background: transparent;
   color: var(--text);
   cursor: pointer;
   transition: background 0.15s;
+  display: inline-flex;
+  align-items: center;
 }
 
-.edit-rich-toolbar button:hover {
+#modal-rich-editor .rich-editor__toolbar button:hover,
+#modal-rich-editor .rich-editor__toolbar button.active {
   background: var(--border);
 }
 
-.edit-rich-content {
-  min-height: 120px;
-  max-height: 280px;
+#modal-rich-editor .rich-editor__toolbar .separator {
+  width: 1px;
+  background: var(--border);
+  margin: 2px 4px;
+  align-self: stretch;
+}
+
+#modal-rich-editor .rich-editor__content {
+  min-height: 140px;
+  max-height: 300px;
   overflow-y: auto;
   padding: var(--space-md);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
   background: var(--bg-input, var(--bg-card-alt));
   color: var(--text);
   font-size: 0.95rem;
   line-height: 1.6;
   outline: none;
-  transition: border-color 0.15s;
 }
 
-.edit-rich-content:focus {
+#modal-rich-editor .rich-editor__content:focus {
   border-color: var(--amber);
+}
+
+/* Hero upload inside edit modal */
+#modal-hero-upload {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+#modal-hero-upload:hover {
+  border-color: var(--amber);
+}
+
+#modal-hero-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xl);
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.hero-upload__hint {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  opacity: 0.7;
+}
+
+#modal-hero-preview {
+  position: relative;
+}
+
+#modal-hero-preview img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  display: block;
+}
+
+#modal-hero-remove {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  background: rgba(0,0,0,0.6);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: white;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
 }
 
 .edit-submitter-info {
