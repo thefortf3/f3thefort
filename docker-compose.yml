@@ -6,6 +6,7 @@ services:
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
       - PORT=3000
       - DB_PATH=/app/data/news.db
+      - BASE_URL=https://submit.f3thefort.com
     volumes:
       - ./data:/app/data
       - ./public/uploads:/app/public/uploads

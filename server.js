@@ -243,7 +243,10 @@ app.post('/api/newsletter/generate', requireAuth, async (req, res) => {
     const outputPath = path.join(__dirname, 'newsletter-dark.html');
     const args = [`--output=${outputPath}`];
     if (req.body.vqs) args.push(`--vqs=${req.body.vqs}`);
-    await execFileAsync('node', ['generate-newsletter.mjs', ...args], { cwd: __dirname, env: { ...process.env, BASE_URL: process.env.BASE_URL || `http://localhost:${PORT}` } });
+    const proto = req.get('x-forwarded-proto') || req.protocol;
+    const host = req.get('x-forwarded-host') || req.get('host');
+    const derivedBaseUrl = process.env.BASE_URL || `${proto}://${host}`;
+    await execFileAsync('node', ['generate-newsletter.mjs', ...args], { cwd: __dirname, env: { ...process.env, BASE_URL: derivedBaseUrl } });
     console.log('Newsletter generated successfully');
     res.json({ success: true, url: '/newsletter-dark' });
   } catch (err) {
