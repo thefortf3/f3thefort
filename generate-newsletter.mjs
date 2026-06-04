@@ -122,22 +122,21 @@ function getHeaderDate() {
 // ─── Database ────────────────────────────────────────────────────────
 function getSubmissions(dbPath) {
   const db = new Database(dbPath);
-  const stmt = db.prepare(`
-    SELECT id, title, leader, start_date, end_time, location, description, link, hero_image, section
-    FROM submissions
-    WHERE section IS NOT NULL AND section != 'null' AND archived_at IS NULL
-    ORDER BY
-      CASE section
-        WHEN 'desk' THEN 0
-        WHEN 'whats-hot' THEN 1
-        WHEN 'individual-init' THEN 2
-        WHEN 'still-fresh' THEN 3
-        WHEN 'helpful-links' THEN 4
-        ELSE 5
-      END,
-      start_date ASC
-  `);
-  const rows = stmt.all();
+  const rows = db.prepare(`
+    SELECT s.id, s.title, s.leader, s.start_date, s.end_time, s.location,
+           s.description, s.link, s.hero_image, s.video_url, s.section, s.position
+    FROM submissions s
+    LEFT JOIN sections sec ON s.section = sec.id
+    WHERE s.section IS NOT NULL AND s.section != 'null' AND s.archived_at IS NULL
+    ORDER BY COALESCE(sec.position, 999) ASC, s.position ASC, s.start_date ASC
+  `).all();
+  db.close();
+  return rows;
+}
+
+function getSections(dbPath) {
+  const db = new Database(dbPath);
+  const rows = db.prepare(`SELECT id, label, accent FROM sections ORDER BY position ASC`).all();
   db.close();
   return rows;
 }
@@ -201,6 +200,100 @@ function getWeeklyFngs(dbPath) {
   });
 }
 
+// ─── Static section data ─────────────────────────────────────────────
+function getStaticSections(dbPath) {
+  const db = new Database(dbPath);
+  const threeFsItems = db.prepare('SELECT * FROM three_fs_items ORDER BY f_column, position ASC').all();
+  const sltEntries = db.prepare('SELECT * FROM slt_entries ORDER BY position ASC').all();
+  const helpfulLinks = db.prepare('SELECT * FROM helpful_links ORDER BY position ASC').all();
+  db.close();
+  return { threeFsItems, sltEntries, helpfulLinks };
+}
+
+function buildThreeFsSection(items) {
+  const cols = [
+    { id: 'fitness', num: '1', label: 'Fitness' },
+    { id: 'fellowship', num: '2', label: 'Fellowship' },
+    { id: 'faith', num: '3', label: 'Faith' },
+  ];
+
+  const colsHtml = cols.map(col => {
+    const colItems = items.filter(i => i.f_column === col.id);
+    const itemsHtml = colItems.map(item => {
+      if (item.item_type === 'link') {
+        return `
+        <div class="mini-event">
+          <a class="mini-cal-link" href="${escapeHtml(item.link_url || '#')}" target="_blank" rel="noopener">${escapeHtml(item.link_label || 'Link')} ↗</a>
+        </div>`;
+      }
+      return `
+        <div class="mini-event">
+          ${item.name ? `<div class="mini-event-name">${escapeHtml(item.name)}</div>` : ''}
+          ${item.detail ? `<div class="mini-event-detail">${escapeHtml(item.detail)}</div>` : ''}
+        </div>`;
+    }).join('');
+
+    return `
+    <div class="three-f-col">
+      <div class="three-f-head"><span class="three-f-num">${col.num}</span><span class="three-f-label">${col.label}</span></div>
+      <div class="three-f-body">${itemsHtml}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+<!-- ===== THE THREE F's ===== -->
+<div class="section section--reference">
+  <div class="section-header">
+    <span class="section-number">04</span>
+    <span class="section-name">The Three F's</span>
+    <span class="section-accent"></span>
+  </div>
+  <div class="three-fs">${colsHtml}
+  </div>
+</div>`;
+}
+
+function buildSltSection(entries) {
+  if (entries.length === 0) return '';
+  const entriesHtml = entries.map(e =>
+    `    <div class="slt-entry"><span class="slt-entry-role">${escapeHtml(e.role)}</span><span class="slt-entry-sep">—</span><span class="slt-entry-name">${escapeHtml(e.name)}</span></div>`
+  ).join('\n');
+
+  return `
+<!-- ===== SLT ===== -->
+<div class="section section--reference">
+  <div class="section-header">
+    <span class="section-number">05</span>
+    <span class="section-name">Shared Leadership Team</span>
+    <span class="section-accent"></span>
+  </div>
+  <div class="slt-roster">
+${entriesHtml}
+  </div>
+</div>`;
+}
+
+function buildHelpfulLinksSection(links) {
+  if (links.length === 0) return '';
+  const linksHtml = links.map(l =>
+    `    <a class="links-stack-item" href="${escapeHtml(l.url)}" target="_blank" rel="noopener"><span class="links-stack-label">${escapeHtml(l.label)}</span><span class="links-stack-name">${escapeHtml(l.name)}</span><span class="links-stack-arrow">↗</span></a>`
+  ).join('\n');
+
+  return `
+<!-- ===== HELPFUL LINKS ===== -->
+<div class="section section--reference section--helpful-links">
+  <div class="section-header">
+    <span class="section-number">06</span>
+    <span class="section-name">Helpful Links</span>
+    <span class="section-accent"></span>
+  </div>
+  <div class="links-stack">
+${linksHtml}
+  </div>
+</div>`;
+}
+
 // ─── Section builders ────────────────────────────────────────────────
 function buildNantanSection(submissions) {
   const desk = submissions.find(s => s.section === 'desk');
@@ -212,14 +305,14 @@ function buildNantanSection(submissions) {
     : '';
 
   return `
-  <!-- ===== DESK OF THE NANTAN ===== -->
+  <!-- ===== HEADER ===== -->
   <div class="nantan${hasHero ? ' nantan--has-hero' : ''}">
     ${heroHtml}
-    <div class="nantan-author">Desk of the Nan'tan — ${escapeHtml(desk.leader || 'Band Camp')}</div>
-    <div class="nantan-title">${escapeHtml(desk.title)}</div>
+    <div class="nantan-author">${escapeHtml(desk.title)}${desk.leader ? ` — ${escapeHtml(desk.leader)}` : ''}</div>
     <div class="nantan-body">
       ${rewriteHtmlImages(desk.description)}
     </div>
+    ${desk.video_url ? buildVideoEmbed(desk.video_url) : ''}
   </div>`;
 }
 
@@ -255,42 +348,47 @@ ${weeklyFngs.length > 0 ? fngItems : '        <li style="color:#888;font-style:i
   </div>`;
 }
 
-function buildDynamicSections(submissions) {
-  const sectionConfig = [
-    { id: 'whats-hot', label: "What's Hot", number: '01', cardType: 'event' },
-    { id: 'individual-init', label: 'Individual Initiative', number: '02', cardType: 'initiative' },
-    { id: 'still-fresh', label: 'Still Fresh', number: '03', cardType: 'fresh' },
-    { id: 'helpful-links', label: 'Helpful Links', number: '06', cardType: 'links' },
-  ];
+function getCardType(sectionId) {
+  if (sectionId === 'helpful-links') return 'links';
+  if (sectionId === 'individual-init') return 'initiative';
+  if (sectionId === 'still-fresh') return 'fresh';
+  return 'event';
+}
 
-  const grouped = {};
-  for (const secId of sectionConfig.map(s => s.id)) {
-    grouped[secId] = submissions.filter(s => s.section === secId);
-  }
+function buildDynamicSections(submissions, dbSections) {
+  const dynamicSections = dbSections.filter(s => s.id !== 'desk');
 
   let html = '';
   let sectionNumber = 0;
 
-  for (const config of sectionConfig) {
-    const entries = grouped[config.id];
+  for (const sec of dynamicSections) {
+    const entries = submissions.filter(s => s.section === sec.id);
     if (!entries || entries.length === 0) continue;
 
     sectionNumber++;
+    const config = { id: sec.id, label: sec.label, number: String(sectionNumber).padStart(2, '0'), cardType: getCardType(sec.id) };
 
     html += `
   <!-- ===== ${config.label} ===== -->
-  <div class="section">
+  <div class="section section--${config.id}">
     <div class="section-header">
       <span class="section-number">${config.number}</span>
       <span class="section-name">${escapeHtml(config.label)}</span>
       <span class="section-accent"></span>
     </div>`;
 
+    if (config.cardType === 'links') {
+      html += `\n    <ul class="links-list">`;
+    } else if (config.id === 'individual-init') {
+      html += `\n    <div class="initiative-list">`;
+    }
+
+    let initIndex = 0;
     for (const sub of entries) {
       if (config.cardType === 'event') {
         html += buildEventCard(sub);
       } else if (config.cardType === 'initiative') {
-        html += buildInitiativeCard(sub);
+        html += buildInitiativeCard(sub, ++initIndex);
       } else if (config.cardType === 'fresh') {
         html += buildFreshCard(sub);
       } else if (config.cardType === 'links') {
@@ -298,8 +396,13 @@ function buildDynamicSections(submissions) {
       }
     }
 
-    html += `
-  </div>`;
+    if (config.cardType === 'links') {
+      html += `\n    </ul>`;
+    } else if (config.id === 'individual-init') {
+      html += `\n    </div>`;
+    }
+
+    html += `\n  </div>`;
   }
 
   return html;
@@ -342,6 +445,10 @@ function buildEventCard(sub) {
   html += `
         <div class="event-desc">${rewriteHtmlImages(sub.description || '')}</div>`;
 
+  if (sub.video_url) {
+    html += buildVideoEmbed(sub.video_url);
+  }
+
   if (sub.link) {
     html += `
         <a class="event-link" href="${escapeHtml(sub.link)}" target="_blank" rel="noopener">Details ↗</a>`;
@@ -354,37 +461,48 @@ function buildEventCard(sub) {
   return html;
 }
 
-function buildInitiativeCard(sub) {
+function buildInitiativeCard(sub, index) {
+  const numStr = String(index).padStart(2, '0');
   let html = `
-    <article class="initiative-card">
-      <div class="initiative-title">${escapeHtml(sub.title)}</div>
-      <div class="initiative-meta">`;
+    <article class="initiative-entry">
+      <div class="initiative-num">${numStr}</div>
+      <div class="initiative-content">
+        <div class="initiative-title">${escapeHtml(sub.title)}</div>`;
 
-  if (sub.leader) {
+  const hasMeta = sub.leader || sub.start_date || sub.location;
+  if (hasMeta) {
     html += `
-        <div class="initiative-meta-item"><span class="icon">Q:</span> ${escapeHtml(sub.leader)}</div>`;
+        <div class="initiative-meta">`;
+    if (sub.leader) {
+      html += `
+          <div class="initiative-meta-item"><span class="icon">Q:</span> ${escapeHtml(sub.leader)}</div>`;
+    }
+    if (sub.start_date) {
+      html += `
+          <div class="initiative-meta-item"><span class="icon">📅</span> ${escapeHtml(formatDate(sub.start_date, sub.end_time))}</div>`;
+    }
+    if (sub.location) {
+      html += `
+          <div class="initiative-meta-item"><span class="icon">📌</span> ${escapeHtml(sub.location)}</div>`;
+    }
+    html += `
+        </div>`;
   }
 
-  if (sub.start_date) {
-    html += `
-        <div class="initiative-meta-item"><span class="icon">📅</span> ${escapeHtml(formatDate(sub.start_date, sub.end_time))}</div>`;
+  html += `
+        <div class="initiative-desc">${rewriteHtmlImages(sub.description || '')}</div>`;
+
+  if (sub.video_url) {
+    html += buildVideoEmbed(sub.video_url);
   }
 
-  if (sub.location) {
+  if (sub.link) {
     html += `
-        <div class="initiative-meta-item"><span class="icon">📌</span> ${escapeHtml(sub.location)}</div>`;
+        <a class="event-link" href="${escapeHtml(sub.link)}" target="_blank" rel="noopener">Details ↗</a>`;
   }
 
   html += `
       </div>
-      <div class="initiative-desc">${rewriteHtmlImages(sub.description || '')}</div>`;
-
-  if (sub.link) {
-    html += `
-      <a class="event-link" href="${escapeHtml(sub.link)}" target="_blank" rel="noopener">Details ↗</a>`;
-  }
-
-  html += `
     </article>`;
 
   return html;
@@ -417,6 +535,7 @@ function buildFreshCard(sub) {
   html += `
         </div>
         <div class="event-desc">${rewriteHtmlImages(sub.description || '')}</div>
+        ${sub.video_url ? buildVideoEmbed(sub.video_url) : ''}
       </div>
     </article>`;
 
@@ -445,19 +564,83 @@ function rewriteHtmlImages(html) {
   return html.replace(/src="\/uploads\/([^"]+)"/g, `src="${baseUrl}/uploads/$1"`);
 }
 
+function parseVideoUrl(url) {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes('youtube.com')) {
+      const v = u.searchParams.get('v');
+      if (v) return { type: 'youtube', id: v, original: url };
+      const shorts = u.pathname.match(/\/shorts\/([a-zA-Z0-9_-]+)/);
+      if (shorts) return { type: 'youtube', id: shorts[1], original: url };
+      const embed = u.pathname.match(/\/embed\/([a-zA-Z0-9_-]+)/);
+      if (embed) return { type: 'youtube', id: embed[1], original: url };
+    }
+    if (u.hostname === 'youtu.be') {
+      const id = u.pathname.slice(1).split('/')[0];
+      if (id) return { type: 'youtube', id, original: url };
+    }
+    if (u.hostname.includes('vimeo.com')) {
+      const id = u.pathname.match(/\/(\d+)/)?.[1];
+      if (id) return { type: 'vimeo', id, original: url };
+    }
+    return { type: 'generic', original: url };
+  } catch {
+    return null;
+  }
+}
+
+function buildVideoEmbed(videoUrl) {
+  if (!videoUrl) return '';
+  const parsed = parseVideoUrl(videoUrl);
+  if (!parsed) return '';
+
+  if (parsed.type === 'youtube') {
+    const embedUrl = `https://www.youtube.com/embed/${escapeHtml(parsed.id)}?rel=0`;
+    const thumbUrl = `https://img.youtube.com/vi/${escapeHtml(parsed.id)}/hqdefault.jpg`;
+    return `
+<div class="video-embed" data-embed-url="${embedUrl}">
+  <a class="video-embed__link" href="${escapeHtml(parsed.original)}" target="_blank" rel="noopener">
+    <div class="video-embed__thumb">
+      <img class="video-embed__img" src="${thumbUrl}" alt="Watch video">
+      <div class="video-embed__play">&#9654;</div>
+    </div>
+    <div class="video-embed__caption">Watch on YouTube &#8599;</div>
+  </a>
+</div>`;
+  }
+
+  if (parsed.type === 'vimeo') {
+    const embedUrl = `https://player.vimeo.com/video/${escapeHtml(parsed.id)}`;
+    return `
+<div class="video-embed" data-embed-url="${embedUrl}">
+  <a class="video-embed__link" href="${escapeHtml(parsed.original)}" target="_blank" rel="noopener">
+    <div class="video-embed__thumb video-embed__thumb--noimg">
+      <div class="video-embed__play">&#9654;</div>
+    </div>
+    <div class="video-embed__caption">Watch on Vimeo &#8599;</div>
+  </a>
+</div>`;
+  }
+
+  return `<div class="video-embed__generic"><a href="${escapeHtml(parsed.original)}" target="_blank" rel="noopener">Watch Video &#8599;</a></div>`;
+}
+
 // ─── Main ────────────────────────────────────────────────────────────
 function main() {
   const template = readFileSync(templatePath, 'utf-8');
   const submissions = getSubmissions(dbPath);
+  const dbSections = getSections(dbPath);
   const fngStats = getFngStats(dbPath);
   const issueDate = getIssueDate();
   const headerDate = getHeaderDate();
+  const { threeFsItems, sltEntries, helpfulLinks } = getStaticSections(dbPath);
 
   // Build dynamic sections
   const nantanSection = buildNantanSection(submissions);
   const weeklyFngs = getWeeklyFngs(dbPath);
   const rosterSection = buildRosterSection(weeklyFngs, vqNames);
-  const dynamicSections = buildDynamicSections(submissions);
+  const dynamicSections = buildDynamicSections(submissions, dbSections);
 
   // Replace placeholders
   let html = template
@@ -470,7 +653,10 @@ function main() {
     .replace('{{DAYS_PCT}}', fngStats.daysPct.toString())
     .replace('{{NANTAN_SECTION}}', nantanSection)
     .replace('{{ROSTER_SECTION}}', rosterSection)
-    .replace('{{DYNAMIC_SECTIONS}}', dynamicSections);
+    .replace('{{DYNAMIC_SECTIONS}}', dynamicSections)
+    .replace('{{THREE_FS_SECTION}}', buildThreeFsSection(threeFsItems))
+    .replace('{{SLT_SECTION}}', buildSltSection(sltEntries))
+    .replace('{{HELPFUL_LINKS_SECTION}}', buildHelpfulLinksSection(helpfulLinks));
 
   if (previewOnly) {
     process.stdout.write(html);

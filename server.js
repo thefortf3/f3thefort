@@ -2,8 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { eq, desc, count, isNull, isNotNull } from 'drizzle-orm';
-import { submissions, fngs, newsletter_sends, audit_log } from './schema.js'; // newsletter_sends kept for history route
+import { eq, desc, count, isNull, isNotNull, like, or, and, sql as drizzleSql } from 'drizzle-orm';
+import { submissions, fngs, newsletter_sends, audit_log, sections, three_fs_items, slt_entries, helpful_links } from './schema.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync, readFileSync } from 'fs';
@@ -83,6 +83,20 @@ try {
   if (!e.message.includes('duplicate column name')) throw e;
 }
 
+// Idempotent migration: add position column to submissions
+try {
+  sqlite.exec(`ALTER TABLE submissions ADD COLUMN position INTEGER DEFAULT 0`);
+} catch (e) {
+  if (!e.message.includes('duplicate column name')) throw e;
+}
+
+// Idempotent migration: add video_url column to submissions
+try {
+  sqlite.exec(`ALTER TABLE submissions ADD COLUMN video_url TEXT`);
+} catch (e) {
+  if (!e.message.includes('duplicate column name')) throw e;
+}
+
 // Idempotent migration: create audit_log table
 sqlite.exec(`CREATE TABLE IF NOT EXISTS audit_log (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -92,6 +106,101 @@ sqlite.exec(`CREATE TABLE IF NOT EXISTS audit_log (
   submission_title TEXT,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP
 )`);
+
+// Idempotent migration: create sections table and seed defaults
+sqlite.exec(`CREATE TABLE IF NOT EXISTS sections (
+  id TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  accent TEXT NOT NULL,
+  position INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+)`);
+sqlite.exec(`
+  INSERT OR IGNORE INTO sections (id, label, accent, position) VALUES
+    ('desk',           'Header',                  '#6C3483', 0),
+    ('whats-hot',      'What''s Hot in The Fort',  '#8B2E2E', 1),
+    ('individual-init','Individual Initiative',    '#3A7D5C', 2),
+    ('still-fresh',    'Still Fresh',             '#D4A017', 3)
+`);
+// Rename legacy label if not yet updated
+sqlite.prepare(`UPDATE sections SET label = 'Header' WHERE id = 'desk' AND label = 'Desk of the Nan''tan'`).run();
+
+// Remove helpful-links from dynamic sections (it is now a protected static section)
+try {
+  sqlite.prepare(`UPDATE submissions SET section = NULL WHERE section = 'helpful-links'`).run();
+  sqlite.prepare(`DELETE FROM sections WHERE id = 'helpful-links'`).run();
+} catch (e) { /* already removed */ }
+
+// Static section tables
+sqlite.exec(`CREATE TABLE IF NOT EXISTS three_fs_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  f_column TEXT NOT NULL,
+  item_type TEXT NOT NULL DEFAULT 'event',
+  name TEXT,
+  detail TEXT,
+  link_url TEXT,
+  link_label TEXT,
+  position INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+)`);
+sqlite.exec(`CREATE TABLE IF NOT EXISTS slt_entries (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  role TEXT NOT NULL,
+  name TEXT NOT NULL,
+  position INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+)`);
+sqlite.exec(`CREATE TABLE IF NOT EXISTS helpful_links (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  label TEXT NOT NULL,
+  name TEXT NOT NULL,
+  url TEXT NOT NULL,
+  position INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+)`);
+
+// Seed Three F's items
+if (sqlite.prepare('SELECT COUNT(*) as c FROM three_fs_items').get().c === 0) {
+  sqlite.exec(`INSERT INTO three_fs_items (f_column, item_type, name, detail, link_url, link_label, position) VALUES
+    ('fitness','link',NULL,NULL,'https://f3nation.us10.list-manage.com/track/click?u=31d40047f4100a853e297353d&id=f70e0acc16&e=c677564300','Full Workout List',0),
+    ('fitness','link',NULL,NULL,'https://calendar.google.com/calendar/embed?src=5e3fs62uiaequ28n33p3mea3d8%40group.calendar.google.com&ctz=America%2FNew_York','Q Calendar',1),
+    ('fellowship','event','Pizza in Fort Mill','1800–1900 · 3rd Thursday · Emilio''s, Arden Mill',NULL,NULL,0),
+    ('fellowship','event','Coffeteria — East','0730 · Every Sat · Humble Cup',NULL,NULL,1),
+    ('fellowship','event','Coffeteria — West','0730 · Every Sat · Tega Cay Deli',NULL,NULL,2),
+    ('fellowship','link',NULL,NULL,'https://calendar.google.com/calendar/embed?src=jc1s2mmee1fsks6oij9374cslg%40group.calendar.google.com&ctz=America%2FNew_York','Fellowship Calendar',3),
+    ('faith','event','The Testament','0630–0715 · Wed · Waffle House',NULL,NULL,0),
+    ('faith','event','Hanging with Stang','0615–0700 · Thu · Kingsley Panera',NULL,NULL,1),
+    ('faith','event','McGospel','0615–0700 · Fri · Kingsley Panera',NULL,NULL,2),
+    ('faith','link',NULL,NULL,'https://calendar.google.com/calendar/embed?src=ht85v7p21jkfrk8oomekogk5ik%40group.calendar.google.com&ctz=America%2FNew_York','Faith Calendar',3)
+  `);
+}
+
+// Seed SLT entries
+if (sqlite.prepare('SELECT COUNT(*) as c FROM slt_entries').get().c === 0) {
+  sqlite.exec(`INSERT INTO slt_entries (role, name, position) VALUES
+    ('Nan''tan','Band Camp',0),
+    ('1st F (East)','Time Machine',1),
+    ('1st F (West)','Bonsai',2),
+    ('2nd F','Liberty Bibberty',3),
+    ('3rd F','Cornerstone',4),
+    ('Weasel Shaker','Poppins',5),
+    ('LDP','Cyclops',6),
+    ('Comz','38 Special / Console',7),
+    ('Newsletter','Bitcoin / Console / Ruby Slippers',8)
+  `);
+}
+
+// Seed helpful links
+if (sqlite.prepare('SELECT COUNT(*) as c FROM helpful_links').get().c === 0) {
+  sqlite.exec(`INSERT INTO helpful_links (label, name, url, position) VALUES
+    ('Q Schedule','GloomSchedule','https://app.gloomschedule.com/',0),
+    ('FNG Capture','FNG Form','https://f3thefort.com',1),
+    ('Q 101','Template','https://docs.google.com/document/d/1zFiVyspf1Xph6GIv-r-z5brONWUzhEYrBvXzbnKfdBc/edit?usp=sharing',2),
+    ('LinkedIn','F3TheFort Group','https://www.linkedin.com/groups/7456081',3),
+    ('Slack','Access Request','https://join.slack.com/t/f3thefort/shared_invite/zt-1endaagqa-nu0mQwqSr373Ib_aoZqVvg',4),
+    ('Newsletter','Submit Entries','https://submit.f3thefort.com',5)
+  `);
+}
 
 function logAudit(submissionId, action, title, detail = null) {
   sqlite.prepare(
@@ -284,19 +393,24 @@ function requireAuth(req, res, next) {
 // API Routes
 // ============================================================
 
-// GET /api/submissions — List all submissions with pagination
+// GET /api/submissions — List all submissions with pagination + optional search
 app.get('/api/submissions', async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 8));
+    const limit = Math.min(500, Math.max(1, parseInt(req.query.limit) || 500));
     const offset = (page - 1) * limit;
     const showArchived = req.query.archived === 'true';
+    const searchQ = req.query.q?.trim();
 
-    const condition = showArchived ? isNotNull(submissions.archived_at) : isNull(submissions.archived_at);
+    let condition = showArchived ? isNotNull(submissions.archived_at) : isNull(submissions.archived_at);
+    if (searchQ) {
+      const pat = `%${searchQ}%`;
+      condition = and(condition, or(like(submissions.title, pat), like(submissions.description, pat)));
+    }
 
     const rows = await db.select().from(submissions)
       .where(condition)
-      .orderBy(desc(submissions.start_date))
+      .orderBy(submissions.position, submissions.start_date)
       .limit(limit)
       .offset(offset);
 
@@ -334,7 +448,7 @@ app.get('/api/submissions/:id', async (req, res) => {
 // POST /api/submissions — Create new submission
 app.post('/api/submissions', async (req, res) => {
   try {
-    const { title, leader, start_date, end_time, location, description, link, hero_image, submitter_name, submitter_email, submitter_phone } = req.body;
+    const { title, leader, start_date, end_time, location, description, link, hero_image, video_url, submitter_name, submitter_email, submitter_phone } = req.body;
 
     if (!title || !start_date || !description) {
       return res.status(400).json({ error: 'Missing required fields: title, start_date, description' });
@@ -357,6 +471,7 @@ app.post('/api/submissions', async (req, res) => {
       description,
       link: link || null,
       hero_image: hero_image || null,
+      video_url: video_url || null,
       submitter_name: submitter_name || null,
       submitter_email: submitter_email || null,
       submitter_phone: submitter_phone || null,
@@ -370,9 +485,23 @@ app.post('/api/submissions', async (req, res) => {
   }
 });
 
-// PATCH /api/submissions/:id — Update submission fields (admin only)
-const ALLOWED_SECTIONS = ['whats-hot', 'individual-init', 'desk', 'still-fresh', 'helpful-links', null];
+// POST /api/submissions/reorder — Update position order within a section (admin only)
+app.post('/api/submissions/reorder', requireAuth, (req, res) => {
+  try {
+    const { section, order } = req.body;
+    if (!Array.isArray(order)) return res.status(400).json({ error: 'order must be an array of IDs' });
+    const update = sqlite.prepare(`UPDATE submissions SET position = ? WHERE id = ?`);
+    const tx = sqlite.transaction(() => {
+      order.forEach((id, idx) => update.run(idx, id));
+    });
+    tx();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to reorder submissions' });
+  }
+});
 
+// PATCH /api/submissions/:id — Update submission fields (admin only)
 app.patch('/api/submissions/:id', requireAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
@@ -381,15 +510,17 @@ app.patch('/api/submissions/:id', requireAuth, async (req, res) => {
     const [existing] = await db.select().from(submissions).where(eq(submissions.id, id));
     if (!existing) return res.status(404).json({ error: 'Submission not found' });
 
-    const { section, hero_image, title, leader, start_date, end_time, location, description, link } = req.body;
+    const { section, hero_image, video_url, title, leader, start_date, end_time, location, description, link } = req.body;
 
-    if (section !== undefined && !ALLOWED_SECTIONS.includes(section)) {
-      return res.status(400).json({ error: 'Invalid section value' });
+    if (section !== undefined && section !== null) {
+      const validSection = sqlite.prepare(`SELECT id FROM sections WHERE id = ?`).get(section);
+      if (!validSection) return res.status(400).json({ error: 'Invalid section value' });
     }
 
     const updates = {};
     if (section !== undefined) updates.section = section;
     if (hero_image !== undefined) updates.hero_image = hero_image;
+    if (video_url !== undefined) updates.video_url = video_url || null;
     if (title !== undefined) updates.title = title;
     if (leader !== undefined) updates.leader = leader || null;
     if (start_date !== undefined) updates.start_date = start_date;
@@ -642,6 +773,270 @@ app.delete('/api/fngs/:id', requireAuth, async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete FNG entry' });
+  }
+});
+
+// ============================================================
+// Sections API
+// ============================================================
+
+// GET /api/sections — List all sections ordered by position
+app.get('/api/sections', requireAuth, async (req, res) => {
+  try {
+    const rows = await db.select().from(sections).orderBy(sections.position);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch sections' });
+  }
+});
+
+// POST /api/sections — Create a new section
+app.post('/api/sections', requireAuth, (req, res) => {
+  try {
+    const { id, label, accent } = req.body;
+    if (!id || !label || !accent) return res.status(400).json({ error: 'id, label, and accent are required' });
+    if (!/^[a-z0-9-]+$/.test(id)) return res.status(400).json({ error: 'id must be lowercase alphanumeric with hyphens' });
+
+    const maxPos = sqlite.prepare(`SELECT COALESCE(MAX(position), -1) as m FROM sections`).get().m;
+    sqlite.prepare(`INSERT INTO sections (id, label, accent, position) VALUES (?, ?, ?, ?)`).run(id, label, accent, maxPos + 1);
+    const row = sqlite.prepare(`SELECT * FROM sections WHERE id = ?`).get(id);
+    res.status(201).json(row);
+  } catch (err) {
+    if (err.message?.includes('UNIQUE constraint')) return res.status(409).json({ error: 'Section ID already exists' });
+    res.status(500).json({ error: 'Failed to create section' });
+  }
+});
+
+// PATCH /api/sections/:id — Update a section
+app.patch('/api/sections/:id', requireAuth, (req, res) => {
+  try {
+    const { id } = req.params;
+    const { label, accent, position } = req.body;
+    const existing = sqlite.prepare(`SELECT * FROM sections WHERE id = ?`).get(id);
+    if (!existing) return res.status(404).json({ error: 'Section not found' });
+
+    if (id === 'desk' && (label !== undefined || accent !== undefined)) {
+      return res.status(403).json({ error: 'This section is locked and cannot be renamed or recolored' });
+    }
+
+    if (label !== undefined) sqlite.prepare(`UPDATE sections SET label = ? WHERE id = ?`).run(label, id);
+    if (accent !== undefined) sqlite.prepare(`UPDATE sections SET accent = ? WHERE id = ?`).run(accent, id);
+    if (position !== undefined) sqlite.prepare(`UPDATE sections SET position = ? WHERE id = ?`).run(position, id);
+
+    const row = sqlite.prepare(`SELECT * FROM sections WHERE id = ?`).get(id);
+    res.json(row);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update section' });
+  }
+});
+
+// DELETE /api/sections/:id — Delete a section (moves submissions to unsorted)
+app.delete('/api/sections/:id', requireAuth, (req, res) => {
+  try {
+    const { id } = req.params;
+    if (id === 'desk') return res.status(403).json({ error: 'This section is locked and cannot be deleted' });
+    const existing = sqlite.prepare(`SELECT * FROM sections WHERE id = ?`).get(id);
+    if (!existing) return res.status(404).json({ error: 'Section not found' });
+
+    const tx = sqlite.transaction(() => {
+      sqlite.prepare(`UPDATE submissions SET section = NULL WHERE section = ?`).run(id);
+      sqlite.prepare(`DELETE FROM sections WHERE id = ?`).run(id);
+    });
+    tx();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete section' });
+  }
+});
+
+// ============================================================
+// Static Sections API (Three F's, SLT, Helpful Links)
+// ============================================================
+
+// ── Three F's ──────────────────────────────────────────────
+
+app.get('/api/static/three-fs', requireAuth, (req, res) => {
+  try {
+    res.json(sqlite.prepare('SELECT * FROM three_fs_items ORDER BY f_column, position ASC').all());
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch Three Fs items' });
+  }
+});
+
+app.post('/api/static/three-fs/reorder', requireAuth, (req, res) => {
+  try {
+    const { order } = req.body;
+    if (!Array.isArray(order)) return res.status(400).json({ error: 'order must be an array of IDs' });
+    const update = sqlite.prepare('UPDATE three_fs_items SET position = ? WHERE id = ?');
+    sqlite.transaction(() => order.forEach((id, idx) => update.run(idx, id)))();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to reorder' });
+  }
+});
+
+app.post('/api/static/three-fs', requireAuth, (req, res) => {
+  try {
+    const { f_column, item_type, name, detail, link_url, link_label } = req.body;
+    if (!['fitness', 'fellowship', 'faith'].includes(f_column)) return res.status(400).json({ error: 'Invalid f_column' });
+    if (!['event', 'link'].includes(item_type)) return res.status(400).json({ error: 'Invalid item_type' });
+    const maxPos = sqlite.prepare('SELECT COALESCE(MAX(position),-1) as m FROM three_fs_items WHERE f_column = ?').get(f_column).m;
+    const { lastInsertRowid } = sqlite.prepare(
+      'INSERT INTO three_fs_items (f_column, item_type, name, detail, link_url, link_label, position) VALUES (?,?,?,?,?,?,?)'
+    ).run(f_column, item_type, name || null, detail || null, link_url || null, link_label || null, maxPos + 1);
+    res.status(201).json(sqlite.prepare('SELECT * FROM three_fs_items WHERE id = ?').get(lastInsertRowid));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to create item' });
+  }
+});
+
+app.patch('/api/static/three-fs/:id', requireAuth, (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
+    if (!sqlite.prepare('SELECT id FROM three_fs_items WHERE id = ?').get(id)) return res.status(404).json({ error: 'Not found' });
+    const { item_type, name, detail, link_url, link_label } = req.body;
+    if (item_type !== undefined) sqlite.prepare('UPDATE three_fs_items SET item_type = ? WHERE id = ?').run(item_type, id);
+    if (name !== undefined) sqlite.prepare('UPDATE three_fs_items SET name = ? WHERE id = ?').run(name || null, id);
+    if (detail !== undefined) sqlite.prepare('UPDATE three_fs_items SET detail = ? WHERE id = ?').run(detail || null, id);
+    if (link_url !== undefined) sqlite.prepare('UPDATE three_fs_items SET link_url = ? WHERE id = ?').run(link_url || null, id);
+    if (link_label !== undefined) sqlite.prepare('UPDATE three_fs_items SET link_label = ? WHERE id = ?').run(link_label || null, id);
+    res.json(sqlite.prepare('SELECT * FROM three_fs_items WHERE id = ?').get(id));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update item' });
+  }
+});
+
+app.delete('/api/static/three-fs/:id', requireAuth, (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
+    if (!sqlite.prepare('SELECT id FROM three_fs_items WHERE id = ?').get(id)) return res.status(404).json({ error: 'Not found' });
+    sqlite.prepare('DELETE FROM three_fs_items WHERE id = ?').run(id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete item' });
+  }
+});
+
+// ── SLT ────────────────────────────────────────────────────
+
+app.get('/api/static/slt', requireAuth, (req, res) => {
+  try {
+    res.json(sqlite.prepare('SELECT * FROM slt_entries ORDER BY position ASC').all());
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch SLT entries' });
+  }
+});
+
+app.post('/api/static/slt/reorder', requireAuth, (req, res) => {
+  try {
+    const { order } = req.body;
+    if (!Array.isArray(order)) return res.status(400).json({ error: 'order must be an array of IDs' });
+    const update = sqlite.prepare('UPDATE slt_entries SET position = ? WHERE id = ?');
+    sqlite.transaction(() => order.forEach((id, idx) => update.run(idx, id)))();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to reorder' });
+  }
+});
+
+app.post('/api/static/slt', requireAuth, (req, res) => {
+  try {
+    const { role, name } = req.body;
+    if (!role || !name) return res.status(400).json({ error: 'role and name are required' });
+    const maxPos = sqlite.prepare('SELECT COALESCE(MAX(position),-1) as m FROM slt_entries').get().m;
+    const { lastInsertRowid } = sqlite.prepare('INSERT INTO slt_entries (role, name, position) VALUES (?,?,?)').run(role, name, maxPos + 1);
+    res.status(201).json(sqlite.prepare('SELECT * FROM slt_entries WHERE id = ?').get(lastInsertRowid));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to create SLT entry' });
+  }
+});
+
+app.patch('/api/static/slt/:id', requireAuth, (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
+    if (!sqlite.prepare('SELECT id FROM slt_entries WHERE id = ?').get(id)) return res.status(404).json({ error: 'Not found' });
+    const { role, name } = req.body;
+    if (role !== undefined) sqlite.prepare('UPDATE slt_entries SET role = ? WHERE id = ?').run(role, id);
+    if (name !== undefined) sqlite.prepare('UPDATE slt_entries SET name = ? WHERE id = ?').run(name, id);
+    res.json(sqlite.prepare('SELECT * FROM slt_entries WHERE id = ?').get(id));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update SLT entry' });
+  }
+});
+
+app.delete('/api/static/slt/:id', requireAuth, (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
+    if (!sqlite.prepare('SELECT id FROM slt_entries WHERE id = ?').get(id)) return res.status(404).json({ error: 'Not found' });
+    sqlite.prepare('DELETE FROM slt_entries WHERE id = ?').run(id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete SLT entry' });
+  }
+});
+
+// ── Helpful Links ───────────────────────────────────────────
+
+app.get('/api/static/links', requireAuth, (req, res) => {
+  try {
+    res.json(sqlite.prepare('SELECT * FROM helpful_links ORDER BY position ASC').all());
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch helpful links' });
+  }
+});
+
+app.post('/api/static/links/reorder', requireAuth, (req, res) => {
+  try {
+    const { order } = req.body;
+    if (!Array.isArray(order)) return res.status(400).json({ error: 'order must be an array of IDs' });
+    const update = sqlite.prepare('UPDATE helpful_links SET position = ? WHERE id = ?');
+    sqlite.transaction(() => order.forEach((id, idx) => update.run(idx, id)))();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to reorder' });
+  }
+});
+
+app.post('/api/static/links', requireAuth, (req, res) => {
+  try {
+    const { label, name, url } = req.body;
+    if (!label || !name || !url) return res.status(400).json({ error: 'label, name, and url are required' });
+    const maxPos = sqlite.prepare('SELECT COALESCE(MAX(position),-1) as m FROM helpful_links').get().m;
+    const { lastInsertRowid } = sqlite.prepare('INSERT INTO helpful_links (label, name, url, position) VALUES (?,?,?,?)').run(label, name, url, maxPos + 1);
+    res.status(201).json(sqlite.prepare('SELECT * FROM helpful_links WHERE id = ?').get(lastInsertRowid));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to create link' });
+  }
+});
+
+app.patch('/api/static/links/:id', requireAuth, (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
+    if (!sqlite.prepare('SELECT id FROM helpful_links WHERE id = ?').get(id)) return res.status(404).json({ error: 'Not found' });
+    const { label, name, url } = req.body;
+    if (label !== undefined) sqlite.prepare('UPDATE helpful_links SET label = ? WHERE id = ?').run(label, id);
+    if (name !== undefined) sqlite.prepare('UPDATE helpful_links SET name = ? WHERE id = ?').run(name, id);
+    if (url !== undefined) sqlite.prepare('UPDATE helpful_links SET url = ? WHERE id = ?').run(url, id);
+    res.json(sqlite.prepare('SELECT * FROM helpful_links WHERE id = ?').get(id));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update link' });
+  }
+});
+
+app.delete('/api/static/links/:id', requireAuth, (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
+    if (!sqlite.prepare('SELECT id FROM helpful_links WHERE id = ?').get(id)) return res.status(404).json({ error: 'Not found' });
+    sqlite.prepare('DELETE FROM helpful_links WHERE id = ?').run(id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete link' });
   }
 });
 

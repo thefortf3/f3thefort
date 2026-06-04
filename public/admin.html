@@ -7,8 +7,10 @@
   <link rel="stylesheet" href="/css/admin.css">
 </head>
 <body>
-  <div class="container container--wide">
-    <!-- Login View -->
+  <!-- =====================================================
+       Login View
+       ===================================================== -->
+  <div class="container">
     <div id="login-view" class="login-container">
       <div class="card">
         <header class="page-header">
@@ -20,14 +22,7 @@
         <form id="login-form">
           <div class="form-group">
             <label for="admin-password">Password</label>
-            <input
-              type="password"
-              id="admin-password"
-              name="password"
-              placeholder="Enter admin password"
-              required
-              autofocus
-            >
+            <input type="password" id="admin-password" name="password" placeholder="Enter admin password" required autofocus>
           </div>
           <div class="form-actions" style="border-top: none; padding-top: 0; margin-top: 0;">
             <div class="form-actions__right" style="justify-content: center;">
@@ -43,69 +38,89 @@
         </p>
       </div>
     </div>
-
-    <!-- Dashboard View (hidden until logged in) -->
-    <div id="dashboard-view" style="display: none;">
-      <!-- Nav -->
-      <nav class="admin-nav">
-        <span class="admin-nav__brand">Newsletter Admin</span>
-        <div class="admin-nav__links">
-          <a href="/" class="admin-nav__link">Submit Entry</a>
-          <a href="#" class="admin-nav__link" id="logout-btn">Logout</a>
-        </div>
-      </nav>
-
-      <!-- Header -->
-      <header class="page-header">
-        <span class="page-header__eyebrow">Dashboard</span>
-        <h1 class="page-header__title">All Entries</h1>
-        <p class="page-header__subtitle" id="entry-count">Loading entries...</p>
-      </header>
-
-      <!-- Tab Bar -->
-      <div class="admin-tabs" id="admin-tabs">
-        <button class="admin-tab admin-tab--active" data-tab="active">Active Entries</button>
-        <button class="admin-tab" data-tab="archive">Archive</button>
-      </div>
-
-      <!-- Alert Container -->
-      <div id="dashboard-alert"></div>
-
-      <!-- Newsletter Preview Bar -->
-      <div class="newsletter-preview-bar">
-        <button class="btn btn--ghost btn--sm" id="changelog-btn">Changes This Week</button>
-        <button class="btn btn--primary btn--sm" id="generate-newsletter-btn">&#9654; Preview Newsletter</button>
-      </div>
-
-      <!-- Inline Newsletter Preview -->
-      <div id="newsletter-preview-section" style="display:none;">
-        <div class="preview-toolbar">
-          <span class="preview-toolbar__label">Newsletter Preview</span>
-          <div class="preview-toolbar__actions">
-            <a href="/newsletter-dark" target="_blank" class="btn btn--ghost btn--sm">Open in Tab &#8599;</a>
-            <button class="btn btn--secondary btn--sm" id="campaign-btn" style="display:none;">Create Campaign</button>
-            <button class="btn btn--ghost btn--sm" id="preview-dismiss-btn" aria-label="Dismiss preview">&times; Dismiss</button>
-          </div>
-        </div>
-        <iframe id="newsletter-iframe" src="" frameborder="0" scrolling="yes"></iframe>
-      </div>
-
-      <!-- Entry List -->
-      <div id="entry-list" class="entry-list stagger-children">
-        <!-- Entries will be injected here -->
-      </div>
-
-      <!-- Empty State (hidden by default) -->
-      <div id="empty-state" class="empty-state" style="display: none;">
-        <div class="empty-state__icon">&#128230;</div>
-        <h3 class="empty-state__title">No entries yet</h3>
-        <p class="empty-state__text">Submissions will appear here once community members submit them.</p>
-      </div>
-
-    </div>
   </div>
 
-  <!-- Detail / Edit Modal -->
+  <!-- =====================================================
+       Dashboard View
+       ===================================================== -->
+  <div id="dashboard-view" class="board-layout" style="display: none;">
+
+    <!-- Nav (full width) -->
+    <nav class="admin-nav">
+      <span class="admin-nav__brand">Fort Weekly Admin</span>
+      <div class="admin-nav__links">
+        <a href="/" class="admin-nav__link">Submit Entry</a>
+        <button class="admin-nav__btn" id="manage-sections-btn">Manage Sections</button>
+        <a href="#" class="admin-nav__link" id="logout-btn">Logout</a>
+      </div>
+    </nav>
+
+    <!-- Two-column split: board (left) + preview (right) -->
+    <div class="board-split" id="board-split">
+
+      <!-- Board pane (left, scrollable) -->
+      <div class="board-pane">
+
+        <!-- Board Toolbar (tabs + actions) -->
+        <div class="board-toolbar">
+          <div class="board-tabs">
+            <button class="board-tab board-tab--active" data-tab="board">Board</button>
+            <button class="board-tab" data-tab="archive">Archive</button>
+          </div>
+          <div class="board-actions">
+            <span id="entry-count" style="font-family:var(--mono);font-size:0.65rem;color:var(--text-dim);letter-spacing:0.08em;"></span>
+            <button class="btn btn--ghost btn--sm" id="changelog-btn">Changes This Week</button>
+            <button class="btn btn--primary btn--sm" id="generate-newsletter-btn">&#9654; Preview Newsletter</button>
+          </div>
+        </div>
+
+        <!-- Board View -->
+        <div id="board-view">
+          <div id="kanban-board" class="kanban-board">
+            <!-- Lanes injected by JS -->
+          </div>
+        </div>
+
+        <!-- Archive View -->
+        <div id="archive-view" style="display:none;">
+          <div class="archive-toolbar">
+            <input id="archive-search" class="archive-search__input" type="text" placeholder="Search archive by title or description…" autocomplete="off">
+          </div>
+          <div id="archive-list"></div>
+        </div>
+
+      </div><!-- /.board-pane -->
+
+      <!-- Preview pane (right, sticky) -->
+      <aside class="preview-pane" id="preview-pane">
+        <div class="preview-pane__header">
+          <div class="preview-viewport-toggle">
+            <button class="preview-viewport-btn preview-viewport-btn--active" id="preview-desktop-btn" title="Desktop view">
+              <svg width="15" height="13" viewBox="0 0 24 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="1" width="22" height="14" rx="2"/><line x1="8" y1="19" x2="16" y2="19"/><line x1="12" y1="15" x2="12" y2="19"/></svg>
+            </button>
+            <button class="preview-viewport-btn" id="preview-mobile-btn" title="Mobile view (375px)">
+              <svg width="10" height="15" viewBox="0 0 16 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="1" width="14" height="22" rx="3"/><circle cx="8" cy="19" r="1" fill="currentColor" stroke="none"/></svg>
+            </button>
+          </div>
+          <span class="preview-pane__label">Newsletter Preview</span>
+          <div class="preview-pane__actions">
+            <a href="/newsletter-dark" target="_blank" class="btn btn--ghost btn--sm">Open &#8599;</a>
+            <button class="btn btn--secondary btn--sm" id="campaign-btn" style="display:none;">Create Campaign</button>
+            <button class="btn btn--ghost btn--sm preview-pane__close" id="preview-dismiss-btn" aria-label="Close preview">&#10005;</button>
+          </div>
+        </div>
+        <div class="preview-pane__viewport" id="preview-viewport">
+          <iframe id="newsletter-iframe" src="" frameborder="0"></iframe>
+        </div>
+      </aside>
+
+    </div><!-- /.board-split -->
+
+  </div>
+
+  <!-- =====================================================
+       Detail / Edit Modal
+       ===================================================== -->
   <div class="modal-overlay" id="detail-modal">
     <div class="modal modal--wide">
       <div class="modal__header">
@@ -141,6 +156,10 @@
           <div class="edit-form__field">
             <label for="edit-link">Link</label>
             <input type="url" id="edit-link" name="link" placeholder="https://…">
+          </div>
+          <div class="edit-form__field">
+            <label for="edit-video-url">Video URL</label>
+            <input type="url" id="edit-video-url" name="video_url" placeholder="https://www.youtube.com/watch?v=… or https://vimeo.com/…">
           </div>
           <div class="edit-form__field">
             <label>Description</label>
@@ -193,11 +212,6 @@
       <div class="modal__footer">
         <select id="modal-section-dropdown" class="section-dropdown section-dropdown--modal" aria-label="Section">
           <option value="">(none)</option>
-          <option value="whats-hot">What's Hot in The Fort</option>
-          <option value="individual-init">Individual Initiative</option>
-          <option value="desk">Desk of the Nan'tan</option>
-          <option value="still-fresh">Still Fresh</option>
-          <option value="helpful-links">Helpful Links</option>
         </select>
         <button class="btn btn--primary btn--sm" id="modal-save-btn">Save Changes</button>
         <button class="btn btn--danger btn--sm" id="modal-delete-btn">Archive Entry</button>
@@ -206,7 +220,9 @@
     </div>
   </div>
 
-  <!-- VQ Names Modal -->
+  <!-- =====================================================
+       VQ Names Modal
+       ===================================================== -->
   <div class="modal-overlay" id="vq-modal">
     <div class="modal" style="max-width: 520px;">
       <div class="modal__header">
@@ -220,12 +236,7 @@
         </div>
         <div class="form-group" style="margin-bottom: 0;">
           <label for="vq-names-input">VQ Names This Week</label>
-          <input
-            type="text"
-            id="vq-names-input"
-            placeholder="e.g. Dredd, Riptide, Biscuit"
-            autocomplete="off"
-          >
+          <input type="text" id="vq-names-input" placeholder="e.g. Dredd, Riptide, Biscuit" autocomplete="off">
           <p style="margin-top: var(--space-sm); font-family: var(--mono); font-size: 0.7rem; color: var(--text-dim);">Comma-separated. Leave blank if none this week.</p>
         </div>
       </div>
@@ -236,7 +247,9 @@
     </div>
   </div>
 
-  <!-- Changelog Modal -->
+  <!-- =====================================================
+       Changelog Modal
+       ===================================================== -->
   <div class="modal-overlay" id="changelog-modal">
     <div class="modal modal--wide">
       <div class="modal__header">
@@ -253,7 +266,9 @@
     </div>
   </div>
 
-  <!-- Archive/Restore/Delete Confirm Modal -->
+  <!-- =====================================================
+       Archive / Delete Confirm Modal
+       ===================================================== -->
   <div class="modal-overlay" id="delete-modal">
     <div class="modal" style="max-width: 420px;">
       <div class="modal__header">
@@ -273,11 +288,170 @@
     </div>
   </div>
 
+  <!-- =====================================================
+       Sections Manager Modal
+       ===================================================== -->
+  <div class="modal-overlay" id="sections-modal">
+    <div class="modal modal--wide">
+      <div class="modal__header">
+        <h3 class="modal__title">Manage Sections</h3>
+        <button class="modal__close" id="sections-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal__body">
+        <div class="sections-manager">
+          <p style="font-family:var(--mono);font-size:0.7rem;color:var(--text-dim);margin-bottom:var(--space-md);">
+            Drag to reorder. Section order determines the newsletter column order.
+          </p>
+          <div class="sections-manager-list" id="sections-manager-list">
+            <!-- Rendered by JS -->
+          </div>
+          <div class="sections-manager__add-row">
+            <div class="form-group">
+              <label>New Section Name</label>
+              <input type="text" id="new-section-name" placeholder="e.g. Community Events" autocomplete="off">
+            </div>
+            <div class="form-group" style="flex:0 0 auto;">
+              <label>Color</label>
+              <input type="color" id="new-section-color" class="color-picker-input" value="#888888">
+            </div>
+            <button class="btn btn--secondary btn--sm" id="add-section-btn" style="flex-shrink:0;align-self:flex-end;margin-bottom:1rem;">
+              + Add Section
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--ghost btn--sm" id="sections-modal-close-btn">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       Three F's Editor Modal
+       ===================================================== -->
+  <div class="modal-overlay" id="three-fs-modal">
+    <div class="modal modal--wide">
+      <div class="modal__header">
+        <h3 class="modal__title">The Three F's</h3>
+        <button class="modal__close" id="three-fs-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal__body">
+        <div class="static-editor-tabs" id="three-fs-tabs">
+          <button class="static-editor-tab static-editor-tab--active" data-col="fitness">Fitness</button>
+          <button class="static-editor-tab" data-col="fellowship">Fellowship</button>
+          <button class="static-editor-tab" data-col="faith">Faith</button>
+        </div>
+        <div id="three-fs-list" class="static-editor-list"></div>
+        <div class="static-editor-add-form">
+          <div class="static-editor-add-form__row">
+            <div class="static-editor-add-form__field">
+              <label>Type</label>
+              <select id="three-fs-add-type" style="width:auto;">
+                <option value="event">Event</option>
+                <option value="link">Link</option>
+              </select>
+            </div>
+          </div>
+          <div id="three-fs-event-fields" class="static-editor-add-form__row">
+            <div class="static-editor-add-form__field static-editor-add-form__field--grow">
+              <label>Event Name</label>
+              <input type="text" id="three-fs-add-name" placeholder="e.g. Pizza Night">
+            </div>
+            <div class="static-editor-add-form__field static-editor-add-form__field--grow">
+              <label>Detail</label>
+              <input type="text" id="three-fs-add-detail" placeholder="e.g. 1800 · Every Fri · Main St">
+            </div>
+          </div>
+          <div id="three-fs-link-fields" class="static-editor-add-form__row" style="display:none;">
+            <div class="static-editor-add-form__field">
+              <label>Link Label</label>
+              <input type="text" id="three-fs-add-link-label" placeholder="e.g. Q Calendar">
+            </div>
+            <div class="static-editor-add-form__field static-editor-add-form__field--grow">
+              <label>URL</label>
+              <input type="url" id="three-fs-add-link-url" placeholder="https://…">
+            </div>
+          </div>
+          <button class="btn btn--secondary btn--sm" id="three-fs-add-btn">+ Add Item</button>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--ghost btn--sm" id="three-fs-modal-close-btn">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       SLT Editor Modal
+       ===================================================== -->
+  <div class="modal-overlay" id="slt-modal">
+    <div class="modal modal--wide">
+      <div class="modal__header">
+        <h3 class="modal__title">Shared Leadership Team</h3>
+        <button class="modal__close" id="slt-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal__body">
+        <div id="slt-list" class="static-editor-list"></div>
+        <div class="static-editor-add-form">
+          <div class="static-editor-add-form__row">
+            <div class="static-editor-add-form__field">
+              <label>Role</label>
+              <input type="text" id="slt-add-role" placeholder="e.g. Nan'tan">
+            </div>
+            <div class="static-editor-add-form__field static-editor-add-form__field--grow">
+              <label>Name</label>
+              <input type="text" id="slt-add-name" placeholder="e.g. Band Camp">
+            </div>
+            <button class="btn btn--secondary btn--sm" id="slt-add-btn" style="align-self:flex-end;margin-bottom:1rem;">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--ghost btn--sm" id="slt-modal-close-btn">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       Helpful Links Editor Modal
+       ===================================================== -->
+  <div class="modal-overlay" id="links-modal">
+    <div class="modal modal--wide">
+      <div class="modal__header">
+        <h3 class="modal__title">Helpful Links</h3>
+        <button class="modal__close" id="links-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal__body">
+        <div id="links-list" class="static-editor-list"></div>
+        <div class="static-editor-add-form">
+          <div class="static-editor-add-form__row">
+            <div class="static-editor-add-form__field">
+              <label>Label</label>
+              <input type="text" id="links-add-label" placeholder="e.g. Q Schedule">
+            </div>
+            <div class="static-editor-add-form__field">
+              <label>Name</label>
+              <input type="text" id="links-add-name" placeholder="e.g. GloomSchedule">
+            </div>
+            <div class="static-editor-add-form__field static-editor-add-form__field--grow">
+              <label>URL</label>
+              <input type="url" id="links-add-url" placeholder="https://…">
+            </div>
+            <button class="btn btn--secondary btn--sm" id="links-add-btn" style="align-self:flex-end;margin-bottom:1rem;">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--ghost btn--sm" id="links-modal-close-btn">Done</button>
+      </div>
+    </div>
+  </div>
+
   <script src="/js/app.js"></script>
+  <script src="/js/admin-board.js"></script>
   <script>
-    // Initialize admin page
     document.addEventListener('DOMContentLoaded', () => {
-      initAdmin();
+      initAdminBoard();
     });
   </script>
 </body>

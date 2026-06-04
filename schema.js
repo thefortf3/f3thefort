@@ -11,12 +11,22 @@ export const submissions = sqliteTable('submissions', {
   description: text('description').notNull(),
   link: text('link'),
   hero_image: text('hero_image'),
+  video_url: text('video_url'),
   section: text('section'),
+  position: integer('position').default(0),
   submitter_name: text('submitter_name'),
   submitter_email: text('submitter_email'),
   submitter_phone: text('submitter_phone'),
   created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
   archived_at: text('archived_at'),
+});
+
+export const sections = sqliteTable('sections', {
+  id: text('id').primaryKey(),
+  label: text('label').notNull(),
+  accent: text('accent').notNull(),
+  position: integer('position').default(0),
+  created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const newsletter_sends = sqliteTable('newsletter_sends', {
@@ -37,6 +47,35 @@ export const audit_log = sqliteTable('audit_log', {
   action: text('action').notNull(), // 'created' | 'updated' | 'moved' | 'archived' | 'restored' | 'deleted'
   detail: text('detail'),           // JSON string with relevant change info
   submission_title: text('submission_title'),
+  created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const three_fs_items = sqliteTable('three_fs_items', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  f_column: text('f_column').notNull(), // 'fitness' | 'fellowship' | 'faith'
+  item_type: text('item_type').notNull().default('event'), // 'event' | 'link'
+  name: text('name'),
+  detail: text('detail'),
+  link_url: text('link_url'),
+  link_label: text('link_label'),
+  position: integer('position').default(0),
+  created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const slt_entries = sqliteTable('slt_entries', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  role: text('role').notNull(),
+  name: text('name').notNull(),
+  position: integer('position').default(0),
+  created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const helpful_links = sqliteTable('helpful_links', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  label: text('label').notNull(),
+  name: text('name').notNull(),
+  url: text('url').notNull(),
+  position: integer('position').default(0),
   created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
 });
 

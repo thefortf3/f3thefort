@@ -7,7 +7,7 @@
    Section Definitions
    ============================================================ */
 const SECTIONS = [
-  { id: 'desk',          label: "Desk of the Nan'tan",     accent: '#6C3483' },
+  { id: 'desk',          label: 'Header',                   accent: '#6C3483' },
   { id: 'whats-hot',     label: "What's Hot in The Fort",  accent: '#8B2E2E' },
   { id: 'individual-init', label: 'Individual Initiative', accent: '#3A7D5C' },
   { id: 'still-fresh',   label: 'Still Fresh',            accent: '#D4A017' },
@@ -168,6 +168,9 @@ function initSubmissionForm() {
       if (form.querySelector('#link').value.trim()) {
         body.link = form.querySelector('#link').value.trim();
       }
+      if (form.querySelector('#video_url').value.trim()) {
+        body.video_url = form.querySelector('#video_url').value.trim();
+      }
 
       const name = form.querySelector('#submitter_name').value.trim();
       const email = form.querySelector('#submitter_email').value.trim();
@@ -314,7 +317,7 @@ function showLogin() {
 
 function showDashboard() {
   document.getElementById('login-view').style.display = 'none';
-  document.getElementById('dashboard-view').style.display = 'block';
+  document.getElementById('dashboard-view').style.display = 'flex';
   loadEntries();
   refreshCampaignStatus();
 }
