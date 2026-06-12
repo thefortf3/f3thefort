@@ -425,10 +425,17 @@ input::placeholder {
 
 .rich-editor__content ol,
 .rich-editor__content ul {
-  padding-left: 0 !important;
-  margin-left: 0 !important;
+  padding-left: 1.5em;
   margin-top: var(--space-xs);
   margin-bottom: var(--space-xs);
+}
+
+.rich-editor__content ol ol,
+.rich-editor__content ol ul,
+.rich-editor__content ul ol,
+.rich-editor__content ul ul {
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 .rich-editor__content li {

@@ -105,11 +105,64 @@ function initRichEditor(editorId = 'rich-editor', contentId = 'editor-content', 
     });
   }
 
+  content.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      document.execCommand(e.shiftKey ? 'outdent' : 'indent', false, null);
+      syncContent();
+      updateToolbarState();
+    }
+  });
+
   content.addEventListener('keyup', updateToolbarState);
   content.addEventListener('mouseup', updateToolbarState);
   content.addEventListener('click', updateToolbarState);
   content.addEventListener('input', syncContent);
   syncContent();
+}
+
+/* ============================================================
+   Pre-blast Snippet Editor
+   ============================================================ */
+function initPreblastEditor() {
+  const checkbox = document.getElementById('preblast-checkbox');
+  if (!checkbox) return;
+
+  checkbox.addEventListener('change', async () => {
+    const snippetGroup = document.getElementById('preblast-snippet-group');
+    if (!checkbox.checked) {
+      snippetGroup.style.display = 'none';
+      return;
+    }
+
+    snippetGroup.style.display = 'block';
+    const loading = document.getElementById('snippet-loading');
+    const editor = document.getElementById('preblast-rich-editor');
+    const hint = document.getElementById('preblast-hint');
+    loading.style.display = 'block';
+    editor.style.display = 'none';
+    hint.style.display = 'none';
+
+    const html = document.getElementById('description').value;
+    try {
+      const res = await fetch('/api/generate-snippet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ html }),
+      });
+      if (!res.ok) throw new Error('Failed to generate snippet');
+      const data = await res.json();
+      const content = document.getElementById('preblast-editor-content');
+      content.innerHTML = data.snippet + data.images.join('');
+      document.getElementById('preblast-description').value = content.innerHTML.trim();
+    } catch {
+      // Leave editor empty for manual entry
+    } finally {
+      loading.style.display = 'none';
+      editor.style.display = 'block';
+      hint.style.display = 'block';
+    }
+  });
 }
 
 /* ============================================================
@@ -143,6 +196,13 @@ function initSubmissionForm() {
         showAlert('alert-container', 'End time must be after start time.', 'error');
         return;
       }
+    }
+
+    const preblastChecked = form.querySelector('#preblast-checkbox')?.checked;
+    if (preblastChecked && !form.querySelector('#preblast-description')?.value) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      showAlert('alert-container', 'Please wait for the snippet to generate, or type one manually.', 'error');
+      return;
     }
 
     submitBtn.disabled = true;
@@ -182,6 +242,13 @@ function initSubmissionForm() {
       const heroImage = form.querySelector('#hero_image').value.trim();
       if (heroImage) body.hero_image = heroImage;
 
+      const preblastCheckbox = form.querySelector('#preblast-checkbox');
+      if (preblastCheckbox?.checked) {
+        body.preblast = true;
+        body.preblast_content = body.description;
+        body.description = form.querySelector('#preblast-description').value;
+      }
+
       const response = await fetch('/api/submissions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -198,6 +265,12 @@ function initSubmissionForm() {
         if (heroPlaceholder) heroPlaceholder.style.display = 'flex';
         if (heroPreview) heroPreview.style.display = 'none';
         if (heroHidden) heroHidden.value = '';
+        const snippetGroup = document.getElementById('preblast-snippet-group');
+        if (snippetGroup) snippetGroup.style.display = 'none';
+        const preblastContent = document.getElementById('preblast-editor-content');
+        if (preblastContent) preblastContent.innerHTML = '';
+        const preblastDesc = document.getElementById('preblast-description');
+        if (preblastDesc) preblastDesc.value = '';
         window.scrollTo({ top: 0, behavior: 'smooth' });
         showAlert('alert-container', 'Your entry has been submitted successfully! Thank you.', 'success');
       } else {

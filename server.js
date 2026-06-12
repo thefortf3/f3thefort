@@ -3,16 +3,16 @@ import express from 'express';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { eq, desc, count, isNull, isNotNull, like, or, and, sql as drizzleSql } from 'drizzle-orm';
-import { submissions, fngs, newsletter_sends, audit_log, sections, three_fs_items, slt_entries, helpful_links } from './schema.js';
+import { submissions, fngs, newsletter_sends, audit_log, sections, three_fs_items, slt_entries, helpful_links, shovel_flags, vqs } from './schema.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync, readFileSync } from 'fs';
 import { getCampaignStatusForDate, upsertScheduledCampaign, getNextSundayDateStr } from './lib/mailchimp.js';
+import { JSDOM } from 'jsdom';
+import { postPreblast } from './lib/wordpress.js';
 import multer from 'multer';
-import { execFile } from 'child_process';
-import { promisify } from 'util';
-
-const execFileAsync = promisify(execFile);
+import { importFngs } from './import-fngs.mjs';
+import { generateNewsletter } from './generate-newsletter.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -97,6 +97,18 @@ try {
   if (!e.message.includes('duplicate column name')) throw e;
 }
 
+// Idempotent migration: add preblast columns to submissions
+try {
+  sqlite.exec(`ALTER TABLE submissions ADD COLUMN preblast_url TEXT`);
+} catch (e) {
+  if (!e.message.includes('duplicate column name')) throw e;
+}
+try {
+  sqlite.exec(`ALTER TABLE submissions ADD COLUMN preblast_content TEXT`);
+} catch (e) {
+  if (!e.message.includes('duplicate column name')) throw e;
+}
+
 // Idempotent migration: create audit_log table
 sqlite.exec(`CREATE TABLE IF NOT EXISTS audit_log (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -155,6 +167,23 @@ sqlite.exec(`CREATE TABLE IF NOT EXISTS helpful_links (
   label TEXT NOT NULL,
   name TEXT NOT NULL,
   url TEXT NOT NULL,
+  position INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+)`);
+
+sqlite.exec(`CREATE TABLE IF NOT EXISTS vqs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  ao TEXT NOT NULL,
+  position INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+)`);
+
+sqlite.exec(`CREATE TABLE IF NOT EXISTS shovel_flags (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  from_name TEXT NOT NULL,
+  to_name TEXT NOT NULL,
+  ao TEXT NOT NULL,
   position INTEGER DEFAULT 0,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP
 )`);
@@ -289,6 +318,15 @@ app.get('/api/admin/check-auth', (req, res) => {
 // GET /api/newsletter/preview-data — weekly FNGs for the generate modal
 app.get('/api/newsletter/preview-data', requireAuth, async (req, res) => {
   try {
+    const fngSheetUrl = process.env.FNG_SHEET_URL;
+    if (fngSheetUrl) {
+      try {
+        await importFngs(DB_PATH, fngSheetUrl);
+      } catch (err) {
+        console.warn('FNG import warning:', err.message);
+      }
+    }
+
     const now = new Date();
     const dayOfWeek = now.getDay();
     const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
@@ -350,12 +388,10 @@ app.post('/api/newsletter/generate', requireAuth, async (req, res) => {
   console.log('Newsletter generation requested');
   try {
     const outputPath = path.join(__dirname, 'newsletter-dark.html');
-    const args = [`--output=${outputPath}`];
-    if (req.body.vqs) args.push(`--vqs=${req.body.vqs}`);
     const proto = req.get('x-forwarded-proto') || req.protocol;
     const host = req.get('x-forwarded-host') || req.get('host');
     const derivedBaseUrl = process.env.BASE_URL || `${proto}://${host}`;
-    await execFileAsync('node', ['generate-newsletter.mjs', ...args], { cwd: __dirname, env: { ...process.env, BASE_URL: derivedBaseUrl } });
+    generateNewsletter({ dbPath: DB_PATH, outputPath, baseUrl: derivedBaseUrl });
     console.log('Newsletter generated successfully');
     res.json({ success: true, url: '/newsletter-dark' });
   } catch (err) {
@@ -445,10 +481,58 @@ app.get('/api/submissions/:id', async (req, res) => {
   }
 });
 
+// POST /api/generate-snippet — Generate a short newsletter snippet from HTML content via Groq
+const GROQ_SYSTEM = "You are a newsletter editor. When given event information, write a concise summary suitable for inclusion in a community newsletter. The summary should capture what the event is about and why people should care. Write in third person. Sound human, no flowery language — the goal is to drive excitement and encourage participation. Use your own judgment on formatting: plain paragraphs, bullet lists, numbered steps, bold key details — whatever best serves the content. Return only valid HTML using basic tags (<p>, <ul>, <ol>, <li>, <strong>, <em>) with no preamble, commentary, or outer wrapper element. Do not wrap the output in quotation marks.";
+
+app.post('/api/generate-snippet', async (req, res) => {
+  try {
+    const { html } = req.body;
+    if (!html) return res.status(400).json({ error: 'html is required' });
+
+    const dom = new JSDOM(html);
+    const plainText = dom.window.document.body.textContent || '';
+    const images = [...dom.window.document.querySelectorAll('img')].map(img => img.outerHTML);
+
+    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        temperature: 0.4,
+        messages: [
+          { role: 'system', content: GROQ_SYSTEM },
+          { role: 'user', content: `Write a newsletter snippet for the following event.\n\n${plainText}` },
+        ],
+      }),
+    });
+
+    if (!groqRes.ok) {
+      const err = await groqRes.text().catch(() => '');
+      console.error('Groq API error:', groqRes.status, err);
+      return res.status(500).json({ error: 'Snippet generation failed' });
+    }
+
+    const data = await groqRes.json();
+    let snippet = data.choices[0].message.content.trim();
+    // Strip markdown code fences
+    snippet = snippet.replace(/^```(?:html)?\s*/i, '').replace(/\s*```$/, '').trim();
+    // Strip surrounding quotation marks (bare or inside first/last HTML tag)
+    snippet = snippet.replace(/^["']|["']$/g, '').trim();
+    snippet = snippet.replace(/^(<\w+[^>]*>)\s*["']/, '$1').replace(/["']\s*(<\/\w+>)$/, '$1').trim();
+    res.json({ snippet, images });
+  } catch (err) {
+    console.error('POST /api/generate-snippet error:', err.message);
+    res.status(500).json({ error: 'Failed to generate snippet' });
+  }
+});
+
 // POST /api/submissions — Create new submission
 app.post('/api/submissions', async (req, res) => {
   try {
-    const { title, leader, start_date, end_time, location, description, link, hero_image, video_url, submitter_name, submitter_email, submitter_phone } = req.body;
+    const { title, leader, start_date, end_time, location, description, link, hero_image, video_url, submitter_name, submitter_email, submitter_phone, preblast, preblast_content } = req.body;
 
     if (!title || !start_date || !description) {
       return res.status(400).json({ error: 'Missing required fields: title, start_date, description' });
@@ -459,6 +543,16 @@ app.post('/api/submissions', async (req, res) => {
       const endDate = new Date(end_time);
       if (endDate <= startDate) {
         return res.status(400).json({ error: 'end_time must be after start_time' });
+      }
+    }
+
+    let preblastUrl = null;
+    if (preblast && preblast_content) {
+      try {
+        preblastUrl = await postPreblast(title, preblast_content, leader, location, start_date, link);
+      } catch (err) {
+        console.error('WordPress preblast post failed:', err.message);
+        return res.status(502).json({ error: `Failed to post to WordPress: ${err.message}` });
       }
     }
 
@@ -475,6 +569,8 @@ app.post('/api/submissions', async (req, res) => {
       submitter_name: submitter_name || null,
       submitter_email: submitter_email || null,
       submitter_phone: submitter_phone || null,
+      preblast_url: preblastUrl,
+      preblast_content: (preblast && preblast_content) ? preblast_content : null,
     }).returning();
 
     logAudit(row.id, 'created', row.title, { section: null });
@@ -1037,6 +1133,127 @@ app.delete('/api/static/links/:id', requireAuth, (req, res) => {
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete link' });
+  }
+});
+
+// VQ Routes
+app.get('/api/static/vqs', (req, res) => {
+  try {
+    res.json(sqlite.prepare('SELECT * FROM vqs ORDER BY position ASC').all());
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch VQs' });
+  }
+});
+
+app.post('/api/static/vqs/reorder', requireAuth, (req, res) => {
+  try {
+    const { order } = req.body;
+    if (!Array.isArray(order)) return res.status(400).json({ error: 'order must be an array' });
+    const update = sqlite.prepare('UPDATE vqs SET position = ? WHERE id = ?');
+    const tx = sqlite.transaction((ids) => ids.forEach((id, pos) => update.run(pos, id)));
+    tx(order);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to reorder VQs' });
+  }
+});
+
+app.post('/api/static/vqs', requireAuth, (req, res) => {
+  try {
+    const { name, ao } = req.body;
+    if (!name || !ao) return res.status(400).json({ error: 'name and ao are required' });
+    const maxPos = sqlite.prepare('SELECT COALESCE(MAX(position),-1) as m FROM vqs').get().m;
+    const { lastInsertRowid } = sqlite.prepare('INSERT INTO vqs (name, ao, position) VALUES (?,?,?)').run(name, ao, maxPos + 1);
+    res.status(201).json(sqlite.prepare('SELECT * FROM vqs WHERE id = ?').get(lastInsertRowid));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to create VQ' });
+  }
+});
+
+app.patch('/api/static/vqs/:id', requireAuth, (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
+    if (!sqlite.prepare('SELECT id FROM vqs WHERE id = ?').get(id)) return res.status(404).json({ error: 'Not found' });
+    const { name, ao } = req.body;
+    if (name !== undefined) sqlite.prepare('UPDATE vqs SET name = ? WHERE id = ?').run(name, id);
+    if (ao !== undefined) sqlite.prepare('UPDATE vqs SET ao = ? WHERE id = ?').run(ao, id);
+    res.json(sqlite.prepare('SELECT * FROM vqs WHERE id = ?').get(id));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update VQ' });
+  }
+});
+
+app.delete('/api/static/vqs/:id', requireAuth, (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
+    if (!sqlite.prepare('SELECT id FROM vqs WHERE id = ?').get(id)) return res.status(404).json({ error: 'Not found' });
+    sqlite.prepare('DELETE FROM vqs WHERE id = ?').run(id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete VQ' });
+  }
+});
+
+// Shovel Flag Routes
+app.get('/api/static/shovel-flags', (req, res) => {
+  try {
+    res.json(sqlite.prepare('SELECT * FROM shovel_flags ORDER BY position ASC').all());
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch shovel flags' });
+  }
+});
+
+app.post('/api/static/shovel-flags/reorder', requireAuth, (req, res) => {
+  try {
+    const { order } = req.body;
+    if (!Array.isArray(order)) return res.status(400).json({ error: 'order must be an array' });
+    const update = sqlite.prepare('UPDATE shovel_flags SET position = ? WHERE id = ?');
+    const tx = sqlite.transaction((ids) => ids.forEach((id, pos) => update.run(pos, id)));
+    tx(order);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to reorder shovel flags' });
+  }
+});
+
+app.post('/api/static/shovel-flags', requireAuth, (req, res) => {
+  try {
+    const { from_name, to_name, ao } = req.body;
+    if (!from_name || !to_name || !ao) return res.status(400).json({ error: 'from_name, to_name, and ao are required' });
+    const maxPos = sqlite.prepare('SELECT COALESCE(MAX(position),-1) as m FROM shovel_flags').get().m;
+    const { lastInsertRowid } = sqlite.prepare('INSERT INTO shovel_flags (from_name, to_name, ao, position) VALUES (?,?,?,?)').run(from_name, to_name, ao, maxPos + 1);
+    res.status(201).json(sqlite.prepare('SELECT * FROM shovel_flags WHERE id = ?').get(lastInsertRowid));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to create shovel flag' });
+  }
+});
+
+app.patch('/api/static/shovel-flags/:id', requireAuth, (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
+    if (!sqlite.prepare('SELECT id FROM shovel_flags WHERE id = ?').get(id)) return res.status(404).json({ error: 'Not found' });
+    const { from_name, to_name, ao } = req.body;
+    if (from_name !== undefined) sqlite.prepare('UPDATE shovel_flags SET from_name = ? WHERE id = ?').run(from_name, id);
+    if (to_name !== undefined) sqlite.prepare('UPDATE shovel_flags SET to_name = ? WHERE id = ?').run(to_name, id);
+    if (ao !== undefined) sqlite.prepare('UPDATE shovel_flags SET ao = ? WHERE id = ?').run(ao, id);
+    res.json(sqlite.prepare('SELECT * FROM shovel_flags WHERE id = ?').get(id));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update shovel flag' });
+  }
+});
+
+app.delete('/api/static/shovel-flags/:id', requireAuth, (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
+    if (!sqlite.prepare('SELECT id FROM shovel_flags WHERE id = ?').get(id)) return res.status(404).json({ error: 'Not found' });
+    sqlite.prepare('DELETE FROM shovel_flags WHERE id = ?').run(id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete shovel flag' });
   }
 });
 
