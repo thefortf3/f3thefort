@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import { randomBytes } from 'crypto';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { eq, desc, count, isNull, isNotNull, like, or, and, sql as drizzleSql } from 'drizzle-orm';
@@ -24,6 +25,15 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 // Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use((req, _res, next) => {
+  req.cookies = Object.fromEntries(
+    (req.headers.cookie || '').split(';').flatMap(part => {
+      const [k, ...v] = part.trim().split('=');
+      return k ? [[k.trim(), decodeURIComponent(v.join('='))]] : [];
+    })
+  );
+  next();
+});
 
 // Database setup
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'dev.db');
@@ -261,7 +271,7 @@ const upload = multer({
 
 app.use('/uploads', express.static(uploadDir));
 
-app.post('/api/upload/image', upload.single('image'), (req, res) => {
+app.post('/api/upload/image', requireSameOrigin, upload.single('image'), (req, res) => {
   if (req.file) {
     res.json({ url: `/uploads/${req.file.filename}` });
   } else {
@@ -310,9 +320,7 @@ app.get('/api/newsletter/history', requireAuth, async (req, res) => {
 
 // Admin auth check endpoint
 app.get('/api/admin/check-auth', (req, res) => {
-  const cookie = req.headers.cookie || '';
-  const auth = cookie.includes(`adminAuth=${ADMIN_PASSWORD}`);
-  res.json({ authenticated: auth });
+  res.json({ authenticated: validateSession(req.cookies?.adminSession) });
 });
 
 // GET /api/newsletter/preview-data — weekly FNGs for the generate modal
@@ -400,29 +408,45 @@ app.post('/api/newsletter/generate', requireAuth, async (req, res) => {
   }
 });
 
-function getCookieValue(cookieHeader, name) {
-  const match = cookieHeader.match(new RegExp(`(?:^|;)\\s*${name}\\s*=\\s*([^;]*)`));
-  return match ? decodeURIComponent(match[1].trim()) : undefined;
+// Session store — token → expiry timestamp
+const SESSION_TTL = 24 * 60 * 60 * 1000; // 24h
+const sessions = new Map();
+
+function createSession() {
+  const token = randomBytes(32).toString('hex');
+  sessions.set(token, Date.now() + SESSION_TTL);
+  return token;
 }
 
-// Admin auth middleware
+function validateSession(token) {
+  if (!token) return false;
+  const exp = sessions.get(token);
+  if (!exp) return false;
+  if (Date.now() > exp) { sessions.delete(token); return false; }
+  return true;
+}
+
+function destroySession(token) {
+  sessions.delete(token);
+}
+
+// Middleware: require valid session cookie
 function requireAuth(req, res, next) {
-  const password = req.body?.password;
-  const rawCookie = req.headers.cookie || '';
-  const sessionAuth = req.cookies?.adminAuth || getCookieValue(rawCookie, 'adminAuth');
+  if (validateSession(req.cookies?.adminSession)) return next();
+  res.status(401).json({ error: 'Unauthorized' });
+}
 
-  if (sessionAuth === ADMIN_PASSWORD) {
-    req.adminAuthenticated = true;
-    return next();
-  }
-
-  if (password === ADMIN_PASSWORD) {
-    res.cookie('adminAuth', ADMIN_PASSWORD, { httpOnly: true, sameSite: 'strict' });
-    req.adminAuthenticated = true;
-    return next();
-  }
-
-  res.status(401).json({ error: 'Invalid password' });
+// Middleware: only allow requests originating from this server (CSRF guard for public endpoints)
+function requireSameOrigin(req, res, next) {
+  const origin = req.headers.origin;
+  const referer = req.headers.referer;
+  const host = req.headers.host;
+  const source = origin || referer;
+  if (!source) return res.status(403).json({ error: 'Forbidden' });
+  try {
+    if (new URL(source).host === host) return next();
+  } catch {}
+  res.status(403).json({ error: 'Forbidden' });
 }
 
 // ============================================================
@@ -430,7 +454,7 @@ function requireAuth(req, res, next) {
 // ============================================================
 
 // GET /api/submissions — List all submissions with pagination + optional search
-app.get('/api/submissions', async (req, res) => {
+app.get('/api/submissions', requireAuth, async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(500, Math.max(1, parseInt(req.query.limit) || 500));
@@ -467,7 +491,7 @@ app.get('/api/submissions', async (req, res) => {
 });
 
 // GET /api/submissions/:id — Get single submission
-app.get('/api/submissions/:id', async (req, res) => {
+app.get('/api/submissions/:id', requireAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
@@ -484,7 +508,7 @@ app.get('/api/submissions/:id', async (req, res) => {
 // POST /api/generate-snippet — Generate a short newsletter snippet from HTML content via Groq
 const GROQ_SYSTEM = "You are a newsletter editor. When given event information, write a concise summary suitable for inclusion in a community newsletter. The summary should capture what the event is about and why people should care. Write in third person. Sound human, no flowery language — the goal is to drive excitement and encourage participation. Use your own judgment on formatting: plain paragraphs, bullet lists, numbered steps, bold key details — whatever best serves the content. Return only valid HTML using basic tags (<p>, <ul>, <ol>, <li>, <strong>, <em>) with no preamble, commentary, or outer wrapper element. Do not wrap the output in quotation marks.";
 
-app.post('/api/generate-snippet', async (req, res) => {
+app.post('/api/generate-snippet', requireSameOrigin, async (req, res) => {
   try {
     const { html } = req.body;
     if (!html) return res.status(400).json({ error: 'html is required' });
@@ -530,7 +554,7 @@ app.post('/api/generate-snippet', async (req, res) => {
 });
 
 // POST /api/submissions — Create new submission
-app.post('/api/submissions', async (req, res) => {
+app.post('/api/submissions', requireSameOrigin, async (req, res) => {
   try {
     const { title, leader, start_date, end_time, location, description, link, hero_image, video_url, submitter_name, submitter_email, submitter_phone, preblast, preblast_content } = req.body;
 
@@ -760,7 +784,7 @@ app.get('/api/changelog', requireAuth, (req, res) => {
 // ============================================================
 
 // GET /api/fngs — List all FNGs with pagination
-app.get('/api/fngs', async (req, res) => {
+app.get('/api/fngs', requireAuth, async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
@@ -796,7 +820,7 @@ app.get('/api/fngs', async (req, res) => {
 });
 
 // GET /api/fngs/stats — FNG progress stats
-app.get('/api/fngs/stats', async (req, res) => {
+app.get('/api/fngs/stats', requireAuth, async (req, res) => {
   try {
     const goal = 226;
     const now = new Date();
@@ -1137,7 +1161,7 @@ app.delete('/api/static/links/:id', requireAuth, (req, res) => {
 });
 
 // VQ Routes
-app.get('/api/static/vqs', (req, res) => {
+app.get('/api/static/vqs', requireAuth, (req, res) => {
   try {
     res.json(sqlite.prepare('SELECT * FROM vqs ORDER BY position ASC').all());
   } catch (err) {
@@ -1197,7 +1221,7 @@ app.delete('/api/static/vqs/:id', requireAuth, (req, res) => {
 });
 
 // Shovel Flag Routes
-app.get('/api/static/shovel-flags', (req, res) => {
+app.get('/api/static/shovel-flags', requireAuth, (req, res) => {
   try {
     res.json(sqlite.prepare('SELECT * FROM shovel_flags ORDER BY position ASC').all());
   } catch (err) {
@@ -1264,17 +1288,22 @@ app.post('/api/admin/login', (req, res) => {
   const { password } = req.body;
   if (!password) return res.status(400).json({ error: 'Password required' });
 
-  if (password === ADMIN_PASSWORD) {
-    res.cookie('adminAuth', ADMIN_PASSWORD, { httpOnly: true, sameSite: 'strict' });
-    res.json({ success: true });
-  } else {
-    res.status(401).json({ error: 'Invalid password' });
-  }
+  if (password !== ADMIN_PASSWORD) return res.status(401).json({ error: 'Invalid password' });
+
+  const token = createSession();
+  res.cookie('adminSession', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: SESSION_TTL,
+  });
+  res.json({ success: true });
 });
 
 // POST /api/admin/logout — Logout
 app.post('/api/admin/logout', (req, res) => {
-  res.clearCookie('adminAuth');
+  destroySession(req.cookies?.adminSession);
+  res.clearCookie('adminSession');
   res.json({ success: true });
 });
 
