@@ -425,12 +425,12 @@ function prepareForEmail(html) {
   // Remove body::before noise overlay — position:fixed unsupported in email
   html = html.replace(/body::before\s*\{[^}]+\}/g, 'body::before { display: none; }');
 
-  // Email layout fixes — applied to the <style> block before juice inlines it.
-  // 1. Replace fr-based grid columns with percentages: Gmail ignores 1fr units.
-  html = html.replace(/grid-template-columns:\s*1fr\s+1fr/g, 'grid-template-columns: 50% 50%');
-  html = html.replace(/grid-template-columns:\s*repeat\(3,\s*1fr\)/g, 'grid-template-columns: 33.33% 33.33% 33.34%');
-  // 2. Push the responsive breakpoint from 640px → 480px so grids don't collapse at
-  //    email client widths (~600px). Juice keeps @media in the <style> block.
+  // Replace clamp() font-sizes with fixed values — unsupported in Gmail/Outlook.
+  // 3.2rem ≈ the midpoint of clamp(2.8rem, 8vw, 4.5rem) at a 600px email width.
+  html = html.replace(/font-size:\s*clamp\([^)]+\)/g, 'font-size: 3.2rem');
+
+  // Push the responsive breakpoint from 640px → 480px so layouts don't collapse at
+  // email client widths (~600px). Juice keeps @media in the <style> block.
   html = html.replace(/@media\s*\(max-width:\s*640px\)/g, '@media (max-width: 480px)');
 
   // Inline all class-based CSS as style="" attributes so Gmail cannot strip them.

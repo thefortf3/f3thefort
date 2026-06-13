@@ -314,6 +314,7 @@ function buildNantanSection(submissions) {
   <!-- ===== HEADER ===== -->
   <div class="nantan${hasHero ? ' nantan--has-hero' : ''}">
     ${heroHtml}
+    <span class="nantan-quote">“</span>
     <div class="nantan-author">${escapeHtml(desk.title)}${desk.leader ? ` — ${escapeHtml(desk.leader)}` : ''}</div>
     <div class="nantan-body">
       ${rewriteHtmlImages(desk.description)}
@@ -477,14 +478,15 @@ function buildInitiativeCard(sub, index) {
       <div class="initiative-content">
         <div class="initiative-title">${escapeHtml(sub.title)}</div>`;
 
-  const hasMeta = sub.leader || sub.start_date || sub.location;
+  if (sub.leader) {
+    html += `
+        <div class="event-q">Q: ${escapeHtml(sub.leader)}</div>`;
+  }
+
+  const hasMeta = sub.start_date || sub.location;
   if (hasMeta) {
     html += `
         <div class="initiative-meta">`;
-    if (sub.leader) {
-      html += `
-          <div class="initiative-meta-item"><span class="icon">Q:</span> ${escapeHtml(sub.leader)}</div>`;
-    }
     if (sub.start_date) {
       html += `
           <div class="initiative-meta-item"><span class="icon">📅</span> ${escapeHtml(formatDate(sub.start_date, sub.end_time))}</div>`;
@@ -523,27 +525,32 @@ function buildFreshCard(sub) {
     <article class="fresh-card">
       <div class="fresh-header">
         <div class="fresh-title">${escapeHtml(sub.title)}</div>
+        <span class="fresh-badge">FRESH</span>
       </div>
-      <div class="fresh-body">
-        <div class="event-meta">`;
+      <div class="fresh-body">`;
 
   if (sub.leader) {
     html += `
-          <div class="event-meta-item"><span class="icon">Q:</span> ${escapeHtml(sub.leader)}</div>`;
+        <div class="event-q">Q: ${escapeHtml(sub.leader)}</div>`;
   }
 
-  if (sub.start_date) {
+  const hasMeta = sub.start_date || sub.location;
+  if (hasMeta) {
     html += `
+        <div class="event-meta">`;
+    if (sub.start_date) {
+      html += `
           <div class="event-meta-item"><span class="icon">📅</span> ${escapeHtml(formatDate(sub.start_date, sub.end_time))}</div>`;
-  }
-
-  if (sub.location) {
-    html += `
+    }
+    if (sub.location) {
+      html += `
           <div class="event-meta-item"><span class="icon">📌</span> ${escapeHtml(sub.location)}</div>`;
+    }
+    html += `
+        </div>`;
   }
 
   html += `
-        </div>
         <div class="event-desc">${rewriteHtmlImages(sub.description || '')}</div>
         ${sub.video_url ? buildVideoEmbed(sub.video_url) : ''}
       </div>
