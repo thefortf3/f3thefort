@@ -376,6 +376,43 @@ app.get('/api/newsletter/campaign-status', requireAuth, async (req, res) => {
   }
 });
 
+// Resolve CSS custom properties and fix known email-client issues before sending to Mailchimp.
+// Email clients (Gmail, Outlook, etc.) do not support CSS custom properties (var(--x)),
+// so we extract the :root definitions and substitute literal values throughout the HTML.
+function prepareForEmail(html) {
+  // Extract --name: value pairs from :root {}
+  const vars = {};
+  const rootMatch = html.match(/:root\s*\{([^}]+)\}/);
+  if (rootMatch) {
+    for (const [, name, value] of rootMatch[1].matchAll(/--([^:]+):\s*([^;]+);/g)) {
+      vars[`--${name.trim()}`] = value.trim();
+    }
+  }
+
+  // Resolve a single var() call, recursing for chained references (max depth 5)
+  function resolveVar(value, depth = 0) {
+    if (depth > 5) return value;
+    return value.replace(/var\(\s*(--[\w-]+)\s*(?:,\s*([^)]+))?\)/g, (_, name, fallback) => {
+      const resolved = vars[name];
+      return resolved ? resolveVar(resolved, depth + 1) : (fallback || '');
+    });
+  }
+
+  // Replace all var() references throughout the document
+  html = html.replace(/var\(\s*(--[\w-]+)\s*(?:,\s*([^)]+))?\)/g, (_, name, fallback) => {
+    const resolved = vars[name];
+    return resolved ? resolveVar(resolved) : (fallback || '');
+  });
+
+  // Replace unfilled template placeholder
+  html = html.replace(/\{\{ISSUE_YEAR\}\}/g, new Date().getFullYear().toString());
+
+  // Remove body::before noise overlay — position:fixed unsupported in email
+  html = html.replace(/body::before\s*\{[^}]+\}/g, 'body::before { display: none; }');
+
+  return html;
+}
+
 // POST /api/newsletter/campaign — create or update the scheduled Mailchimp campaign
 app.post('/api/newsletter/campaign', requireAuth, async (req, res) => {
   const filePath = path.join(__dirname, 'newsletter-dark.html');
@@ -383,7 +420,7 @@ app.post('/api/newsletter/campaign', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Newsletter not generated yet. Please preview the newsletter first.' });
   }
   try {
-    const htmlContent = readFileSync(filePath, 'utf8');
+    const htmlContent = prepareForEmail(readFileSync(filePath, 'utf8'));
     const result = await upsertScheduledCampaign(htmlContent);
     res.json(result);
   } catch (err) {
