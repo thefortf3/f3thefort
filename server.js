@@ -404,16 +404,18 @@ function prepareForEmail(html) {
     return resolved ? resolveVar(resolved) : (fallback || '');
   });
 
-  // Convert Google Fonts <link> tags to @import so more email clients load the fonts.
-  // Gmail strips <link> tags entirely; @import inside <style> survives Apple Mail, iOS, etc.
+  // Convert Google Fonts <link> tags to @import in a dedicated <style> block.
+  // Gmail strips any <style> block that contains @import, so we isolate the @import
+  // in its own block — Gmail strips just that block, leaving the main CSS intact.
+  // Apple Mail / iOS Mail will load the fonts from the separate block.
   const gFontsLinkRe = /<link\s[^>]*href="(https:\/\/fonts\.googleapis\.com\/css[^"]+)"[^>]*>/gi;
   const gFontsMatches = [...html.matchAll(gFontsLinkRe)];
   if (gFontsMatches.length) {
     const imports = gFontsMatches.map(m => `@import url('${m[1]}');`).join('\n');
-    // Remove the original <link> tags (including preconnect hints for fonts.googleapis.com/fonts.gstatic.com)
+    // Remove the original <link> tags (including preconnect hints)
     html = html.replace(/<link\s[^>]*(?:fonts\.googleapis\.com|fonts\.gstatic\.com)[^>]*>/gi, '');
-    // Inject @import at the very top of the first <style> block
-    html = html.replace(/<style>/, `<style>\n${imports}`);
+    // Inject a separate <style> block before the main one
+    html = html.replace(/<style>/, `<style>${imports}</style>\n<style>`);
   }
 
   // Replace unfilled template placeholder
