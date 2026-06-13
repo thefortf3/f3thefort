@@ -12,6 +12,7 @@ import { getCampaignStatusForDate, upsertScheduledCampaign, getNextSundayDateStr
 import { JSDOM } from 'jsdom';
 import { postPreblast } from './lib/wordpress.js';
 import multer from 'multer';
+import juice from 'juice';
 import { importFngs } from './import-fngs.mjs';
 import { generateNewsletter } from './generate-newsletter.mjs';
 
@@ -423,6 +424,11 @@ function prepareForEmail(html) {
 
   // Remove body::before noise overlay — position:fixed unsupported in email
   html = html.replace(/body::before\s*\{[^}]+\}/g, 'body::before { display: none; }');
+
+  // Inline all class-based CSS as style="" attributes so Gmail cannot strip them.
+  // Gmail ignores <style> blocks in practice; inline styles are the only reliable path.
+  // juice preserves <style> for @media queries and pseudo-elements (::before, :hover).
+  html = juice(html, { removeStyleTags: false, applyStyleTags: true, applyAttributesTableElements: false });
 
   return html;
 }
