@@ -19,29 +19,8 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// ─── CLI args ────────────────────────────────────────────────────────
-const args = process.argv.slice(2);
-
-function getArg(name) {
-  const eqForm = args.find(a => a.startsWith(`--${name}=`));
-  if (eqForm) return eqForm.slice(`--${name}=`.length);
-  const idx = args.indexOf(`--${name}`);
-  if (idx !== -1 && idx + 1 < args.length) return args[idx + 1];
-  return null;
-}
-
-const outputPath = getArg('output') || resolve(__dirname, 'newsletter-dark.html');
-const dbPath = getArg('db') || process.env.TEST_DB || process.env.DB_PATH || resolve(__dirname, 'dev.db');
-const vqArg = getArg('vqs') || '';
-const vqNames = vqArg ? vqArg.split(',').map(s => s.trim()).filter(Boolean) : [];
-
 const templatePath = resolve(__dirname, 'public', 'newsletter-template.html');
-const previewOnly = args.includes('--preview');
-const baseUrl = process.env.BASE_URL;
-if (!baseUrl) {
-  console.error('Error: BASE_URL environment variable is required (e.g., https://news.thelucks.org)');
-  process.exit(1);
-}
+let baseUrl = process.env.BASE_URL || '';
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 function escapeHtml(str) {
@@ -65,21 +44,17 @@ function formatDate(startDate, endTime) {
     const month = months[d.getMonth()];
     const date = d.getDate();
 
-    let hours = d.getHours();
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12 || 12;
+    const hours = d.getHours().toString().padStart(2, '0');
     const mins = d.getMinutes().toString().padStart(2, '0');
 
-    let result = `${dayName}, ${month} ${date} — ${hours}:${mins} ${ampm}`;
+    let result = `${dayName}, ${month} ${date} — ${hours}${mins}`;
 
     if (endTime) {
       const e = new Date(endTime);
       if (!isNaN(e.getTime())) {
-        let eHours = e.getHours();
-        const eAmpm = eHours >= 12 ? 'PM' : 'AM';
-        eHours = eHours % 12 || 12;
+        const eHours = e.getHours().toString().padStart(2, '0');
         const eMins = e.getMinutes().toString().padStart(2, '0');
-        result += ` to ${eHours}:${eMins} ${eAmpm}`;
+        result += `-${eHours}${eMins}`;
       }
     }
 
@@ -113,9 +88,12 @@ function getIssueDate() {
 
 function getHeaderDate() {
   const now = new Date();
-  const m = (now.getMonth() + 1).toString().padStart(2, '0');
-  const d = now.getDate().toString().padStart(2, '0');
-  const y = now.getFullYear();
+  const daysUntilSunday = now.getDay() === 0 ? 0 : 7 - now.getDay();
+  const sunday = new Date(now);
+  sunday.setDate(now.getDate() + daysUntilSunday);
+  const m = (sunday.getMonth() + 1).toString().padStart(2, '0');
+  const d = sunday.getDate().toString().padStart(2, '0');
+  const y = sunday.getFullYear();
   return `Issue ${m}.${d}.${y}`;
 }
 
@@ -124,7 +102,8 @@ function getSubmissions(dbPath) {
   const db = new Database(dbPath);
   const rows = db.prepare(`
     SELECT s.id, s.title, s.leader, s.start_date, s.end_time, s.location,
-           s.description, s.link, s.hero_image, s.video_url, s.section, s.position
+           s.description, s.link, s.hero_image, s.video_url, s.section, s.position,
+           s.preblast_url
     FROM submissions s
     LEFT JOIN sections sec ON s.section = sec.id
     WHERE s.section IS NOT NULL AND s.section != 'null' AND s.archived_at IS NULL
@@ -189,7 +168,7 @@ function getWeeklyFngs(dbPath) {
   const db = new Database(dbPath);
   const currentYear = now.getFullYear();
   const rows = db.prepare(
-    'SELECT f3_name, ehed_by, ao FROM fngs WHERE year = ? ORDER BY timestamp ASC'
+    'SELECT f3_name, ehed_by, ao, timestamp FROM fngs WHERE year = ? ORDER BY timestamp ASC'
   ).all(currentYear);
   db.close();
 
@@ -206,8 +185,10 @@ function getStaticSections(dbPath) {
   const threeFsItems = db.prepare('SELECT * FROM three_fs_items ORDER BY f_column, position ASC').all();
   const sltEntries = db.prepare('SELECT * FROM slt_entries ORDER BY position ASC').all();
   const helpfulLinks = db.prepare('SELECT * FROM helpful_links ORDER BY position ASC').all();
+  const shovelFlags = db.prepare('SELECT * FROM shovel_flags ORDER BY position ASC').all();
+  const weeklyVqs = db.prepare('SELECT * FROM vqs ORDER BY position ASC').all();
   db.close();
-  return { threeFsItems, sltEntries, helpfulLinks };
+  return { threeFsItems, sltEntries, helpfulLinks, shovelFlags, weeklyVqs };
 }
 
 function buildThreeFsSection(items) {
@@ -294,6 +275,31 @@ ${linksHtml}
 </div>`;
 }
 
+function buildShovelFlagSection(flags) {
+  if (flags.length === 0) return '';
+  const rows = flags.map(f =>
+    `    <div class="shovel-flag-item">
+      <span class="shovel-flag-from">${escapeHtml(f.from_name)}</span>
+      <span class="shovel-flag-arrow">→</span>
+      <span class="shovel-flag-to">${escapeHtml(f.to_name)}</span>
+      <span class="shovel-flag-ao">@ ${escapeHtml(f.ao)}</span>
+    </div>`
+  ).join('\n');
+
+  return `
+<!-- ===== SHOVEL FLAG HAND-OFF ===== -->
+<div class="section section--shovel-flag">
+  <div class="section-header">
+    <span class="section-number">&#9873;</span>
+    <span class="section-name">Shovel Flag Hand-off</span>
+    <span class="section-accent"></span>
+  </div>
+  <div class="shovel-flag-list">
+${rows}
+  </div>
+</div>`;
+}
+
 // ─── Section builders ────────────────────────────────────────────────
 function buildNantanSection(submissions) {
   const desk = submissions.find(s => s.section === 'desk');
@@ -316,19 +322,19 @@ function buildNantanSection(submissions) {
   </div>`;
 }
 
-function buildRosterSection(weeklyFngs, vqNames) {
-  if (weeklyFngs.length === 0 && vqNames.length === 0) return '';
+function buildRosterSection(weeklyFngs, weeklyVqs) {
+  if (weeklyFngs.length === 0 && weeklyVqs.length === 0) return '';
 
   const fngItems = weeklyFngs.map(f => {
     const detail = f.ehed_by ? ` <span class="roster-detail">EH: ${escapeHtml(f.ehed_by)}</span>` : '';
     return `        <li>${escapeHtml(f.f3_name)}${detail}</li>`;
   }).join('\n');
 
-  const vqItems = vqNames.map(v =>
-    `        <li class="celebration">🥳 ${escapeHtml(v)}</li>`
+  const vqItems = weeklyVqs.map(v =>
+    `        <li>🥳 ${escapeHtml(v.name)} <span class="roster-detail">@ ${escapeHtml(v.ao)}</span></li>`
   ).join('\n');
 
-  const vqBlock = vqNames.length > 0 ? `
+  const vqBlock = weeklyVqs.length > 0 ? `
     <div class="roster-card vq">
       <div class="roster-type">VQs</div>
       <ul class="roster-names">
@@ -449,9 +455,11 @@ function buildEventCard(sub) {
     html += buildVideoEmbed(sub.video_url);
   }
 
-  if (sub.link) {
+  const ctaUrl = sub.preblast_url || sub.link;
+  const ctaLabel = sub.preblast_url ? 'Read full pre-blast ↗' : 'Details ↗';
+  if (ctaUrl) {
     html += `
-        <a class="event-link" href="${escapeHtml(sub.link)}" target="_blank" rel="noopener">Details ↗</a>`;
+        <a class="event-link" href="${escapeHtml(ctaUrl)}" target="_blank" rel="noopener">${ctaLabel}</a>`;
   }
 
   html += `
@@ -496,9 +504,11 @@ function buildInitiativeCard(sub, index) {
     html += buildVideoEmbed(sub.video_url);
   }
 
-  if (sub.link) {
+  const ctaUrl = sub.preblast_url || sub.link;
+  const ctaLabel = sub.preblast_url ? 'Read full pre-blast ↗' : 'Details ↗';
+  if (ctaUrl) {
     html += `
-        <a class="event-link" href="${escapeHtml(sub.link)}" target="_blank" rel="noopener">Details ↗</a>`;
+        <a class="event-link" href="${escapeHtml(ctaUrl)}" target="_blank" rel="noopener">${ctaLabel}</a>`;
   }
 
   html += `
@@ -627,22 +637,24 @@ function buildVideoEmbed(videoUrl) {
 }
 
 // ─── Main ────────────────────────────────────────────────────────────
-function main() {
+export function generateNewsletter({ dbPath, outputPath, baseUrl: _baseUrl }) {
+  baseUrl = _baseUrl || process.env.BASE_URL;
+  if (!baseUrl) throw new Error('BASE_URL is required');
+
   const template = readFileSync(templatePath, 'utf-8');
   const submissions = getSubmissions(dbPath);
   const dbSections = getSections(dbPath);
   const fngStats = getFngStats(dbPath);
   const issueDate = getIssueDate();
   const headerDate = getHeaderDate();
-  const { threeFsItems, sltEntries, helpfulLinks } = getStaticSections(dbPath);
+  const { threeFsItems, sltEntries, helpfulLinks, shovelFlags, weeklyVqs } = getStaticSections(dbPath);
 
-  // Build dynamic sections
   const nantanSection = buildNantanSection(submissions);
+  const shovelFlagSection = buildShovelFlagSection(shovelFlags);
   const weeklyFngs = getWeeklyFngs(dbPath);
-  const rosterSection = buildRosterSection(weeklyFngs, vqNames);
+  const rosterSection = buildRosterSection(weeklyFngs, weeklyVqs);
   const dynamicSections = buildDynamicSections(submissions, dbSections);
 
-  // Replace placeholders
   let html = template
     .replace('{{TITLE}}', 'The Fort Weekly — ' + issueDate)
     .replace('{{HEADER_DATE}}', headerDate)
@@ -652,18 +664,36 @@ function main() {
     .replace('{{FNG_DAYS}}', fngStats.daysElapsed.toString())
     .replace('{{DAYS_PCT}}', fngStats.daysPct.toString())
     .replace('{{NANTAN_SECTION}}', nantanSection)
+    .replace('{{SHOVEL_FLAG_SECTION}}', shovelFlagSection)
     .replace('{{ROSTER_SECTION}}', rosterSection)
     .replace('{{DYNAMIC_SECTIONS}}', dynamicSections)
     .replace('{{THREE_FS_SECTION}}', buildThreeFsSection(threeFsItems))
     .replace('{{SLT_SECTION}}', buildSltSection(sltEntries))
     .replace('{{HELPFUL_LINKS_SECTION}}', buildHelpfulLinksSection(helpfulLinks));
 
-  if (previewOnly) {
-    process.stdout.write(html);
-  } else {
-    writeFileSync(outputPath, html, 'utf-8');
-    console.log(`Newsletter generated → ${outputPath}`);
-  }
+  writeFileSync(outputPath, html, 'utf-8');
+  console.log(`Newsletter generated → ${outputPath}`);
 }
 
-main();
+// ─── CLI entry point ─────────────────────────────────────────────────
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const args = process.argv.slice(2);
+
+  function getArg(name) {
+    const eqForm = args.find(a => a.startsWith(`--${name}=`));
+    if (eqForm) return eqForm.slice(`--${name}=`.length);
+    const idx = args.indexOf(`--${name}`);
+    if (idx !== -1 && idx + 1 < args.length) return args[idx + 1];
+    return null;
+  }
+
+  const cliOutputPath = getArg('output') || resolve(__dirname, 'newsletter-dark.html');
+  const cliDbPath = getArg('db') || process.env.TEST_DB || process.env.DB_PATH || resolve(__dirname, 'dev.db');
+
+  if (!process.env.BASE_URL) {
+    console.error('Error: BASE_URL environment variable is required');
+    process.exit(1);
+  }
+
+  generateNewsletter({ dbPath: cliDbPath, outputPath: cliOutputPath });
+}
