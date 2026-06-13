@@ -14,7 +14,7 @@ let pendingDeleteId = null;
 let pendingDeleteMode = null; // 'archive' | 'permanent'
 
 // Static section state
-let staticSections = { threeFsItems: [], sltEntries: [], helpfulLinks: [] };
+let staticSections = { threeFsItems: [], sltEntries: [], helpfulLinks: [], shovelFlags: [], vqs: [] };
 let activeThreeFsTab = 'fitness';
 
 /* ============================================================
@@ -54,12 +54,14 @@ async function initAdminBoard() {
    Data loading
    ============================================================ */
 async function loadData() {
-  const [sectionsRes, entriesRes, threeFsRes, sltRes, linksRes] = await Promise.all([
+  const [sectionsRes, entriesRes, threeFsRes, sltRes, linksRes, shovelFlagsRes, vqsRes] = await Promise.all([
     fetch('/api/sections'),
     fetch('/api/submissions?limit=500'),
     fetch('/api/static/three-fs'),
     fetch('/api/static/slt'),
     fetch('/api/static/links'),
+    fetch('/api/static/shovel-flags'),
+    fetch('/api/static/vqs'),
   ]);
   boardSections = await sectionsRes.json();
   const entriesData = await entriesRes.json();
@@ -67,6 +69,8 @@ async function loadData() {
   staticSections.threeFsItems = await threeFsRes.json();
   staticSections.sltEntries = await sltRes.json();
   staticSections.helpfulLinks = await linksRes.json();
+  staticSections.shovelFlags = await shovelFlagsRes.json();
+  staticSections.vqs = await vqsRes.json();
   renderBoard();
 }
 
@@ -86,6 +90,12 @@ function renderBoard() {
   if (deskSec) {
     board.appendChild(buildLane(deskSec, allEntries.filter(e => e.section === 'desk'), true));
   }
+
+  // Shovel Flag Hand-off — locked, always after header
+  board.appendChild(buildProtectedLane('shovel-flags', 'Shovel Flag Hand-off', '#8B3A2A'));
+
+  // VQs — locked, always after shovel flags
+  board.appendChild(buildProtectedLane('vqs', 'VQs This Week', '#2A5F8B'));
 
   // Other section lanes in order
   for (const sec of boardSections.filter(s => s.id !== 'desk')) {
@@ -575,13 +585,9 @@ async function openVqModal() {
   try {
     const r = await fetch('/api/newsletter/preview-data');
     const data = await r.json();
-    if (data.weeklyFngs?.length > 0) {
-      fngsEl.innerHTML = data.weeklyFngs.map(f =>
-        `<div>${escapeHtml(f.f3_name)}${f.ehed_by ? ` <span style="color:var(--text-dim)">EH: ${escapeHtml(f.ehed_by)}</span>` : ''}</div>`
-      ).join('');
-    } else {
-      fngsEl.textContent = 'None this week';
-    }
+    fngsEl.innerHTML = data.weeklyFngs?.length > 0
+      ? data.weeklyFngs.map(f => `<div>${escapeHtml(f.f3_name)}${f.ehed_by ? ` <span style="color:var(--text-dim)">EH: ${escapeHtml(f.ehed_by)}</span>` : ''}</div>`).join('')
+      : 'None this week';
   } catch {
     fngsEl.textContent = '—';
   }
@@ -649,9 +655,8 @@ function setPreviewViewport(mode) {
     pane.classList.add('preview-pane--mobile');
     desktopBtn.classList.remove('preview-viewport-btn--active');
     mobileBtn.classList.add('preview-viewport-btn--active');
-    const resize = () => applyMobileHeight();
-    iframe.addEventListener('load', resize, { once: true });
-    if (iframe.contentDocument?.readyState === 'complete') resize();
+    // Defer so the browser reflows the iframe at 375px before we measure scrollHeight
+    requestAnimationFrame(applyMobileHeight);
   } else {
     pane.classList.remove('preview-pane--mobile');
     desktopBtn.classList.add('preview-viewport-btn--active');
@@ -684,7 +689,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function generateNewsletter() {
-  const vqs = document.getElementById('vq-names-input')?.value?.trim() || '';
   const btn = document.getElementById('vq-modal-confirm');
   btn.disabled = true;
   btn.textContent = 'Generating…';
@@ -693,7 +697,7 @@ async function generateNewsletter() {
     const r = await fetch('/api/newsletter/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ vqs }),
+      body: JSON.stringify({}),
     });
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Failed');
@@ -1324,6 +1328,20 @@ function buildProtectedLane(sectionId, label, accentColor) {
       `<div class="protected-preview-row"><span class="protected-preview-row__role">${escapeHtml(l.label)}</span><span class="protected-preview-row__name">${escapeHtml(l.name)}</span></div>`
     ).join('');
     if (links.length > 5) previewHtml += `<div class="protected-preview-more">+${links.length - 5} more</div>`;
+  } else if (sectionId === 'shovel-flags') {
+    const flags = staticSections.shovelFlags;
+    itemCount = flags.length;
+    previewHtml = flags.slice(0, 4).map(f =>
+      `<div class="protected-preview-row"><span class="protected-preview-row__role">${escapeHtml(f.from_name)}</span><span class="protected-preview-row__name">→ ${escapeHtml(f.to_name)}</span><span class="protected-preview-row__detail">${escapeHtml(f.ao)}</span></div>`
+    ).join('');
+    if (flags.length > 4) previewHtml += `<div class="protected-preview-more">+${flags.length - 4} more</div>`;
+  } else if (sectionId === 'vqs') {
+    const vqList = staticSections.vqs;
+    itemCount = vqList.length;
+    previewHtml = vqList.slice(0, 5).map(v =>
+      `<div class="protected-preview-row"><span class="protected-preview-row__role">${escapeHtml(v.name)}</span><span class="protected-preview-row__name">${escapeHtml(v.ao)}</span></div>`
+    ).join('');
+    if (vqList.length > 5) previewHtml += `<div class="protected-preview-more">+${vqList.length - 5} more</div>`;
   }
 
   lane.innerHTML = `
@@ -1350,6 +1368,8 @@ function refreshProtectedLane(sectionId) {
   let label, color;
   if (sectionId === 'three-fs') { label = "The Three F's"; color = '#5B7DB1'; }
   else if (sectionId === 'slt') { label = 'Shared Leadership Team'; color = '#3A7D5C'; }
+  else if (sectionId === 'shovel-flags') { label = 'Shovel Flag Hand-off'; color = '#8B3A2A'; }
+  else if (sectionId === 'vqs') { label = 'VQs This Week'; color = '#2A5F8B'; }
   else { label = 'Helpful Links'; color = '#8a6a2a'; }
   existing.replaceWith(buildProtectedLane(sectionId, label, color));
 }
@@ -1358,6 +1378,8 @@ function openStaticEditor(sectionId) {
   if (sectionId === 'three-fs') openThreeFsModal();
   else if (sectionId === 'slt') openSltModal();
   else if (sectionId === 'helpful-links') openLinksModal();
+  else if (sectionId === 'shovel-flags') openShovelFlagsModal();
+  else if (sectionId === 'vqs') openVqsModal();
 }
 
 /* ============================================================
@@ -1791,6 +1813,254 @@ async function addHelpfulLink() {
 }
 
 /* ============================================================
+   VQ Editor
+   ============================================================ */
+function openVqsModal() {
+  renderVqsList();
+  openModal(document.getElementById('vqs-modal'));
+}
+
+function renderVqsList() {
+  const list = document.getElementById('vqs-list');
+  if (!list) return;
+  const vqList = staticSections.vqs;
+  if (vqList.length === 0) { list.innerHTML = '<div class="static-editor-empty">No VQs recorded.</div>'; return; }
+  list.innerHTML = vqList.map((v, idx) => `
+    <div class="se-row" data-id="${v.id}">
+      <div class="se-row__order">
+        <button class="se-order-btn" data-action="up" data-id="${v.id}" ${idx === 0 ? 'disabled' : ''}>↑</button>
+        <button class="se-order-btn" data-action="down" data-id="${v.id}" ${idx === vqList.length - 1 ? 'disabled' : ''}>↓</button>
+      </div>
+      <div class="se-row__content">
+        <span class="se-val">${escapeHtml(v.name)}</span>
+        <span class="se-sep">@</span>
+        <span class="se-detail">${escapeHtml(v.ao)}</span>
+      </div>
+      <div class="se-row__actions">
+        <button class="kanban-card__btn se-edit-btn" data-id="${v.id}">Edit</button>
+        <button class="kanban-card__btn kanban-card__btn--danger se-del-btn" data-id="${v.id}">Del</button>
+      </div>
+    </div>`).join('');
+
+  list.querySelectorAll('.se-order-btn').forEach(btn =>
+    btn.addEventListener('click', () => moveVq(parseInt(btn.dataset.id), btn.dataset.action))
+  );
+  list.querySelectorAll('.se-edit-btn').forEach(btn =>
+    btn.addEventListener('click', () => editVqInline(parseInt(btn.dataset.id)))
+  );
+  list.querySelectorAll('.se-del-btn').forEach(btn =>
+    btn.addEventListener('click', () => deleteVq(parseInt(btn.dataset.id)))
+  );
+}
+
+function editVqInline(id) {
+  const vq = staticSections.vqs.find(v => v.id === id);
+  if (!vq) return;
+  const rowEl = document.querySelector(`#vqs-list .se-row[data-id="${id}"]`);
+  if (!rowEl) return;
+
+  rowEl.innerHTML = `
+    <div class="se-inline-form">
+      <input type="text" id="vq-edit-name-${id}" value="${escapeHtml(vq.name)}" placeholder="Name">
+      <input type="text" id="vq-edit-ao-${id}" value="${escapeHtml(vq.ao)}" placeholder="AO">
+      <div class="se-inline-form__btns">
+        <button class="kanban-card__btn" id="vq-edit-save-${id}">Save</button>
+        <button class="kanban-card__btn" id="vq-edit-cancel-${id}">Cancel</button>
+      </div>
+    </div>`;
+
+  document.getElementById(`vq-edit-cancel-${id}`).addEventListener('click', () => renderVqsList());
+  document.getElementById(`vq-edit-save-${id}`).addEventListener('click', async () => {
+    const name = document.getElementById(`vq-edit-name-${id}`).value.trim();
+    const ao = document.getElementById(`vq-edit-ao-${id}`).value.trim();
+    if (!name || !ao) return;
+    try {
+      const r = await fetch(`/api/static/vqs/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, ao }) });
+      if (!r.ok) throw new Error();
+      const updated = await r.json();
+      const idx = staticSections.vqs.findIndex(v => v.id === id);
+      if (idx !== -1) staticSections.vqs[idx] = updated;
+      renderVqsList();
+      refreshProtectedLane('vqs');
+      showToast('Saved', 'success');
+    } catch { showToast('Save failed', 'error'); }
+  });
+}
+
+async function deleteVq(id) {
+  if (!confirm('Delete this VQ?')) return;
+  try {
+    const r = await fetch(`/api/static/vqs/${id}`, { method: 'DELETE' });
+    if (!r.ok) throw new Error();
+    staticSections.vqs = staticSections.vqs.filter(v => v.id !== id);
+    renderVqsList();
+    refreshProtectedLane('vqs');
+    showToast('Deleted', 'success');
+  } catch { showToast('Delete failed', 'error'); }
+}
+
+async function moveVq(id, direction) {
+  const vqList = staticSections.vqs;
+  const idx = vqList.findIndex(v => v.id === id);
+  if (idx === -1) return;
+  const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+  if (swapIdx < 0 || swapIdx >= vqList.length) return;
+  [vqList[idx], vqList[swapIdx]] = [vqList[swapIdx], vqList[idx]];
+  const order = vqList.map(v => v.id);
+  try {
+    const r = await fetch('/api/static/vqs/reorder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order }) });
+    if (!r.ok) throw new Error();
+    order.forEach((vid, pos) => { const v = staticSections.vqs.find(x => x.id === vid); if (v) v.position = pos; });
+    renderVqsList();
+  } catch { showToast('Reorder failed', 'error'); }
+}
+
+async function addVq() {
+  const name = document.getElementById('vq-add-name').value.trim();
+  const ao = document.getElementById('vq-add-ao').value.trim();
+  if (!name) { document.getElementById('vq-add-name').focus(); return; }
+  if (!ao) { document.getElementById('vq-add-ao').focus(); return; }
+  try {
+    const r = await fetch('/api/static/vqs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, ao }) });
+    if (!r.ok) throw new Error();
+    const created = await r.json();
+    staticSections.vqs.push(created);
+    document.getElementById('vq-add-name').value = '';
+    document.getElementById('vq-add-ao').value = '';
+    renderVqsList();
+    refreshProtectedLane('vqs');
+    showToast('Added', 'success');
+  } catch { showToast('Add failed', 'error'); }
+}
+
+/* ============================================================
+   Shovel Flag Editor
+   ============================================================ */
+function openShovelFlagsModal() {
+  renderShovelFlagsList();
+  openModal(document.getElementById('shovel-flags-modal'));
+}
+
+function renderShovelFlagsList() {
+  const list = document.getElementById('shovel-flags-list');
+  if (!list) return;
+  const flags = staticSections.shovelFlags;
+  if (flags.length === 0) { list.innerHTML = '<div class="static-editor-empty">No hand-offs recorded.</div>'; return; }
+  list.innerHTML = flags.map((f, idx) => `
+    <div class="se-row" data-id="${f.id}">
+      <div class="se-row__order">
+        <button class="se-order-btn" data-action="up" data-id="${f.id}" ${idx === 0 ? 'disabled' : ''}>↑</button>
+        <button class="se-order-btn" data-action="down" data-id="${f.id}" ${idx === flags.length - 1 ? 'disabled' : ''}>↓</button>
+      </div>
+      <div class="se-row__content">
+        <span class="se-val">${escapeHtml(f.from_name)}</span>
+        <span class="se-sep">→</span>
+        <span class="se-detail">${escapeHtml(f.to_name)}</span>
+        <span class="se-url">${escapeHtml(f.ao)}</span>
+      </div>
+      <div class="se-row__actions">
+        <button class="kanban-card__btn se-edit-btn" data-id="${f.id}">Edit</button>
+        <button class="kanban-card__btn kanban-card__btn--danger se-del-btn" data-id="${f.id}">Del</button>
+      </div>
+    </div>`).join('');
+
+  list.querySelectorAll('.se-order-btn').forEach(btn =>
+    btn.addEventListener('click', () => moveShovelFlag(parseInt(btn.dataset.id), btn.dataset.action))
+  );
+  list.querySelectorAll('.se-edit-btn').forEach(btn =>
+    btn.addEventListener('click', () => editShovelFlagInline(parseInt(btn.dataset.id)))
+  );
+  list.querySelectorAll('.se-del-btn').forEach(btn =>
+    btn.addEventListener('click', () => deleteShovelFlag(parseInt(btn.dataset.id)))
+  );
+}
+
+function editShovelFlagInline(id) {
+  const flag = staticSections.shovelFlags.find(f => f.id === id);
+  if (!flag) return;
+  const rowEl = document.querySelector(`#shovel-flags-list .se-row[data-id="${id}"]`);
+  if (!rowEl) return;
+
+  rowEl.innerHTML = `
+    <div class="se-inline-form">
+      <input type="text" id="sf-edit-from-${id}" value="${escapeHtml(flag.from_name)}" placeholder="From">
+      <input type="text" id="sf-edit-to-${id}" value="${escapeHtml(flag.to_name)}" placeholder="To">
+      <input type="text" id="sf-edit-ao-${id}" value="${escapeHtml(flag.ao)}" placeholder="AO">
+      <div class="se-inline-form__btns">
+        <button class="kanban-card__btn" id="sf-edit-save-${id}">Save</button>
+        <button class="kanban-card__btn" id="sf-edit-cancel-${id}">Cancel</button>
+      </div>
+    </div>`;
+
+  document.getElementById(`sf-edit-cancel-${id}`).addEventListener('click', () => renderShovelFlagsList());
+  document.getElementById(`sf-edit-save-${id}`).addEventListener('click', async () => {
+    const from_name = document.getElementById(`sf-edit-from-${id}`).value.trim();
+    const to_name = document.getElementById(`sf-edit-to-${id}`).value.trim();
+    const ao = document.getElementById(`sf-edit-ao-${id}`).value.trim();
+    if (!from_name || !to_name || !ao) return;
+    try {
+      const r = await fetch(`/api/static/shovel-flags/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ from_name, to_name, ao }) });
+      if (!r.ok) throw new Error();
+      const updated = await r.json();
+      const idx = staticSections.shovelFlags.findIndex(f => f.id === id);
+      if (idx !== -1) staticSections.shovelFlags[idx] = updated;
+      renderShovelFlagsList();
+      refreshProtectedLane('shovel-flags');
+      showToast('Saved', 'success');
+    } catch { showToast('Save failed', 'error'); }
+  });
+}
+
+async function deleteShovelFlag(id) {
+  if (!confirm('Delete this hand-off?')) return;
+  try {
+    const r = await fetch(`/api/static/shovel-flags/${id}`, { method: 'DELETE' });
+    if (!r.ok) throw new Error();
+    staticSections.shovelFlags = staticSections.shovelFlags.filter(f => f.id !== id);
+    renderShovelFlagsList();
+    refreshProtectedLane('shovel-flags');
+    showToast('Deleted', 'success');
+  } catch { showToast('Delete failed', 'error'); }
+}
+
+async function moveShovelFlag(id, direction) {
+  const flags = staticSections.shovelFlags;
+  const idx = flags.findIndex(f => f.id === id);
+  if (idx === -1) return;
+  const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+  if (swapIdx < 0 || swapIdx >= flags.length) return;
+  [flags[idx], flags[swapIdx]] = [flags[swapIdx], flags[idx]];
+  const order = flags.map(f => f.id);
+  try {
+    const r = await fetch('/api/static/shovel-flags/reorder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order }) });
+    if (!r.ok) throw new Error();
+    order.forEach((fid, pos) => { const f = staticSections.shovelFlags.find(x => x.id === fid); if (f) f.position = pos; });
+    renderShovelFlagsList();
+  } catch { showToast('Reorder failed', 'error'); }
+}
+
+async function addShovelFlag() {
+  const from_name = document.getElementById('sf-add-from').value.trim();
+  const to_name = document.getElementById('sf-add-to').value.trim();
+  const ao = document.getElementById('sf-add-ao').value.trim();
+  if (!from_name) { document.getElementById('sf-add-from').focus(); return; }
+  if (!to_name) { document.getElementById('sf-add-to').focus(); return; }
+  if (!ao) { document.getElementById('sf-add-ao').focus(); return; }
+  try {
+    const r = await fetch('/api/static/shovel-flags', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ from_name, to_name, ao }) });
+    if (!r.ok) throw new Error();
+    const created = await r.json();
+    staticSections.shovelFlags.push(created);
+    document.getElementById('sf-add-from').value = '';
+    document.getElementById('sf-add-to').value = '';
+    document.getElementById('sf-add-ao').value = '';
+    renderShovelFlagsList();
+    refreshProtectedLane('shovel-flags');
+    showToast('Added', 'success');
+  } catch { showToast('Add failed', 'error'); }
+}
+
+/* ============================================================
    Wire Static Editors
    ============================================================ */
 function wireStaticEditors() {
@@ -1824,8 +2094,18 @@ function wireStaticEditors() {
   document.getElementById('links-modal-close-btn')?.addEventListener('click', () => closeModal(document.getElementById('links-modal')));
   document.getElementById('links-add-btn')?.addEventListener('click', addHelpfulLink);
 
+  // VQs modal
+  document.getElementById('vqs-modal-close')?.addEventListener('click', () => closeModal(document.getElementById('vqs-modal')));
+  document.getElementById('vqs-modal-close-btn')?.addEventListener('click', () => closeModal(document.getElementById('vqs-modal')));
+  document.getElementById('vq-add-btn')?.addEventListener('click', addVq);
+
+  // Shovel Flags modal
+  document.getElementById('shovel-flags-modal-close')?.addEventListener('click', () => closeModal(document.getElementById('shovel-flags-modal')));
+  document.getElementById('shovel-flags-modal-close-btn')?.addEventListener('click', () => closeModal(document.getElementById('shovel-flags-modal')));
+  document.getElementById('sf-add-btn')?.addEventListener('click', addShovelFlag);
+
   // Click-outside to close static editor modals
-  ['three-fs-modal', 'slt-modal', 'links-modal'].forEach(id => {
+  ['three-fs-modal', 'slt-modal', 'links-modal', 'vqs-modal', 'shovel-flags-modal'].forEach(id => {
     document.getElementById(id)?.addEventListener('click', (e) => {
       if (e.target === document.getElementById(id)) closeModal(document.getElementById(id));
     });
