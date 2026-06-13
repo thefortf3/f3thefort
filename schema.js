@@ -12,6 +12,8 @@ export const submissions = sqliteTable('submissions', {
   link: text('link'),
   hero_image: text('hero_image'),
   video_url: text('video_url'),
+  preblast_url: text('preblast_url'),
+  preblast_content: text('preblast_content'),
   section: text('section'),
   position: integer('position').default(0),
   submitter_name: text('submitter_name'),
@@ -75,6 +77,23 @@ export const helpful_links = sqliteTable('helpful_links', {
   label: text('label').notNull(),
   name: text('name').notNull(),
   url: text('url').notNull(),
+  position: integer('position').default(0),
+  created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const vqs = sqliteTable('vqs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  ao: text('ao').notNull(),
+  position: integer('position').default(0),
+  created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const shovel_flags = sqliteTable('shovel_flags', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  from_name: text('from_name').notNull(),
+  to_name: text('to_name').notNull(),
+  ao: text('ao').notNull(),
   position: integer('position').default(0),
   created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
 });
