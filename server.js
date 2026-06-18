@@ -13,15 +13,27 @@ import { JSDOM } from 'jsdom';
 import { postPreblast } from './lib/wordpress.js';
 import multer from 'multer';
 import juice from 'juice';
-import { importFngs } from './import-fngs.mjs';
-import { generateNewsletter } from './generate-newsletter.mjs';
+import { importFngs } from './scripts/import-fngs.mjs';
+import { generateNewsletter } from './scripts/generate-newsletter.mjs';
+import { sanitizeHtml } from './lib/sanitize-html.js';
+import { rateLimit } from './lib/rate-limit.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+// Behind the nginx reverse proxy in production: trust the first hop so req.ip reflects
+// the real client (via X-Forwarded-For) for rate limiting rather than the proxy address.
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+
+// Fail fast rather than fall back to a guessable default password — an unset
+// ADMIN_PASSWORD in production would otherwise leave the admin dashboard wide open.
+if (!ADMIN_PASSWORD) {
+  console.error('FATAL: ADMIN_PASSWORD is not set. Refusing to start without an admin password.');
+  process.exit(1);
+}
 
 // Middleware
 app.use(express.json());
@@ -262,7 +274,9 @@ const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (/^image\/(png|jpe?g|gif|webp|svg)$/i.test(file.mimetype)) {
+    // SVG is intentionally excluded: it can embed <script>, and uploads are served
+    // from the same origin, so an SVG upload would be a stored-XSS vector.
+    if (/^image\/(png|jpe?g|gif|webp)$/i.test(file.mimetype)) {
       cb(null, true);
     } else {
       cb(new Error('Only image files are allowed'));
@@ -272,7 +286,18 @@ const upload = multer({
 
 app.use('/uploads', express.static(uploadDir));
 
-app.post('/api/upload/image', requireSameOrigin, upload.single('image'), (req, res) => {
+// Rate limiters for the public, unauthenticated endpoints. Windows are generous enough
+// for a person composing a submission (a few uploads + snippet generations) but cap
+// automated abuse — disk fill via uploads and Groq API cost via snippet generation.
+const WINDOW_MS = 10 * 60 * 1000;
+// Allow the test suite (which drives these endpoints from a single IP) to opt out.
+const passthrough = (req, res, next) => next();
+const makeLimiter = (opts) => (process.env.RATE_LIMIT_DISABLED === '1' ? passthrough : rateLimit(opts));
+const submitLimiter = makeLimiter({ windowMs: WINDOW_MS, max: 20, message: 'Too many submissions, please try again later.' });
+const uploadLimiter = makeLimiter({ windowMs: WINDOW_MS, max: 40, message: 'Too many uploads, please try again later.' });
+const snippetLimiter = makeLimiter({ windowMs: WINDOW_MS, max: 20, message: 'Too many snippet requests, please try again later.' });
+
+app.post('/api/upload/image', uploadLimiter, requireSameOrigin, upload.single('image'), (req, res) => {
   if (req.file) {
     res.json({ url: `/uploads/${req.file.filename}` });
   } else {
@@ -495,6 +520,16 @@ function destroySession(token) {
   sessions.delete(token);
 }
 
+// Periodically evict expired tokens — validateSession only deletes a token when it is
+// looked up, so abandoned sessions would otherwise accumulate in memory indefinitely.
+const sessionSweep = setInterval(() => {
+  const now = Date.now();
+  for (const [token, exp] of sessions) {
+    if (now > exp) sessions.delete(token);
+  }
+}, 60 * 60 * 1000);
+sessionSweep.unref?.(); // don't keep the event loop alive (e.g. in tests)
+
 // Middleware: require valid session cookie
 function requireAuth(req, res, next) {
   if (validateSession(req.cookies?.adminSession)) return next();
@@ -573,7 +608,7 @@ app.get('/api/submissions/:id', requireAuth, async (req, res) => {
 // POST /api/generate-snippet — Generate a short newsletter snippet from HTML content via Groq
 const GROQ_SYSTEM = "You are a newsletter editor. When given event information, write a concise summary suitable for inclusion in a community newsletter. The summary should capture what the event is about and why people should care. Write in third person. Sound human, no flowery language — the goal is to drive excitement and encourage participation. Use your own judgment on formatting: plain paragraphs, bullet lists, numbered steps, bold key details — whatever best serves the content. Return only valid HTML using basic tags (<p>, <ul>, <ol>, <li>, <strong>, <em>) with no preamble, commentary, or outer wrapper element. Do not wrap the output in quotation marks.";
 
-app.post('/api/generate-snippet', requireSameOrigin, async (req, res) => {
+app.post('/api/generate-snippet', snippetLimiter, requireSameOrigin, async (req, res) => {
   try {
     const { html } = req.body;
     if (!html) return res.status(400).json({ error: 'html is required' });
@@ -619,9 +654,13 @@ app.post('/api/generate-snippet', requireSameOrigin, async (req, res) => {
 });
 
 // POST /api/submissions — Create new submission
-app.post('/api/submissions', requireSameOrigin, async (req, res) => {
+app.post('/api/submissions', submitLimiter, requireSameOrigin, async (req, res) => {
   try {
-    const { title, leader, start_date, end_time, location, description, link, hero_image, video_url, submitter_name, submitter_email, submitter_phone, preblast, preblast_content } = req.body;
+    const { title, leader, start_date, end_time, location, link, hero_image, video_url, submitter_name, submitter_email, submitter_phone, preblast } = req.body;
+    // description and preblast_content are rich HTML from an unauthenticated endpoint —
+    // sanitize before storage so neither the admin editor nor the newsletter renders attacker markup.
+    const description = sanitizeHtml(req.body.description);
+    const preblast_content = sanitizeHtml(req.body.preblast_content);
 
     if (!title || !start_date || !description) {
       return res.status(400).json({ error: 'Missing required fields: title, start_date, description' });
@@ -711,7 +750,7 @@ app.patch('/api/submissions/:id', requireAuth, async (req, res) => {
     if (start_date !== undefined) updates.start_date = start_date;
     if (end_time !== undefined) updates.end_time = end_time || null;
     if (location !== undefined) updates.location = location || null;
-    if (description !== undefined) updates.description = description;
+    if (description !== undefined) updates.description = sanitizeHtml(description);
     if (link !== undefined) updates.link = link || null;
 
     const [row] = await db
@@ -1375,11 +1414,6 @@ app.post('/api/admin/logout', (req, res) => {
 // Serve admin.html for /admin route
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-});
-
-// Serve newsletter.html for /newsletter route
-app.get('/newsletter', (req, res) => {
-  res.sendFile(path.join(__dirname, 'newsletter.html'));
 });
 
 // Serve newsletter-dark.html for /newsletter-dark route

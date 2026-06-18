@@ -10,7 +10,14 @@ export default async function globalSetup() {
   copyFileSync(join(__dirname, '..', 'dev.db'), join(__dirname, '..', 'test.db'));
   const proc = spawn('node', ['server.js'], {
     cwd: join(__dirname, '..'),
-    env: { ...process.env, ADMIN_PASSWORD: 'test123', DB_PATH: join(__dirname, '..', 'test.db'), PORT: '3001' },
+    env: {
+      ...process.env,
+      ADMIN_PASSWORD: 'test123',
+      DB_PATH: join(__dirname, '..', 'test.db'),
+      PORT: '3001',
+      // The suite drives the public endpoints from one IP; don't let rate limiting block it.
+      RATE_LIMIT_DISABLED: '1',
+    },
     stdio: 'pipe',
   });
 
@@ -25,7 +32,8 @@ export default async function globalSetup() {
     throw new Error('Server failed to start');
   };
 
-  await wait('http://localhost:3001/api/submissions');
+  // Poll a public endpoint — /api/submissions now requires auth and would 401 forever.
+  await wait('http://localhost:3001/api/admin/check-auth');
 }
 
 export const teardown = async () => {

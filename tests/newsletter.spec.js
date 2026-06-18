@@ -3,15 +3,21 @@ import { test, expect } from '@playwright/test';
 const BASE = 'http://localhost:3001';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'test123';
 
-// Helper: clean all submissions via API
+// Helper: authenticate the request context. Auth is session-based — POST the password to
+// /api/admin/login and the resulting adminSession cookie is retained in the context jar
+// and sent on subsequent page.request calls.
+async function adminLogin(page) {
+  await page.request.post(`${BASE}/api/admin/login`, { data: { password: ADMIN_PASSWORD } });
+}
+
+// Helper: clean all submissions via API (requires an authenticated session)
 async function cleanSubmissions(page) {
+  await adminLogin(page);
   const response = await page.request.get(`${BASE}/api/submissions?limit=1000`);
   const data = await response.json();
   if (data.items && Array.isArray(data.items)) {
     for (const entry of data.items) {
-      await page.request.delete(`${BASE}/api/submissions/${entry.id}`, {
-        headers: { 'Cookie': `adminAuth=${ADMIN_PASSWORD}` },
-      });
+      await page.request.delete(`${BASE}/api/submissions/${entry.id}`);
     }
   }
 }
@@ -484,9 +490,8 @@ test.describe('R006 — JSON API', () => {
     });
     const created = await postRes.json();
 
-    const delRes = await page.request.delete(`/api/submissions/${created.id}`, {
-      headers: { 'Cookie': `adminAuth=${ADMIN_PASSWORD}` },
-    });
+    await adminLogin(page);
+    const delRes = await page.request.delete(`${BASE}/api/submissions/${created.id}`);
 
     expect(delRes.status()).toBe(200);
     const data = await delRes.json();
@@ -494,9 +499,8 @@ test.describe('R006 — JSON API', () => {
   });
 
   test('DELETE returns 404 for non-existent entry', async ({ page }) => {
-    const res = await page.request.delete('/api/submissions/99999', {
-      headers: { 'Cookie': `adminAuth=${ADMIN_PASSWORD}` },
-    });
+    await adminLogin(page);
+    const res = await page.request.delete(`${BASE}/api/submissions/99999`);
     expect(res.status()).toBe(404);
   });
 });

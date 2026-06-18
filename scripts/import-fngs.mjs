@@ -100,7 +100,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const dbFlag = args.find(a => a.startsWith('--db=')) || args.find(a => a.startsWith('--db'));
     const dbPath = dbFlag
       ? dbFlag.replace('--db=', '').replace('--db ', '')
-      : resolve(__dirname, 'dev.db');
+      : resolve(__dirname, '..', 'dev.db');
 
     const sheetUrl = process.env.FNG_SHEET_URL;
     if (!sheetUrl) { console.error('❌ FNG_SHEET_URL not set in .env'); process.exit(1); }

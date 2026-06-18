@@ -28,7 +28,7 @@ const args = process.argv.slice(2);
 const outputFlag = args.find(a => a.startsWith('--output=')) || args.find(a => a.startsWith('--output'));
 const outputPath = outputFlag
   ? outputFlag.replace('--output=', '').replace('--output ', '')
-  : resolve(__dirname, 'variety-plan.json');
+  : resolve(__dirname, '..', 'variety-plan.json');
 const stdoutOnly = args.includes('--stdout');
 const dryRun = args.includes('--dry-run');
 
@@ -298,9 +298,9 @@ async function main() {
   const dbPathArg = args.find(a => a.startsWith('--db=')) || args.find(a => a.startsWith('--db'));
   const dbPath = dbPathArg
     ? dbPathArg.replace('--db=', '').replace('--db ', '')
-    : (process.env.TEST_DB || resolve(__dirname, 'dev.db'));
+    : (process.env.TEST_DB || resolve(__dirname, '..', 'dev.db'));
 
-  const staticDataPath = resolve(__dirname, 'static-data.json');
+  const staticDataPath = resolve(__dirname, '..', 'data', 'static-data.json');
 
   console.log('📡 Loading static template data...');
   const staticData = loadStaticData(staticDataPath);

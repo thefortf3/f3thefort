@@ -1,9 +1,10 @@
 services:
   newsletter:
-    build: .
+    image: newsletter:latest
     container_name: newsletter
     environment:
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:?ADMIN_PASSWORD must be set}
+      - NODE_ENV=production
       - PORT=3000
       - DB_PATH=/app/data/news.db
       - BASE_URL=https://submit.f3thefort.com

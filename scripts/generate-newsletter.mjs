@@ -16,10 +16,11 @@ import Database from 'better-sqlite3';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
+import { sanitizeHtml } from '../lib/sanitize-html.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const templatePath = resolve(__dirname, 'public', 'newsletter-template.html');
+const templatePath = resolve(__dirname, '..', 'public', 'newsletter-template.html');
 let baseUrl = process.env.BASE_URL || '';
 
 // ─── Helpers ─────────────────────────────────────────────────────────
@@ -578,7 +579,11 @@ function resolveAssetUrl(url) {
 
 function rewriteHtmlImages(html) {
   if (!html) return '';
-  return html.replace(/src="\/uploads\/([^"]+)"/g, `src="${baseUrl}/uploads/$1"`);
+  // Sanitize stored descriptions at render time too: this is the chokepoint feeding both
+  // the public /newsletter-dark page and the emailed HTML, and it cleans any rows that
+  // predate input-time sanitization.
+  const clean = sanitizeHtml(html);
+  return clean.replace(/src="\/uploads\/([^"]+)"/g, `src="${baseUrl}/uploads/$1"`);
 }
 
 function parseVideoUrl(url) {
@@ -694,8 +699,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     return null;
   }
 
-  const cliOutputPath = getArg('output') || resolve(__dirname, 'newsletter-dark.html');
-  const cliDbPath = getArg('db') || process.env.TEST_DB || process.env.DB_PATH || resolve(__dirname, 'dev.db');
+  const cliOutputPath = getArg('output') || resolve(__dirname, '..', 'newsletter-dark.html');
+  const cliDbPath = getArg('db') || process.env.TEST_DB || process.env.DB_PATH || resolve(__dirname, '..', 'dev.db');
 
   if (!process.env.BASE_URL) {
     console.error('Error: BASE_URL environment variable is required');

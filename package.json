@@ -6,8 +6,10 @@
   "main": "index.js",
   "scripts": {
     "dev": "ADMIN_PASSWORD=test123 node server.js",
-    "test": "ADMIN_PASSWORD=test123 npx playwright test",
-    "test:ui": "ADMIN_PASSWORD=test123 npx playwright test --ui"
+    "test": "node --test tests/*.unit.js",
+    "test:unit": "node --test tests/*.unit.js",
+    "test:e2e": "ADMIN_PASSWORD=test123 npx playwright test",
+    "test:e2e:ui": "ADMIN_PASSWORD=test123 npx playwright test --ui"
   },
   "keywords": [],
   "author": "",
