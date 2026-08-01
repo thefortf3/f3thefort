@@ -87,6 +87,12 @@ function initRichEditor(editorId = 'rich-editor', contentId = 'editor-content', 
           }
         });
         fileInput.click();
+      } else if (command === 'formatBlock') {
+        // Toggle: clicking H again on text that's already a heading reverts it to a plain
+        // paragraph instead of re-applying (a no-op that leaves no way back to normal text).
+        const current = document.queryCommandValue('formatBlock').toLowerCase();
+        document.execCommand(command, false, current === value ? 'p' : value);
+        syncContent();
       } else {
         document.execCommand(command, false, value);
         syncContent();
@@ -99,7 +105,11 @@ function initRichEditor(editorId = 'rich-editor', contentId = 'editor-content', 
   function updateToolbarState() {
     toolbarButtons.forEach(btn => {
       const command = btn.dataset.command;
-      if (command && command !== 'formatBlock') {
+      if (!command) return;
+      if (command === 'formatBlock') {
+        const current = document.queryCommandValue('formatBlock').toLowerCase();
+        btn.classList.toggle('active', current === (btn.dataset.value || '').toLowerCase());
+      } else {
         btn.classList.toggle('active', document.queryCommandState(command));
       }
     });

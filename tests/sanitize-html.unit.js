@@ -49,6 +49,35 @@ describe('sanitizeHtml — safe content', () => {
   });
 });
 
+describe('sanitizeHtml — heading wrapping body content it shouldn\'t', () => {
+  // Regression coverage: the H3 toolbar button has no "convert back to a paragraph"
+  // affordance, so clicking it on the wrong selection leaves body text permanently stuck
+  // inside a heading. That's invalid HTML (headings are phrasing-only, so nesting a <p>
+  // inside one is a validity error a parser still allows) and it visibly doesn't match
+  // other entries, since the newsletter template has no `.event-desc h3` override — the
+  // text renders at the browser's default heading size/margins instead of body-text size.
+
+  it('unwraps a heading that ended up wrapping a block element, keeping the block', () => {
+    const out = sanitizeHtml('<h3><p><span style="font-weight: normal">real body text</span></p></h3>');
+    equal(out, '<p><span style="font-weight: normal">real body text</span></p>');
+  });
+
+  it('unwraps a heading with no text of its own (spacer break, lone image)', () => {
+    equal(sanitizeHtml('<h3><span><br></span></h3>'), '<span><br></span>');
+    equal(sanitizeHtml('<h3><span><img src="/uploads/x.png"></span></h3>'), '<span><img src="/uploads/x.png"></span>');
+  });
+
+  it('cascades through nested wrappers so no stray heading survives', () => {
+    const out = sanitizeHtml('<h3><span><strong><p>text</p></strong></span></h3>');
+    equal(out, '<p>text</p>');
+  });
+
+  it('still preserves a real heading — one that actually has its own text', () => {
+    const out = sanitizeHtml('<h3>A Real Section Title</h3><p>body text</p>');
+    equal(out, '<h3>A Real Section Title</h3><p>body text</p>');
+  });
+});
+
 describe('sanitizeHtml — tags the editor cannot produce', () => {
   it('unwraps tags with no path through the rich editor toolbar, keeping their text', () => {
     // Only h3 is reachable via the toolbar's heading button; h1/h2/h4-h6 (and
