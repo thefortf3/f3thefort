@@ -15,9 +15,9 @@ describe('sanitizeHtml — safe content', () => {
     equal(out, '<p>Hello <strong>world</strong> and <em>friends</em></p>');
   });
 
-  it('preserves lists and headings', () => {
-    const out = sanitizeHtml('<h2>Title</h2><ul><li>one</li><li>two</li></ul>');
-    equal(out, '<h2>Title</h2><ul><li>one</li><li>two</li></ul>');
+  it('preserves lists and the editor-supported h3 heading', () => {
+    const out = sanitizeHtml('<h3>Title</h3><ul><li>one</li><li>two</li></ul>');
+    equal(out, '<h3>Title</h3><ul><li>one</li><li>two</li></ul>');
   });
 
   it('keeps relative upload image sources', () => {
@@ -30,6 +30,41 @@ describe('sanitizeHtml — safe content', () => {
     equal(sanitizeHtml(''), '');
     equal(sanitizeHtml(null), '');
     equal(sanitizeHtml(undefined), '');
+  });
+
+  it('keeps safe formatting-toggle style overrides on span/p', () => {
+    // These are what document.execCommand actually produces when the rich editor toggles
+    // bold/italic/underline on text whose current look comes from something other than
+    // <b>/<i>/<u> (e.g. a heading), or when justify-left/center/right is applied.
+    const bold = sanitizeHtml('<h3><span style="font-weight: normal;">text</span></h3>');
+    equal(bold, '<h3><span style="font-weight: normal">text</span></h3>');
+
+    const align = sanitizeHtml('<p style="text-align: center;">centered</p>');
+    equal(align, '<p style="text-align: center">centered</p>');
+  });
+
+  it('strips unsafe style properties/values but keeps safe ones in the same attribute', () => {
+    const out = sanitizeHtml('<span style="font-weight: normal; background: url(javascript:alert(1)); position: fixed">x</span>');
+    equal(out, '<span style="font-weight: normal">x</span>');
+  });
+});
+
+describe('sanitizeHtml — tags the editor cannot produce', () => {
+  it('unwraps tags with no path through the rich editor toolbar, keeping their text', () => {
+    // Only h3 is reachable via the toolbar's heading button; h1/h2/h4-h6 (and
+    // blockquote/pre/code/s/strike/small/sub/sup) can only arrive via pasted-in markup.
+    const out = sanitizeHtml('<h2>Title</h2><blockquote>quote</blockquote><code>x</code>');
+    equal(out, 'Titlequotex');
+  });
+
+  it('drops style attributes entirely on tags the editor never applies them to', () => {
+    const out = sanitizeHtml('<img src="/uploads/x.png" style="position: fixed">');
+    ok(!out.includes('style'), 'style dropped on img, which has no style-carrying command');
+  });
+
+  it('drops style properties the toolbar has no command for, even on style-carrying tags', () => {
+    const out = sanitizeHtml('<span style="color: red; position: fixed">x</span>');
+    equal(out, '<span>x</span>');
   });
 });
 
