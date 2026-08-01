@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Help — Fort Weekly Admin</title>
+  <link rel="stylesheet" href="/css/admin.css">
+  <style>
+    .help-nav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
+    .help-nav__inner {
+      max-width: 1020px;
+      margin: 0 auto;
+      padding: var(--space-md) 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .help-nav__brand {
+      font-family: var(--display);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 1rem;
+      color: var(--text-bright);
+    }
+    .help-body {
+      padding: var(--space-2xl) 0 var(--space-3xl);
+    }
+    .help-toc {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+      justify-content: center;
+      margin-bottom: var(--space-2xl);
+    }
+    .help-toc a {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 0.4rem 0.8rem;
+    }
+    .help-toc a:hover {
+      color: var(--amber-bright);
+      border-color: var(--amber-dim);
+    }
+    .help-section {
+      margin-bottom: var(--space-3xl);
+      scroll-margin-top: 80px;
+    }
+    .help-section__eyebrow {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--amber-dim);
+      margin-bottom: var(--space-xs);
+    }
+    .help-section__title {
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: 1.7rem;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: var(--text-bright);
+      margin-bottom: var(--space-md);
+      padding-bottom: var(--space-md);
+      border-bottom: 1px solid var(--border);
+    }
+    .help-section__intro {
+      color: var(--text);
+      max-width: 720px;
+      margin-bottom: var(--space-lg);
+    }
+    .help-steps {
+      list-style: none;
+      counter-reset: help-step;
+      margin-bottom: var(--space-lg);
+    }
+    .help-steps li {
+      counter-increment: help-step;
+      position: relative;
+      padding: 0 0 var(--space-md) 2.6rem;
+      color: var(--text);
+    }
+    .help-steps li::before {
+      content: counter(help-step);
+      position: absolute;
+      left: 0;
+      top: -0.1rem;
+      width: 1.8rem;
+      height: 1.8rem;
+      border: 1px solid var(--amber-dim);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--amber-bright);
+      flex-shrink: 0;
+    }
+    .help-steps strong {
+      color: var(--text-bright);
+    }
+    .help-shot {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: var(--bg-deep);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: var(--space-md);
+    }
+    .help-shot img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    .help-shot__caption {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      padding: var(--space-sm) var(--space-md);
+      border-top: 1px solid var(--border);
+    }
+    .help-shot-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-md);
+    }
+    @media (max-width: 720px) {
+      .help-shot-row { grid-template-columns: 1fr; }
+    }
+    .help-note {
+      background: var(--amber-glow);
+      border: 1px solid var(--amber-dim);
+      border-radius: var(--radius-md);
+      padding: var(--space-md) var(--space-lg);
+      font-size: 0.9rem;
+      color: var(--text);
+      margin-bottom: var(--space-lg);
+    }
+    .help-note strong {
+      color: var(--amber-bright);
+    }
+    .help-lanes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-lg);
+    }
+    .help-lane-chip {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.05em;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.3rem 0.6rem;
+      color: var(--text-dim);
+    }
+    .help-lane-chip--accent {
+      color: var(--amber-bright);
+      border-color: var(--amber-dim);
+    }
+    .help-back-top {
+      display: block;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-top: var(--space-3xl);
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="help-nav">
+    <div class="help-nav__inner">
+      <span class="help-nav__brand">Fort Weekly Admin — Help</span>
+      <a href="/admin.html" class="admin-nav__link">&larr; Back to Board</a>
+    </div>
+  </nav>
+
+  <div class="container help-body" id="top">
+
+    <header class="page-header">
+      <span class="page-header__eyebrow">Admin Guide</span>
+      <h1 class="page-header__title">Weekly Workflow</h1>
+      <p class="page-header__subtitle">How entries move from submission to a sent campaign, week over week.</p>
+    </header>
+
+    <nav class="help-toc">
+      <a href="#moving-entries">1. Moving Entries</a>
+      <a href="#editing">2. Editing</a>
+      <a href="#archiving">3. Archiving</a>
+      <a href="#sections">4. Managing Sections</a>
+      <a href="#previewing">5. Previewing</a>
+      <a href="#campaign">6. Generate &amp; Campaign</a>
+    </nav>
+
+    <div class="help-note">
+      <strong>The big picture:</strong> Every submission lands in the <strong>Incoming</strong> lane unsorted.
+      Sort it into a section, edit it if needed, then use <strong>Preview Newsletter</strong> to build the week's
+      HTML and <strong>Create/Update Campaign</strong> to push it to Mailchimp. Nothing is emailed until you
+      explicitly schedule or send from Mailchimp — generating and creating a campaign is safe to do repeatedly.
+    </div>
+
+    <!-- ============================================================
+         1. Moving Entries
+         ============================================================ -->
+    <section class="help-section" id="moving-entries">
+      <div class="help-section__eyebrow">Step 1</div>
+      <h2 class="help-section__title">Moving Entries on the Board</h2>
+      <p class="help-section__intro">
+        The Board tab is a kanban view. Every submitted entry starts in <strong>Incoming</strong> and needs to be
+        dragged into a section lane before it will show up in the newsletter.
+      </p>
+
+      <div class="help-lanes">
+        <span class="help-lane-chip help-lane-chip--accent">Incoming</span>
+        <span class="help-lane-chip">Header</span>
+        <span class="help-lane-chip">What's Hot in The Fort</span>
+        <span class="help-lane-chip">Individual Initiative</span>
+        <span class="help-lane-chip">Still Fresh</span>
+        <span class="help-lane-chip">…custom sections</span>
+        <span class="help-lane-chip">Shovel Flag / VQs / Three F's (static, always last)</span>
+      </div>
+
+      <div class="help-shot">
+        <img src="/img/help/02-board-overview.png" alt="Kanban board with lanes for Incoming, Header, Shovel Flag Hand-off, VQs This Week, What's Hot in the Fort, Individual Initiative, Still Fresh, and The Three F's">
+        <div class="help-shot__caption">The board: one lane per section, cards in each lane, entry/change counts up top.</div>
+      </div>
+
+      <ol class="help-steps">
+        <li>Grab a card by its <strong>⠿ handle</strong> in the top-left corner and drag it into the lane for the section it belongs in.</li>
+        <li>Drop anywhere in the lane — the card lands at the bottom; drag within a lane to reorder (position controls the order it prints in the newsletter).</li>
+        <li>The lane you drop into highlights with an amber border while you're hovering over it, and a drop indicator shows exactly where the card will land.</li>
+        <li><strong>Shovel Flag Hand-off</strong>, <strong>VQs This Week</strong>, and <strong>The Three F's</strong> are static content blocks, not entry lanes — use their <strong>Edit Content</strong> button instead of dragging cards there.</li>
+      </ol>
+
+      <div class="help-shot">
+        <img src="/img/help/03-drag-card.png" alt="Dragging a card from What's Hot in the Fort toward the Still Fresh lane, which is highlighted amber as the drop target">
+        <div class="help-shot__caption">Mid-drag: the target lane (Still Fresh) highlights amber to confirm where the card will drop.</div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         2. Editing
+         ============================================================ -->
+    <section class="help-section" id="editing">
+      <div class="help-section__eyebrow">Step 2</div>
+      <h2 class="help-section__title">Editing an Entry</h2>
+      <p class="help-section__intro">
+        Click a card's title or its <strong>Edit</strong> button to open the full entry — useful for cleaning up
+        typos, fixing dates/times, or adding a hero image before it goes out.
+      </p>
+
+      <div class="help-shot-row">
+        <div class="help-shot">
+          <img src="/img/help/04-edit-modal.png" alt="Edit Entry modal showing title, leader, date/time, link, video URL, and rich text description fields">
+          <div class="help-shot__caption">Top of the modal: title, Q (leader), date/time, location, link, and the rich-text description editor.</div>
+        </div>
+        <div class="help-shot">
+          <img src="/img/help/05-edit-modal-footer.png" alt="Bottom of the Edit Entry modal showing the hero image uploader, submitter contact info, section dropdown, and Save Changes, Archive Entry, and Close buttons">
+          <div class="help-shot__caption">Scroll down for the hero image uploader and submitter contact — the footer holds the section dropdown and action buttons.</div>
+        </div>
+      </div>
+
+      <ol class="help-steps">
+        <li>Edit any field directly — the description field is a rich editor (bold/italic/underline, links, images, headings, lists, alignment).</li>
+        <li>Optionally attach a <strong>hero image</strong> (max 5MB) — it renders at the top of the entry in the newsletter.</li>
+        <li>You can also reassign the entry's <strong>section</strong> from the dropdown in the modal footer — a shortcut for dragging on the board.</li>
+        <li>Click <strong>Save Changes</strong> to persist edits, or <strong>Close</strong> to discard and exit without saving.</li>
+      </ol>
+
+      <div class="help-note">
+        <strong>Tip:</strong> The <strong>Changes This Week</strong> button on the board toolbar logs every move, edit,
+        and archive so you can sanity-check what's changed before you preview.
+      </div>
+    </section>
+
+    <!-- ============================================================
+         3. Archiving
+         ============================================================ -->
+    <section class="help-section" id="archiving">
+      <div class="help-section__eyebrow">Step 3</div>
+      <h2 class="help-section__title">Archiving &amp; Restoring</h2>
+      <p class="help-section__intro">
+        Entries that are done, duplicated, or shouldn't run don't need to be deleted — archive them instead. Nothing
+        is lost, and it keeps the board clean.
+      </p>
+
+      <div class="help-shot">
+        <img src="/img/help/06-archive-view.png" alt="Archive tab showing archived entries with title, archive date, excerpt, and Restore / Delete Forever buttons">
+        <div class="help-shot__caption">The Archive tab: search by title or description, restore an entry back to Incoming, or delete it permanently.</div>
+      </div>
+
+      <ol class="help-steps">
+        <li>Click <strong>Archive</strong> on a card (or <strong>Archive Entry</strong> inside the edit modal) to pull it off the board.</li>
+        <li>Switch to the <strong>Archive</strong> tab to browse or search archived entries by title/description.</li>
+        <li><strong>Restore</strong> sends the entry back to the Incoming lane, unsorted — you'll need to drag it into a section again.</li>
+        <li><strong>Delete Forever</strong> is permanent — use it only for genuine duplicates or spam, not routine cleanup.</li>
+      </ol>
+    </section>
+
+    <!-- ============================================================
+         4. Managing Sections
+         ============================================================ -->
+    <section class="help-section" id="sections">
+      <div class="help-section__eyebrow">Step 4</div>
+      <h2 class="help-section__title">Managing Sections</h2>
+      <p class="help-section__intro">
+        Sections are the columns of the newsletter itself. <strong>Manage Sections</strong> in the top nav controls
+        which ones exist and what order they print in.
+      </p>
+
+      <div class="help-shot">
+        <img src="/img/help/07-manage-sections.png" alt="Manage Sections modal listing Header, What's Hot in the Fort, Individual Initiative, and Still Fresh with drag handles, color swatches, and Edit/Delete buttons, plus a form to add a new section">
+        <div class="help-shot__caption">Drag to reorder sections — the order here is the column order in the newsletter. Header is locked in place.</div>
+      </div>
+
+      <ol class="help-steps">
+        <li>Drag a section row by its handle to change where it prints in the newsletter.</li>
+        <li><strong>Header</strong> (the Nan'tan's desk) is locked first and can't be reordered or deleted.</li>
+        <li>Add a new section with a name and accent color, or <strong>Edit</strong>/<strong>Delete</strong> an existing one — deleting a section returns its entries to Incoming rather than deleting them.</li>
+      </ol>
+    </section>
+
+    <!-- ============================================================
+         5. Previewing
+         ============================================================ -->
+    <section class="help-section" id="previewing">
+      <div class="help-section__eyebrow">Step 5</div>
+      <h2 class="help-section__title">Previewing the Newsletter</h2>
+      <p class="help-section__intro">
+        Once the board looks right, click <strong>Preview Newsletter</strong> to render the actual issue from
+        current data — this is the same HTML that eventually goes to Mailchimp.
+      </p>
+
+      <div class="help-shot">
+        <img src="/img/help/08-generate-modal.png" alt="Generate Newsletter Preview modal listing this week's FNGs, with Cancel and Generate & Preview buttons">
+        <div class="help-shot__caption">Confirm this week's FNGs (first-time guests) before generating — this list feeds the newsletter's stats block.</div>
+      </div>
+
+      <ol class="help-steps">
+        <li>Click <strong>Preview Newsletter</strong>, review the FNG list, then <strong>Generate &amp; Preview</strong>.</li>
+        <li>The right-hand pane renders the generated issue in an iframe — this is a live build from the current board, not a cached copy.</li>
+        <li>Toggle between the desktop and mobile (375px) icons at the top of the preview pane to check both layouts.</li>
+        <li>Use <strong>Open ↗</strong> to view the full page in a new tab, or the <strong>✕</strong> to close the pane.</li>
+      </ol>
+
+      <div class="help-shot-row">
+        <div class="help-shot">
+          <img src="/img/help/09-preview-desktop.png" alt="Newsletter preview pane in desktop view showing the issue header, FNG and days-in-year stat tiles, and the Desk of the Nan'tan section">
+          <div class="help-shot__caption">Desktop view — scaled to fit the pane.</div>
+        </div>
+        <div class="help-shot">
+          <img src="/img/help/10-preview-mobile.png" alt="Newsletter preview pane in mobile view at 375px width">
+          <div class="help-shot__caption">Mobile view — rendered at true 375px width, the way most subscribers will read it.</div>
+        </div>
+      </div>
+
+      <div class="help-note">
+        Every time you generate, the app also checks the <strong>Changes This Week</strong> log and the campaign
+        status against Mailchimp — that's what makes the Create/Update Campaign button appear.
+      </div>
+    </section>
+
+    <!-- ============================================================
+         6. Generating & Updating the Campaign
+         ============================================================ -->
+    <section class="help-section" id="campaign">
+      <div class="help-section__eyebrow">Step 6</div>
+      <h2 class="help-section__title">Generating &amp; Updating the Campaign</h2>
+      <p class="help-section__intro">
+        Once you're happy with the preview, push it to Mailchimp as a draft campaign scheduled for the next
+        Sunday. This does not send the email — it only creates or refreshes the draft.
+      </p>
+
+      <div class="help-shot">
+        <img src="/img/help/11-campaign-button.png" alt="Preview pane header showing the Open link and an amber Create Campaign button">
+        <div class="help-shot__caption">After generating, the campaign button appears next to Open — it reads "Create Campaign" the first time.</div>
+      </div>
+
+      <ol class="help-steps">
+        <li>Generate a preview first — the campaign button only appears once a preview exists for this session.</li>
+        <li>Click <strong>Create Campaign</strong> to build a new Mailchimp draft, scheduled for the upcoming Sunday at 8pm Eastern.</li>
+        <li>Made more edits after creating it? Generate a fresh preview and click the button again — it now reads <strong>Update Campaign</strong> and overwrites the draft's content in place rather than creating a duplicate.</li>
+        <li>Sending or final scheduling still happens in Mailchimp itself — this button only keeps the draft in sync with the board.</li>
+      </ol>
+    </section>
+
+    <!-- ============================================================
+         Extra: Changes This Week
+         ============================================================ -->
+    <section class="help-section" id="changelog">
+      <div class="help-section__eyebrow">Reference</div>
+      <h2 class="help-section__title">Changes This Week</h2>
+      <p class="help-section__intro">
+        A running log of every move, edit, and archive action taken since the last newsletter went out — handy for
+        a final sanity check before creating the campaign.
+      </p>
+      <div class="help-shot">
+        <img src="/img/help/12-changelog.png" alt="Changes This Week modal listing entries that were moved and edited, with a Copy to Clipboard button">
+        <div class="help-shot__caption">Grouped by action (moved, edited, archived) — Copy to Clipboard to paste into a Slack update if needed.</div>
+      </div>
+    </section>
+
+    <a href="#top" class="help-back-top">&uarr; Back to top</a>
+
+  </div>
+
+</body>
+</html>

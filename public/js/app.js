@@ -118,6 +118,25 @@ function initRichEditor(editorId = 'rich-editor', contentId = 'editor-content', 
   content.addEventListener('mouseup', updateToolbarState);
   content.addEventListener('click', updateToolbarState);
   content.addEventListener('input', syncContent);
+
+  content.addEventListener('paste', (e) => {
+    e.preventDefault();
+    const clipHtml = e.clipboardData?.getData('text/html') || '';
+    const clipText = e.clipboardData?.getData('text/plain') || '';
+
+    let sanitized;
+    if (clipHtml) {
+      sanitized = sanitizePastedHtml(clipHtml);
+    } else {
+      const escaped = clipText
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      sanitized = escaped.split(/\n\n+/).map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('') || escaped;
+    }
+
+    document.execCommand('insertHTML', false, sanitized);
+    syncContent();
+  });
+
   syncContent();
 }
 
@@ -181,24 +200,22 @@ function initSubmissionForm() {
 
     const title = form.querySelector('#title').value.trim();
     const startDate = form.querySelector('#start_date').value;
+    const startTime = form.querySelector('#start_time')?.value.trim() || '';
     const endTime = form.querySelector('#end_time').value;
     const description = form.querySelector('#description').value;
 
-    if (!title || !startDate || !description) {
+    if (!title || !description) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       showAlert('alert-container', 'Please fill in all required fields (marked with *).', 'error');
       return;
     }
 
-    if (endTime && startDate) {
-      if (endTime <= startDate) {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        showAlert('alert-container', 'End time must be after start time.', 'error');
-        return;
-      }
-    }
-
     const preblastChecked = form.querySelector('#preblast-checkbox')?.checked;
+    if (preblastChecked && !startDate) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      showAlert('alert-container', 'A start date is required when posting as a pre-blast.', 'error');
+      return;
+    }
     if (preblastChecked && !form.querySelector('#preblast-description')?.value) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       showAlert('alert-container', 'Please wait for the snippet to generate, or type one manually.', 'error');
@@ -210,11 +227,13 @@ function initSubmissionForm() {
     submitSpinner.style.display = 'inline-block';
 
     try {
-       const body = {
+      const body = {
         title,
-        start_date: startDate,
         description,
       };
+
+      if (startDate) body.start_date = startDate;
+      if (startTime) body.start_time = startTime;
 
       if (form.querySelector('#leader').value.trim()) {
         body.leader = form.querySelector('#leader').value.trim();
@@ -889,7 +908,7 @@ function buildArchivedList(items) {
 
 function buildEntryCard(entry) {
   const dateStr = formatDate(entry.start_date);
-  const timeStr = formatTimeRange(entry.start_date, entry.end_time);
+  const timeStr = entry.start_time || '';
   const excerpt = stripHtml(entry.description || '');
   const id = entry.id || entry._id;
   const sectionAccent = getSectionAccent(entry.section);
@@ -1272,8 +1291,14 @@ async function openDetailModal(id) {
     // Populate edit form fields
     document.getElementById('edit-title').value = entry.title || '';
     document.getElementById('edit-leader').value = entry.leader || '';
-    document.getElementById('edit-start-date').value = entry.start_date ? entry.start_date.slice(0, 16) : '';
-    document.getElementById('edit-end-time').value = entry.end_time ? entry.end_time.slice(0, 16) : '';
+    const rawStartDate = entry.start_date || '';
+    document.getElementById('edit-start-date').value =
+      rawStartDate.includes('T') ? rawStartDate.split('T')[0] : rawStartDate;
+    const legacyTime = rawStartDate.includes('T') ? rawStartDate.split('T')[1]?.slice(0, 5) : '';
+    document.getElementById('edit-start-time').value = entry.start_time || legacyTime || '';
+    const rawEnd = entry.end_time || '';
+    document.getElementById('edit-end-time').value =
+      rawEnd.includes('T') ? rawEnd.split('T')[1]?.slice(0, 5) : rawEnd.slice(0, 5);
     document.getElementById('edit-location').value = entry.location || '';
     document.getElementById('edit-link').value = entry.link || '';
 
@@ -1352,15 +1377,16 @@ async function saveEntry(id) {
       title: document.getElementById('edit-title').value.trim(),
       leader: document.getElementById('edit-leader').value.trim(),
       start_date: document.getElementById('edit-start-date').value,
-      end_time: document.getElementById('edit-end-time').value,
+      start_time: document.getElementById('edit-start-time')?.value.trim() || null,
+      end_time: document.getElementById('edit-end-time').value || null,
       location: document.getElementById('edit-location').value.trim(),
       link: document.getElementById('edit-link').value.trim(),
       description: document.getElementById('modal-description').value.trim(),
       hero_image: document.getElementById('modal-hero-value').value.trim(),
     };
 
-    if (!body.title || !body.start_date) {
-      showAlert('dashboard-alert', 'Title and start date are required.', 'error');
+    if (!body.title) {
+      showAlert('dashboard-alert', 'Title is required.', 'error');
       return;
     }
 
@@ -1537,6 +1563,41 @@ function stripHtml(html) {
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
   return tmp.textContent || tmp.innerText || '';
+}
+
+function sanitizePastedHtml(html) {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+
+  const ALLOWED = new Set(['p','br','h1','h2','h3','h4','h5','h6','ul','ol','li','blockquote','b','strong','i','em','u','s']);
+  const STRIP   = new Set(['script','style','iframe','object','embed','head','meta','link']);
+
+  function clean(el) {
+    for (const child of Array.from(el.childNodes)) {
+      if (child.nodeType === Node.COMMENT_NODE) { child.remove(); continue; }
+      if (child.nodeType !== Node.ELEMENT_NODE) continue;
+
+      const tag = child.tagName.toLowerCase();
+      if (STRIP.has(tag)) { child.remove(); continue; }
+
+      clean(child); // depth-first so children are clean before we decide what to do with this node
+
+      if (tag === 'a') {
+        const href = child.getAttribute('href');
+        while (child.attributes.length) child.removeAttribute(child.attributes[0].name);
+        if (href) child.setAttribute('href', href);
+      } else if (ALLOWED.has(tag)) {
+        while (child.attributes.length) child.removeAttribute(child.attributes[0].name);
+      } else {
+        // unwrap: lift children into parent, discard the tag
+        while (child.firstChild) el.insertBefore(child.firstChild, child);
+        child.remove();
+      }
+    }
+  }
+
+  clean(tmp);
+  return tmp.innerHTML;
 }
 
 function escapeHtml(str) {

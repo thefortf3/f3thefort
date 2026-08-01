@@ -33,30 +33,34 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
-function formatDate(startDate, endTime) {
-  if (!startDate) return '';
+function formatDate(startDate, startTime, endTime) {
+  if (!startDate && !startTime) return '';
+  if (!startDate) return startTime || '';
   try {
-    const d = new Date(startDate);
-    if (isNaN(d.getTime())) return startDate;
+    let d, timeDisplay;
+
+    if (startDate.includes('T')) {
+      // Legacy format: full ISO datetime stored in start_date
+      d = new Date(startDate);
+      if (isNaN(d.getTime())) return startDate;
+      timeDisplay = `${d.getHours().toString().padStart(2, '0')}${d.getMinutes().toString().padStart(2, '0')}`;
+    } else {
+      // New format: date-only in start_date, free-form time in start_time
+      const [y, mo, day] = startDate.split('-').map(Number);
+      d = new Date(y, mo - 1, day);
+      if (isNaN(d.getTime())) return startDate;
+      timeDisplay = startTime || '';
+    }
 
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const dayName = days[d.getDay()];
-    const month = months[d.getMonth()];
-    const date = d.getDate();
-
-    const hours = d.getHours().toString().padStart(2, '0');
-    const mins = d.getMinutes().toString().padStart(2, '0');
-
-    let result = `${dayName}, ${month} ${date} — ${hours}${mins}`;
+    let result = `${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}`;
+    if (timeDisplay) result += ` — ${timeDisplay}`;
 
     if (endTime) {
-      const e = new Date(endTime);
-      if (!isNaN(e.getTime())) {
-        const eHours = e.getHours().toString().padStart(2, '0');
-        const eMins = e.getMinutes().toString().padStart(2, '0');
-        result += `-${eHours}${eMins}`;
-      }
+      const timePart = endTime.includes('T') ? endTime.split('T')[1] : endTime;
+      const [eh, em] = (timePart || '').split(':');
+      if (eh && em) result += `-${eh.padStart(2, '0')}${em.padStart(2, '0')}`;
     }
 
     return result;
@@ -102,7 +106,7 @@ function getHeaderDate() {
 function getSubmissions(dbPath) {
   const db = new Database(dbPath);
   const rows = db.prepare(`
-    SELECT s.id, s.title, s.leader, s.start_date, s.end_time, s.location,
+    SELECT s.id, s.title, s.leader, s.start_date, s.start_time, s.end_time, s.location,
            s.description, s.link, s.hero_image, s.video_url, s.section, s.position,
            s.preblast_url
     FROM submissions s
@@ -229,7 +233,7 @@ function buildThreeFsSection(items) {
   <div class="section-header">
     <span class="section-number">04</span>
     <span class="section-name">The Three F's</span>
-    <span class="section-accent"></span>
+    <span class="section-accent"><span class="section-accent-line"></span></span>
   </div>
   <div class="three-fs">${colsHtml}
   </div>
@@ -248,7 +252,7 @@ function buildSltSection(entries) {
   <div class="section-header">
     <span class="section-number">05</span>
     <span class="section-name">Shared Leadership Team</span>
-    <span class="section-accent"></span>
+    <span class="section-accent"><span class="section-accent-line"></span></span>
   </div>
   <div class="slt-roster">
 ${entriesHtml}
@@ -268,7 +272,7 @@ function buildHelpfulLinksSection(links) {
   <div class="section-header">
     <span class="section-number">06</span>
     <span class="section-name">Helpful Links</span>
-    <span class="section-accent"></span>
+    <span class="section-accent"><span class="section-accent-line"></span></span>
   </div>
   <div class="links-stack">
 ${linksHtml}
@@ -293,7 +297,7 @@ function buildShovelFlagSection(flags) {
   <div class="section-header">
     <span class="section-number">&#9873;</span>
     <span class="section-name">Shovel Flag Hand-off</span>
-    <span class="section-accent"></span>
+    <span class="section-accent"><span class="section-accent-line"></span></span>
   </div>
   <div class="shovel-flag-list">
 ${rows}
@@ -382,7 +386,7 @@ function buildDynamicSections(submissions, dbSections) {
     <div class="section-header">
       <span class="section-number">${config.number}</span>
       <span class="section-name">${escapeHtml(config.label)}</span>
-      <span class="section-accent"></span>
+      <span class="section-accent"><span class="section-accent-line"></span></span>
     </div>`;
 
     if (config.cardType === 'links') {
@@ -437,9 +441,9 @@ function buildEventCard(sub) {
   html += `
         <div class="event-meta">`;
 
-  if (sub.start_date) {
+  if (sub.start_date || sub.start_time) {
     html += `
-          <div class="event-meta-item"><span class="icon">📅</span> ${escapeHtml(formatDate(sub.start_date, sub.end_time))}</div>`;
+          <div class="event-meta-item"><span class="icon">📅</span> ${escapeHtml(formatDate(sub.start_date, sub.start_time, sub.end_time))}</div>`;
   }
 
   if (sub.location) {
@@ -488,9 +492,9 @@ function buildInitiativeCard(sub, index) {
   if (hasMeta) {
     html += `
         <div class="initiative-meta">`;
-    if (sub.start_date) {
+    if (sub.start_date || sub.start_time) {
       html += `
-          <div class="initiative-meta-item"><span class="icon">📅</span> ${escapeHtml(formatDate(sub.start_date, sub.end_time))}</div>`;
+          <div class="initiative-meta-item"><span class="icon">📅</span> ${escapeHtml(formatDate(sub.start_date, sub.start_time, sub.end_time))}</div>`;
     }
     if (sub.location) {
       html += `
@@ -526,7 +530,6 @@ function buildFreshCard(sub) {
     <article class="fresh-card">
       <div class="fresh-header">
         <div class="fresh-title">${escapeHtml(sub.title)}</div>
-        <span class="fresh-badge">FRESH</span>
       </div>
       <div class="fresh-body">`;
 
@@ -539,9 +542,9 @@ function buildFreshCard(sub) {
   if (hasMeta) {
     html += `
         <div class="event-meta">`;
-    if (sub.start_date) {
+    if (sub.start_date || sub.start_time) {
       html += `
-          <div class="event-meta-item"><span class="icon">📅</span> ${escapeHtml(formatDate(sub.start_date, sub.end_time))}</div>`;
+          <div class="event-meta-item"><span class="icon">📅</span> ${escapeHtml(formatDate(sub.start_date, sub.start_time, sub.end_time))}</div>`;
     }
     if (sub.location) {
       html += `

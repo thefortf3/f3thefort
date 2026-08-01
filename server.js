@@ -13,6 +13,7 @@ import { JSDOM } from 'jsdom';
 import { postPreblast } from './lib/wordpress.js';
 import multer from 'multer';
 import juice from 'juice';
+import * as cheerio from 'cheerio';
 import { importFngs } from './scripts/import-fngs.mjs';
 import { generateNewsletter } from './scripts/generate-newsletter.mjs';
 import { sanitizeHtml } from './lib/sanitize-html.js';
@@ -128,6 +129,13 @@ try {
 }
 try {
   sqlite.exec(`ALTER TABLE submissions ADD COLUMN preblast_content TEXT`);
+} catch (e) {
+  if (!e.message.includes('duplicate column name')) throw e;
+}
+
+// Idempotent migration: add start_time column to submissions
+try {
+  sqlite.exec(`ALTER TABLE submissions ADD COLUMN start_time TEXT`);
 } catch (e) {
   if (!e.message.includes('duplicate column name')) throw e;
 }
@@ -296,6 +304,8 @@ const makeLimiter = (opts) => (process.env.RATE_LIMIT_DISABLED === '1' ? passthr
 const submitLimiter = makeLimiter({ windowMs: WINDOW_MS, max: 20, message: 'Too many submissions, please try again later.' });
 const uploadLimiter = makeLimiter({ windowMs: WINDOW_MS, max: 40, message: 'Too many uploads, please try again later.' });
 const snippetLimiter = makeLimiter({ windowMs: WINDOW_MS, max: 20, message: 'Too many snippet requests, please try again later.' });
+// Strict limiter for admin login — 5 attempts per 15 minutes per IP before lockout.
+const loginLimiter = makeLimiter({ windowMs: 15 * 60 * 1000, max: 5, message: 'Too many login attempts, please try again later.' });
 
 app.post('/api/upload/image', uploadLimiter, requireSameOrigin, upload.single('image'), (req, res) => {
   if (req.file) {
@@ -430,19 +440,10 @@ function prepareForEmail(html) {
     return resolved ? resolveVar(resolved) : (fallback || '');
   });
 
-  // Convert Google Fonts <link> tags to @import in a dedicated <style> block.
-  // Gmail strips any <style> block that contains @import, so we isolate the @import
-  // in its own block — Gmail strips just that block, leaving the main CSS intact.
-  // Apple Mail / iOS Mail will load the fonts from the separate block.
-  const gFontsLinkRe = /<link\s[^>]*href="(https:\/\/fonts\.googleapis\.com\/css[^"]+)"[^>]*>/gi;
-  const gFontsMatches = [...html.matchAll(gFontsLinkRe)];
-  if (gFontsMatches.length) {
-    const imports = gFontsMatches.map(m => `@import url('${m[1]}');`).join('\n');
-    // Remove the original <link> tags (including preconnect hints)
-    html = html.replace(/<link\s[^>]*(?:fonts\.googleapis\.com|fonts\.gstatic\.com)[^>]*>/gi, '');
-    // Inject a separate <style> block before the main one
-    html = html.replace(/<style>/, `<style>${imports}</style>\n<style>`);
-  }
+  // Google Fonts <link> tags are left as-is. Juice ignores <link> elements so they
+  // survive to the final output. The preview browser and font-capable email clients
+  // (Apple Mail, iOS) will load Oswald. Gmail strips <link> tags and falls back to
+  // Impact/Arial Narrow — acceptable since all base styles are inlined.
 
   // Replace unfilled template placeholder
   html = html.replace(/\{\{ISSUE_YEAR\}\}/g, new Date().getFullYear().toString());
@@ -451,18 +452,130 @@ function prepareForEmail(html) {
   html = html.replace(/body::before\s*\{[^}]+\}/g, 'body::before { display: none; }');
 
   // Replace clamp() font-sizes with fixed values — unsupported in Gmail/Outlook.
-  // 3.2rem ≈ the midpoint of clamp(2.8rem, 8vw, 4.5rem) at a 600px email width.
-  html = html.replace(/font-size:\s*clamp\([^)]+\)/g, 'font-size: 3.2rem');
+  // 48px (3rem at default scale) matches clamp(2.8rem, 8vw, 4.5rem) at ~600px email width.
+  // Using px instead of rem avoids scaling issues when Gmail/Android root font-size differs.
+  html = html.replace(/font-size:\s*clamp\([^)]+\)/g, 'font-size: 48px');
 
   // Push the responsive breakpoint from 640px → 480px so layouts don't collapse at
-  // email client widths (~600px). Juice keeps @media in the <style> block.
-  html = html.replace(/@media\s*\(max-width:\s*640px\)/g, '@media (max-width: 480px)');
+  // email client widths (~600px).
+  html = html.replace(/@media\s*only\s+screen\s+and\s*\(max-width:\s*640px\)/g, '@media only screen and (max-width: 480px)');
 
-  // Inline all class-based CSS as style="" attributes so Gmail cannot strip them.
-  // Gmail ignores <style> blocks in practice; inline styles are the only reliable path.
-  // juice preserves <style> for @media queries and pseudo-elements (::before, :hover).
-  html = juice(html, { removeStyleTags: false, applyStyleTags: true, applyAttributesTableElements: false });
+  // Cap container to 600px (standard email width) and prevent horizontal overflow.
+  html = html.replace(/max-width:\s*820px/, 'max-width: 600px');
+  html = html.replace(/(body\s*\{[^}]*)overflow-x:\s*hidden/, '$1overflow-x: hidden');
+  // Inject overflow-x:hidden on body if not already present
+  html = html.replace(/(<body[^>]*style=")([^"]*)(")/,
+    (_, open, styles, close) => open + (styles ? styles + '; ' : '') + 'overflow-x:hidden' + close);
+  if (!html.match(/<body[^>]*style=/)) {
+    html = html.replace(/<body([^>]*)>/, '<body$1 style="overflow-x:hidden">');
+  }
 
+  // Capture all @media blocks before Juice strips the <style> elements.
+  // Everything else (base CSS) gets inlined; media queries cannot be inlined
+  // so we preserve them separately and re-inject after.
+  function extractMediaBlocks(css) {
+    const blocks = [];
+    let i = 0;
+    while (i < css.length) {
+      const start = css.indexOf('@media', i);
+      if (start === -1) break;
+      let depth = 0, j = start;
+      while (j < css.length) {
+        if (css[j] === '{') depth++;
+        else if (css[j] === '}' && --depth === 0) { j++; break; }
+        j++;
+      }
+      blocks.push(css.slice(start, j));
+      i = j;
+    }
+    return blocks.join('\n');
+  }
+  let mediaQueryCss = '';
+  html.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (_, css) => {
+    mediaQueryCss += extractMediaBlocks(css) + '\n';
+  });
+
+  // Inline all class-based CSS as style="" attributes and strip the <style> blocks.
+  html = juice(html, { removeStyleTags: true, applyStyleTags: true, applyAttributesTableElements: false });
+
+  // Re-inject only the @media rules — base styles are now all inline.
+  if (mediaQueryCss.trim()) {
+    html = html.replace('</head>', `<style>\n${mediaQueryCss.trim()}\n</style>\n</head>`);
+  }
+
+  // Gmail desktop strips <link> tags, so web fonts never load and the browser hits
+  // the next fallback. Impact (second in the Oswald stack) is extremely heavy.
+  // Remove it so the chain falls to 'Arial Narrow' which is condensed and close to Oswald.
+  html = html.replace(/,\s*Impact/gi, '');
+
+  // Post-Juice: convert CSS-table <div> layouts to real <table>/<td> elements.
+  //
+  // Problem: Juice inlines `display:table-cell` as a style="" attribute, and Gmail
+  // Android scopes (not strips) head <style> — but scoped @media rules cannot beat
+  // inline `display:table-cell` reliably because inline styles win at equal importance.
+  //
+  // Solution (same as Mailchimp): use real <td> elements, which have native
+  // display:table-cell with NO inline style. The @media `display:block!important`
+  // in <head> then easily overrides native behavior to stack columns on mobile.
+  // Desktop keeps the side-by-side layout via native <td> rendering.
+  //
+  // The outer <div> is kept intact so its padding/border/background inline styles
+  // (from Juice) remain on a reliable block element. Only the children become <td>.
+  const $ = cheerio.load(html, { decodeEntities: false });
+
+  // Get the value of a CSS property from an inline style string.
+  function styleGet(s, prop) {
+    for (const decl of (s || '').split(';')) {
+      const [k, ...rest] = decl.split(':');
+      if (k && k.trim().toLowerCase() === prop) return rest.join(':').trim();
+    }
+    return null;
+  }
+
+  // Return a style string with the given property names removed.
+  function styleDrop(s, ...props) {
+    return (s || '').split(';')
+      .filter(d => !props.includes((d.split(':')[0] || '').trim().toLowerCase()))
+      .join(';').replace(/^;+|;+$/, '').trim();
+  }
+
+  // Convert direct children of $el to <td> elements inside an injected <table>.
+  // Extracts each child's CSS width and applies it as a width="" HTML attribute
+  // (HTML attributes survive all email clients; inline CSS does not always).
+  function cssTableToHtmlTable($el) {
+    const children = $el.children();
+    if (!children.length) return;
+    const tds = children.map((_, c) => {
+      const $c = $(c);
+      const s = $c.attr('style') || '';
+      const w = styleGet(s, 'width');
+      const tdStyle = styleDrop(s, 'display', 'width');
+      const wAttr = w ? ` width="${w}"` : '';
+      const cls = $c.attr('class') ? ` class="${$c.attr('class')}"` : '';
+      return `<td${cls}${wAttr} valign="top" style="${tdStyle}">${$c.html()}</td>`;
+    }).get().join('');
+    // Remove display:table properties from the outer div (no longer a CSS table).
+    $el.attr('style', styleDrop($el.attr('style'), 'display', 'table-layout', 'border-spacing'));
+    children.remove();
+    $el.html(`<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>${tds}</tr></table>`);
+  }
+
+  // Multi-column layouts → real HTML tables.
+  $('.tracker').each((_, el) => cssTableToHtmlTable($(el)));         // FNG / Days (2-col)
+  $('.roster-grid').each((_, el) => cssTableToHtmlTable($(el)));     // FNG / VQ roster (2-col)
+  $('.three-fs').each((_, el) => cssTableToHtmlTable($(el)));        // Fun / Fitness / Faith (3-col)
+  $('.fresh-header').each((_, el) => cssTableToHtmlTable($(el)));    // Still Fresh: title + badge
+  $('.initiative-entry').each((_, el) => cssTableToHtmlTable($(el))); // Initiative: num + content
+
+  // Remove section left-border accents for email — the original uses margin-left:-18px
+  // to position the border outside the content column, which overflows the email canvas.
+  $('.section--whats-hot, .section--individual-init, .section--still-fresh').css({
+    'border-left': 'none', 'padding-left': '0', 'margin-left': '0',
+  });
+  // Tighten container padding for the narrower email canvas (600px vs 820px web).
+  $('.container').css('padding', '0 12px');
+
+  html = $.html();
   return html;
 }
 
@@ -491,7 +604,7 @@ app.post('/api/newsletter/generate', requireAuth, async (req, res) => {
     const derivedBaseUrl = process.env.BASE_URL || `${proto}://${host}`;
     generateNewsletter({ dbPath: DB_PATH, outputPath, baseUrl: derivedBaseUrl });
     console.log('Newsletter generated successfully');
-    res.json({ success: true, url: '/newsletter-dark' });
+    res.json({ success: true, url: '/newsletter-email-preview' });
   } catch (err) {
     console.error('Newsletter generation failed:', err.message);
     res.status(500).json({ error: err.message || 'Failed to generate newsletter' });
@@ -656,22 +769,18 @@ app.post('/api/generate-snippet', snippetLimiter, requireSameOrigin, async (req,
 // POST /api/submissions — Create new submission
 app.post('/api/submissions', submitLimiter, requireSameOrigin, async (req, res) => {
   try {
-    const { title, leader, start_date, end_time, location, link, hero_image, video_url, submitter_name, submitter_email, submitter_phone, preblast } = req.body;
+    const { title, leader, start_date, start_time, end_time, location, link, hero_image, video_url, submitter_name, submitter_email, submitter_phone, preblast } = req.body;
     // description and preblast_content are rich HTML from an unauthenticated endpoint —
     // sanitize before storage so neither the admin editor nor the newsletter renders attacker markup.
     const description = sanitizeHtml(req.body.description);
     const preblast_content = sanitizeHtml(req.body.preblast_content);
 
-    if (!title || !start_date || !description) {
-      return res.status(400).json({ error: 'Missing required fields: title, start_date, description' });
+    if (!title || !description) {
+      return res.status(400).json({ error: 'Missing required fields: title, description' });
     }
 
-    if (end_time && start_date) {
-      const startDate = new Date(start_date);
-      const endDate = new Date(end_time);
-      if (endDate <= startDate) {
-        return res.status(400).json({ error: 'end_time must be after start_time' });
-      }
+    if (preblast && !start_date) {
+      return res.status(400).json({ error: 'A start date is required for pre-blast posts.' });
     }
 
     let preblastUrl = null;
@@ -687,7 +796,8 @@ app.post('/api/submissions', submitLimiter, requireSameOrigin, async (req, res) 
     const [row] = await db.insert(submissions).values({
       title,
       leader: leader || null,
-      start_date,
+      start_date: start_date || '',
+      start_time: start_time || null,
       end_time: end_time || null,
       location: location || null,
       description,
@@ -734,7 +844,7 @@ app.patch('/api/submissions/:id', requireAuth, async (req, res) => {
     const [existing] = await db.select().from(submissions).where(eq(submissions.id, id));
     if (!existing) return res.status(404).json({ error: 'Submission not found' });
 
-    const { section, hero_image, video_url, title, leader, start_date, end_time, location, description, link } = req.body;
+    const { section, hero_image, video_url, title, leader, start_date, start_time, end_time, location, description, link } = req.body;
 
     if (section !== undefined && section !== null) {
       const validSection = sqlite.prepare(`SELECT id FROM sections WHERE id = ?`).get(section);
@@ -747,7 +857,8 @@ app.patch('/api/submissions/:id', requireAuth, async (req, res) => {
     if (video_url !== undefined) updates.video_url = video_url || null;
     if (title !== undefined) updates.title = title;
     if (leader !== undefined) updates.leader = leader || null;
-    if (start_date !== undefined) updates.start_date = start_date;
+    if (start_date !== undefined) updates.start_date = start_date || '';
+    if (start_time !== undefined) updates.start_time = start_time || null;
     if (end_time !== undefined) updates.end_time = end_time || null;
     if (location !== undefined) updates.location = location || null;
     if (description !== undefined) updates.description = sanitizeHtml(description);
@@ -765,7 +876,7 @@ app.patch('/api/submissions/:id', requireAuth, async (req, res) => {
     }
 
     // Audit log: field updates (excluding section and hero_image)
-    const CONTENT_FIELDS = ['title', 'leader', 'start_date', 'end_time', 'location', 'description', 'link'];
+    const CONTENT_FIELDS = ['title', 'leader', 'start_date', 'start_time', 'end_time', 'location', 'description', 'link'];
     const changedFields = CONTENT_FIELDS.filter(f => f in updates && updates[f] !== existing[f]);
     if (changedFields.length > 0) {
       logAudit(id, 'updated', row.title, { fields: changedFields });
@@ -1388,7 +1499,7 @@ app.delete('/api/static/shovel-flags/:id', requireAuth, (req, res) => {
 // Admin routes
 
 // POST /api/admin/login — Login
-app.post('/api/admin/login', (req, res) => {
+app.post('/api/admin/login', loginLimiter, (req, res) => {
   const { password } = req.body;
   if (!password) return res.status(400).json({ error: 'Password required' });
 
@@ -1424,6 +1535,17 @@ app.get('/newsletter-dark', (req, res) => {
   } else {
     res.status(404).send('Newsletter not generated yet. Use admin dashboard to generate.');
   }
+});
+
+// Serve the email-prepared HTML (juice-inlined, var() resolved) for testing
+app.get('/newsletter-email-preview', (req, res) => {
+  const filePath = path.join(__dirname, 'newsletter-dark.html');
+  if (!existsSync(filePath)) {
+    return res.status(404).send('Newsletter not generated yet. Use admin dashboard to generate.');
+  }
+  const html = prepareForEmail(readFileSync(filePath, 'utf8'));
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(html);
 });
 
 // Catch-all — serve index.html for any other route

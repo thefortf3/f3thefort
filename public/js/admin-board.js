@@ -138,6 +138,7 @@ function buildLane(section, items, locked = false) {
 function buildKanbanCard(entry, section) {
   const accentColor = section ? section.accent : '#6e6860';
   const dateStr = typeof formatDate === 'function' ? formatDate(entry.start_date) : '';
+  const timeStr = entry.start_time || '';
   const excerpt = typeof stripHtml === 'function' ? stripHtml(entry.description || '').slice(0, 80) : '';
 
   return `
@@ -152,6 +153,7 @@ function buildKanbanCard(entry, section) {
       </div>
       <div class="kanban-card__meta">
         ${dateStr ? `<span>${dateStr}</span>` : ''}
+        ${timeStr ? `<span>${escapeHtml(timeStr)}</span>` : ''}
         ${entry.leader ? `<span>Q: ${escapeHtml(entry.leader)}</span>` : ''}
         ${entry.location ? `<span>${escapeHtml(entry.location)}</span>` : ''}
       </div>
@@ -504,7 +506,7 @@ function wireLogin() {
       });
       if (r.ok) {
         document.getElementById('login-view').style.display = 'none';
-        document.getElementById('dashboard-view').style.display = 'block';
+        document.getElementById('dashboard-view').style.display = 'flex';
         await loadData();
       } else {
         alertEl.innerHTML = '<div class="alert alert--error">Incorrect password.</div>';
@@ -872,8 +874,14 @@ async function openEditModal(id) {
 function populateEditModal(entry) {
   document.getElementById('edit-title').value = entry.title || '';
   document.getElementById('edit-leader').value = entry.leader || '';
-  document.getElementById('edit-start-date').value = entry.start_date ? entry.start_date.slice(0, 16) : '';
-  document.getElementById('edit-end-time').value = entry.end_time ? entry.end_time.slice(0, 16) : '';
+  const rawStartDate = entry.start_date || '';
+  document.getElementById('edit-start-date').value =
+    rawStartDate.includes('T') ? rawStartDate.split('T')[0] : rawStartDate;
+  const legacyTime = rawStartDate.includes('T') ? rawStartDate.split('T')[1]?.slice(0, 5) : '';
+  document.getElementById('edit-start-time').value = entry.start_time || legacyTime || '';
+  const rawEnd = entry.end_time || '';
+  document.getElementById('edit-end-time').value =
+    rawEnd.includes('T') ? rawEnd.split('T')[1]?.slice(0, 5) : rawEnd.slice(0, 5);
   document.getElementById('edit-location').value = entry.location || '';
   document.getElementById('edit-link').value = entry.link || '';
   document.getElementById('edit-video-url').value = entry.video_url || '';
@@ -933,6 +941,7 @@ async function saveEntry() {
     title: document.getElementById('edit-title').value,
     leader: document.getElementById('edit-leader').value || null,
     start_date: document.getElementById('edit-start-date').value,
+    start_time: document.getElementById('edit-start-time')?.value.trim() || null,
     end_time: document.getElementById('edit-end-time').value || null,
     location: document.getElementById('edit-location').value || null,
     description: hiddenDesc?.value || '',

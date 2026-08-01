@@ -51,27 +51,37 @@
           <span class="hint">Who is leading or hosting this event?</span>
         </div>
 
-        <!-- Date & Time Row -->
+        <!-- Date / Time -->
         <div class="form-row">
           <div class="form-group">
-            <label for="start_date">Start Date &amp; Time <span class="required">*</span></label>
+            <label for="start_date">Start Date</label>
             <input
-              type="datetime-local"
+              type="date"
               id="start_date"
               name="start_date"
-              max="2099-12-31T23:59"
-              required
+              max="2099-12-31"
             >
+            <span class="hint">Optional — leave blank for recurring or open-ended events</span>
           </div>
           <div class="form-group">
-            <label for="end_time">End Date &amp; Time</label>
+            <label for="start_time">Start Time</label>
             <input
-              type="datetime-local"
+              type="text"
+              id="start_time"
+              name="start_time"
+              placeholder="e.g. 0530, Saturdays, First Thursday of the Month"
+              autocomplete="off"
+            >
+            <span class="hint">Optional — free-form time description</span>
+          </div>
+          <div class="form-group">
+            <label for="end_time">End Time</label>
+            <input
+              type="time"
               id="end_time"
               name="end_time"
-              max="2099-12-31T23:59"
             >
-            <span class="hint">Optional — leave blank if open-ended. Use date+time for multi-day events.</span>
+            <span class="hint">Optional — leave blank if open-ended</span>
           </div>
         </div>
 

@@ -51,6 +51,7 @@
       <div class="admin-nav__links">
         <a href="/" class="admin-nav__link">Submit Entry</a>
         <button class="admin-nav__btn" id="manage-sections-btn">Manage Sections</button>
+        <a href="/help.html" class="admin-nav__link">Help</a>
         <a href="#" class="admin-nav__link" id="logout-btn">Logout</a>
       </div>
     </nav>
@@ -141,12 +142,16 @@
           </div>
           <div class="edit-form__row">
             <div class="edit-form__field">
-              <label for="edit-start-date">Start</label>
-              <input type="datetime-local" id="edit-start-date" name="start_date" required>
+              <label for="edit-start-date">Start Date</label>
+              <input type="date" id="edit-start-date" name="start_date">
             </div>
             <div class="edit-form__field">
-              <label for="edit-end-time">End</label>
-              <input type="datetime-local" id="edit-end-time" name="end_time">
+              <label for="edit-start-time">Start Time</label>
+              <input type="text" id="edit-start-time" name="start_time" placeholder="e.g. 0530, Saturdays">
+            </div>
+            <div class="edit-form__field">
+              <label for="edit-end-time">End Time</label>
+              <input type="time" id="edit-end-time" name="end_time">
             </div>
             <div class="edit-form__field edit-form__field--grow">
               <label for="edit-location">Location</label>
