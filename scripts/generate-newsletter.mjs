@@ -420,6 +420,17 @@ function buildDynamicSections(submissions, dbSections) {
   return html;
 }
 
+// An entry can carry both a pre-blast writeup (auto-posted to WordPress) and its own
+// submitter-entered link (e.g. a registration page) — these point at different things,
+// so both should show up rather than the pre-blast silently hiding the other link.
+function buildCtaLinks(sub) {
+  const links = [];
+  if (sub.preblast_url) links.push({ url: sub.preblast_url, label: 'Read full pre-blast ↗' });
+  if (sub.link && sub.link !== sub.preblast_url) links.push({ url: sub.link, label: 'Details ↗' });
+  return links.map(({ url, label }) => `
+        <a class="event-link" href="${escapeHtml(url)}" target="_blank" rel="noopener">${label}</a>`).join('');
+}
+
 function buildEventCard(sub) {
   let html = `
     <article class="event-card">`;
@@ -461,12 +472,7 @@ function buildEventCard(sub) {
     html += buildVideoEmbed(sub.video_url);
   }
 
-  const ctaUrl = sub.preblast_url || sub.link;
-  const ctaLabel = sub.preblast_url ? 'Read full pre-blast ↗' : 'Details ↗';
-  if (ctaUrl) {
-    html += `
-        <a class="event-link" href="${escapeHtml(ctaUrl)}" target="_blank" rel="noopener">${ctaLabel}</a>`;
-  }
+  html += buildCtaLinks(sub);
 
   html += `
       </div>
@@ -511,12 +517,7 @@ function buildInitiativeCard(sub, index) {
     html += buildVideoEmbed(sub.video_url);
   }
 
-  const ctaUrl = sub.preblast_url || sub.link;
-  const ctaLabel = sub.preblast_url ? 'Read full pre-blast ↗' : 'Details ↗';
-  if (ctaUrl) {
-    html += `
-        <a class="event-link" href="${escapeHtml(ctaUrl)}" target="_blank" rel="noopener">${ctaLabel}</a>`;
-  }
+  html += buildCtaLinks(sub);
 
   html += `
       </div>
