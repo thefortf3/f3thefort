@@ -719,7 +719,7 @@ app.get('/api/submissions/:id', requireAuth, async (req, res) => {
 });
 
 // POST /api/generate-snippet — Generate a short newsletter snippet from HTML content via Groq
-const GROQ_SYSTEM = "You are a newsletter editor. When given event information, write a concise summary suitable for inclusion in a community newsletter. The summary should capture what the event is about and why people should care. Write in third person. Sound human, no flowery language — the goal is to drive excitement and encourage participation. Use your own judgment on formatting: plain paragraphs, bullet lists, numbered steps, bold key details — whatever best serves the content. Return only valid HTML using basic tags (<p>, <ul>, <ol>, <li>, <strong>, <em>) with no preamble, commentary, or outer wrapper element. Do not wrap the output in quotation marks.";
+const GROQ_SYSTEM = "You are a newsletter editor. When given event information, write a short, punchy teaser suitable for a community newsletter — a couple sentences, not a summary of the whole event. Capture what the event is and why people should care enough to click through. Write in third person. Sound human, no flowery language — the goal is to drive excitement and encourage participation. A link to the full post with all the details (date, time, location, sign-up, etc.) will automatically be appended right after your teaser, so do not restate those details or try to be comprehensive — tease it, don't cover it. Do not add your own link, anchor tag, or call-to-action referencing a link yourself; the link is handled separately. Default to a single plain paragraph; only reach for a bullet or numbered list if the content is truly unreadable as prose. Return only valid HTML using basic tags (<p>, <ul>, <ol>, <li>, <strong>, <em>) with no preamble, commentary, or outer wrapper element. Do not wrap the output in quotation marks.";
 
 app.post('/api/generate-snippet', snippetLimiter, requireSameOrigin, async (req, res) => {
   try {
@@ -759,6 +759,12 @@ app.post('/api/generate-snippet', snippetLimiter, requireSameOrigin, async (req,
     // Strip surrounding quotation marks (bare or inside first/last HTML tag)
     snippet = snippet.replace(/^["']|["']$/g, '').trim();
     snippet = snippet.replace(/^(<\w+[^>]*>)\s*["']/, '$1').replace(/["']\s*(<\/\w+>)$/, '$1').trim();
+    // Safety net: the model is told the real link is appended separately and shouldn't add its
+    // own, but sometimes does anyway (an <a> tag, or a bare "[link]"-style placeholder). Strip both.
+    const snippetDom = new JSDOM(`<body>${snippet}</body>`);
+    snippetDom.window.document.querySelectorAll('a').forEach(a => a.replaceWith(a.textContent));
+    snippet = snippetDom.window.document.body.innerHTML.trim();
+    snippet = snippet.replace(/[[(][^\])]*\blink\b[^\])]*[\])]/gi, '').trim();
     res.json({ snippet, images });
   } catch (err) {
     console.error('POST /api/generate-snippet error:', err.message);
