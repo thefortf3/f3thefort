@@ -37,7 +37,11 @@ if (!ADMIN_PASSWORD) {
 }
 
 // Middleware
-app.use(express.json());
+// Default body-parser limit is 100kb, which a description carrying an inlined base64 image
+// blows past — the request then dies with a 413 before any route or sanitizer runs. Images
+// belong in /uploads (the editor inserts them as URLs), so 1mb is generous headroom for rich
+// text while still bounding what an unauthenticated endpoint can buffer.
+app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use((req, _res, next) => {
   req.cookies = Object.fromEntries(
@@ -315,13 +319,23 @@ app.post('/api/upload/image', uploadLimiter, requireSameOrigin, upload.single('i
   }
 });
 
-// Handle multer errors
+// Handle multer and body-parser errors
 app.use((err, req, res, next) => {
   if (err.code === 'LIMIT_FILE_SIZE') {
     return res.status(400).json({ error: 'File too large. Maximum size is 5MB.' });
   }
   if (err.message === 'Only image files are allowed') {
     return res.status(400).json({ error: err.message });
+  }
+  // Express's default handler answers a 413 with an HTML error page, so the client's
+  // response.json() rejects and the user is left with a generic "please try again" that
+  // gives no hint the payload was the problem. Name the likely cause instead.
+  if (err.type === 'entity.too.large' || err.status === 413) {
+    return res.status(413).json({
+      error: 'That entry is too large to submit. This usually means an image was pasted or '
+        + 'dragged directly into the description — remove it and use the image button in the '
+        + 'editor toolbar (or the hero image slot) to upload it instead.',
+    });
   }
   next(err);
 });

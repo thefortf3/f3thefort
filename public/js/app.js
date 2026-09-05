@@ -45,6 +45,68 @@ function initRichEditor(editorId = 'rich-editor', contentId = 'editor-content', 
     }
   }
 
+  // execCommand acts on the current selection, so it silently does nothing when the editor
+  // isn't focused — which is the case on drop, and after an await in any path. Restoring a
+  // saved range (or at minimum focusing) before the command is what makes the insert land.
+  function runWithSelection(range, fn) {
+    content.focus();
+    const sel = window.getSelection();
+    // A range from caretRangeFromPoint can land outside the editor — a drop near its edge,
+    // or on the padding around it. Selecting that would aim execCommand at a non-editable
+    // part of the page, where it silently does nothing and the image is simply lost.
+    if (range && content.contains(range.startContainer)) {
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } else if (!sel.rangeCount || !content.contains(sel.anchorNode)) {
+      const end = document.createRange();
+      end.selectNodeContents(content);
+      end.collapse(false); // fall back to the end of the editor
+      sel.removeAllRanges();
+      sel.addRange(end);
+    }
+    fn();
+  }
+
+  // Where in the editor a drop landed, so the image goes under the pointer rather than
+  // wherever the caret happened to be last.
+  function caretRangeFromPoint(x, y) {
+    if (document.caretRangeFromPoint) return document.caretRangeFromPoint(x, y);
+    if (document.caretPositionFromPoint) {
+      const pos = document.caretPositionFromPoint(x, y);
+      if (pos) {
+        const r = document.createRange();
+        r.setStart(pos.offsetNode, pos.offset);
+        r.collapse(true);
+        return r;
+      }
+    }
+    return null;
+  }
+
+  // Every image in the editor goes through the upload endpoint and is inserted as a URL.
+  // Inlining one as a base64 data: URI would balloon the submitted JSON well past the body
+  // limit and get the whole entry rejected with a 413.
+  async function uploadAndInsertImage(file, range = null) {
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const response = await fetch('/api/upload/image', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        alert(data.error || 'Failed to upload image.');
+        return;
+      }
+      const data = await response.json();
+      runWithSelection(range, () => document.execCommand('insertImage', false, data.url));
+      syncContent();
+    } catch {
+      alert('Network error. Could not upload image.');
+    }
+  }
+
   toolbarButtons.forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -64,27 +126,9 @@ function initRichEditor(editorId = 'rich-editor', contentId = 'editor-content', 
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
         fileInput.accept = 'image/*';
-        fileInput.addEventListener('change', async (e) => {
+        fileInput.addEventListener('change', (e) => {
           const file = e.target.files[0];
-          if (!file) return;
-          try {
-            const formData = new FormData();
-            formData.append('image', file);
-            const response = await fetch('/api/upload/image', {
-              method: 'POST',
-              body: formData,
-            });
-            if (!response.ok) {
-              const data = await response.json().catch(() => ({}));
-              alert(data.error || 'Failed to upload image.');
-              return;
-            }
-            const data = await response.json();
-            document.execCommand(command, false, data.url);
-            syncContent();
-          } catch {
-            alert('Network error. Could not upload image.');
-          }
+          if (file) uploadAndInsertImage(file);
         });
         fileInput.click();
       } else if (command === 'formatBlock') {
@@ -144,6 +188,54 @@ function initRichEditor(editorId = 'rich-editor', contentId = 'editor-content', 
     }
 
     document.execCommand('insertHTML', false, sanitized);
+    syncContent();
+  });
+
+  // A drop event only fires on an element whose dragover was cancelled.
+  content.addEventListener('dragover', (e) => {
+    e.preventDefault();
+  });
+
+  // Without this handler a dropped image file bypasses the paste sanitizer entirely and the
+  // browser inlines it as a base64 data: URI, which is what pushed submissions over the body
+  // limit and made them fail with a 413.
+  content.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const dt = e.dataTransfer;
+    if (!dt) return;
+
+    const dropRange = caretRangeFromPoint(e.clientX, e.clientY);
+
+    const imageFiles = Array.from(dt.files || []).filter(f => f.type.startsWith('image/'));
+    if (imageFiles.length) {
+      // Sequential so multiple dropped images keep their order rather than racing. Only the
+      // first insert uses the drop point; the rest continue from the caret the previous one
+      // left behind, since reusing the original range would stack them in reverse.
+      (async () => {
+        let range = dropRange;
+        for (const file of imageFiles) {
+          await uploadAndInsertImage(file, range);
+          range = null;
+        }
+      })();
+      return;
+    }
+
+    // Non-image drops go through the same sanitizer as paste, so dragged-in HTML can't
+    // smuggle an <img src="data:..."> in either.
+    const dropHtml = dt.getData('text/html') || '';
+    const dropText = dt.getData('text/plain') || '';
+    let sanitized;
+    if (dropHtml) {
+      sanitized = sanitizePastedHtml(dropHtml);
+    } else {
+      const escaped = dropText
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      sanitized = escaped.split(/\n\n+/).map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('') || escaped;
+    }
+    if (!sanitized) return;
+
+    runWithSelection(dropRange, () => document.execCommand('insertHTML', false, sanitized));
     syncContent();
   });
 

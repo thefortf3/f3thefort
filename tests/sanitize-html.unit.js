@@ -139,4 +139,19 @@ describe('sanitizeHtml — dangerous content', () => {
     const out = sanitizeHtml('<img src="data:text/html,<script>alert(1)</script>">');
     ok(!out.includes('data:'), 'data URI removed');
   });
+
+  // A dragged-in image arrives as an inlined base64 data: URI. Stripping just the src would
+  // leave a broken empty <img> behind in the admin editor and the generated newsletter.
+  it('drops an image entirely when its src is an inlined data: URI', () => {
+    const out = sanitizeHtml('<p>before</p><img src="data:image/png;base64,iVBORw0KGgo="><p>after</p>');
+    ok(!out.includes('data:'), 'data URI removed');
+    ok(!out.includes('<img'), 'srcless img element removed, not left behind');
+    ok(out.includes('before') && out.includes('after'), 'surrounding text preserved');
+  });
+
+  it('keeps an uploaded image referenced by URL', () => {
+    const out = sanitizeHtml('<img src="/uploads/1788542580018-1l4kg4.png" alt="hero">');
+    ok(out.includes('<img'), 'uploaded image kept');
+    ok(out.includes('/uploads/1788542580018-1l4kg4.png'), 'src preserved');
+  });
 });
