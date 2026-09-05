@@ -412,7 +412,7 @@ a, a:link, a:visited {
 
 .roster-type {
   font-family: var(--display);
-  font-size: 0.7rem;
+  font-size: 0.85rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   margin-bottom: 10px;
@@ -428,16 +428,27 @@ a, a:link, a:visited {
 
 .roster-names li {
   display: inline-block;
-  margin-right: 6px;
-  margin-bottom: 6px;
+  margin-right: 5px;
+  margin-bottom: 5px;
   font-family: var(--mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.05em;
-  padding: 4px 10px;
+  /* Sized to fit two roster columns side by side: a name plus its "EH: …" / "@ AO" detail
+     is the widest thing in this grid, and at the previous 0.9rem a single chip filled a
+     whole 50% column and longer pairings spilled out of it. */
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  padding: 4px 9px;
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.06);
   color: var(--text);
   white-space: nowrap;
+}
+
+/* Who EH'd the FNG, or which AO the VQ was at. Secondary to the F3 name and the bulk of
+   each chip's width, so it renders smaller and dimmer rather than at full size. */
+.roster-detail {
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  color: var(--text-dim);
 }
 
 .roster-names li.celebration {
@@ -1114,7 +1125,7 @@ a, a:link, a:visited {
   padding: 10px 0;
   border-bottom: 1px solid var(--border);
   font-family: var(--mono);
-  font-size: 0.78rem;
+  font-size: 0.95rem;
 }
 .shovel-flag-from {
   display: table-cell;
@@ -1147,7 +1158,7 @@ a, a:link, a:visited {
   display: table-cell;
   width: 34%;
   color: var(--text-dim);
-  font-size: 0.7rem;
+  font-size: 0.85rem;
   letter-spacing: 0.08em;
   vertical-align: middle;
 }
