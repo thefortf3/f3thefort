@@ -57,7 +57,7 @@ function createTestDB(submissionsList, suffix) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL, leader TEXT, start_date TEXT NOT NULL, end_time TEXT,
       location TEXT, description TEXT NOT NULL, link TEXT, hero_image TEXT, video_url TEXT,
-      preblast_url TEXT, preblast_content TEXT, section TEXT, position INTEGER DEFAULT 0,
+      preblast_url TEXT, preblast_content TEXT, section TEXT, position INTEGER DEFAULT 0, show_in_upcoming INTEGER DEFAULT 0,
       submitter_name TEXT, submitter_email TEXT, submitter_phone TEXT,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP, archived_at TEXT
     );
@@ -74,6 +74,7 @@ function createTestDB(submissionsList, suffix) {
     CREATE TABLE helpful_links (id INTEGER PRIMARY KEY AUTOINCREMENT, label TEXT, name TEXT, url TEXT, position INTEGER DEFAULT 0);
     CREATE TABLE shovel_flags (id INTEGER PRIMARY KEY AUTOINCREMENT, from_name TEXT, to_name TEXT, ao TEXT, position INTEGER DEFAULT 0);
     CREATE TABLE vqs (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, ao TEXT, position INTEGER DEFAULT 0);
+    CREATE TABLE recurring_events (id INTEGER PRIMARY KEY AUTOINCREMENT, day TEXT, time TEXT, name TEXT, location TEXT, note TEXT, blurb TEXT, link_url TEXT, event_date TEXT, position INTEGER DEFAULT 0);
 
     INSERT INTO sections (id, label, accent, position) VALUES
       ('desk',            'Header',                  '#6C3483', 0),

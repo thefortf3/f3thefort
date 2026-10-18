@@ -17,6 +17,7 @@ export const submissions = sqliteTable('submissions', {
   preblast_content: text('preblast_content'),
   section: text('section'),
   position: integer('position').default(0),
+  show_in_upcoming: integer('show_in_upcoming').default(0),
   submitter_name: text('submitter_name'),
   submitter_email: text('submitter_email'),
   submitter_phone: text('submitter_phone'),
@@ -95,6 +96,20 @@ export const shovel_flags = sqliteTable('shovel_flags', {
   from_name: text('from_name').notNull(),
   to_name: text('to_name').notNull(),
   ao: text('ao').notNull(),
+  position: integer('position').default(0),
+  created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const recurring_events = sqliteTable('recurring_events', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  day: text('day').notNull(),
+  time: text('time'),
+  name: text('name').notNull(),
+  location: text('location'),
+  note: text('note'),
+  blurb: text('blurb'),
+  link_url: text('link_url'),
+  event_date: text('event_date'),
   position: integer('position').default(0),
   created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
 });

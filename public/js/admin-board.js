@@ -14,7 +14,7 @@ let pendingDeleteId = null;
 let pendingDeleteMode = null; // 'archive' | 'permanent'
 
 // Static section state
-let staticSections = { threeFsItems: [], sltEntries: [], helpfulLinks: [], shovelFlags: [], vqs: [] };
+let staticSections = { threeFsItems: [], sltEntries: [], helpfulLinks: [], shovelFlags: [], vqs: [], recurringEvents: [] };
 let activeThreeFsTab = 'fitness';
 
 /* ============================================================
@@ -54,7 +54,7 @@ async function initAdminBoard() {
    Data loading
    ============================================================ */
 async function loadData() {
-  const [sectionsRes, entriesRes, threeFsRes, sltRes, linksRes, shovelFlagsRes, vqsRes] = await Promise.all([
+  const [sectionsRes, entriesRes, threeFsRes, sltRes, linksRes, shovelFlagsRes, vqsRes, recurringRes] = await Promise.all([
     fetch('/api/sections'),
     fetch('/api/submissions?limit=500'),
     fetch('/api/static/three-fs'),
@@ -62,6 +62,7 @@ async function loadData() {
     fetch('/api/static/links'),
     fetch('/api/static/shovel-flags'),
     fetch('/api/static/vqs'),
+    fetch('/api/static/recurring-events'),
   ]);
   boardSections = await sectionsRes.json();
   const entriesData = await entriesRes.json();
@@ -71,6 +72,7 @@ async function loadData() {
   staticSections.helpfulLinks = await linksRes.json();
   staticSections.shovelFlags = await shovelFlagsRes.json();
   staticSections.vqs = await vqsRes.json();
+  staticSections.recurringEvents = await recurringRes.json();
   renderBoard();
 }
 
@@ -96,6 +98,9 @@ function renderBoard() {
 
   // VQs — locked, always after shovel flags
   board.appendChild(buildProtectedLane('vqs', 'VQs This Week', '#2A5F8B'));
+
+  // Upcoming Events — locked, after VQs (matches its spot in the newsletter: below the roster)
+  board.appendChild(buildProtectedLane('recurring', 'Upcoming Events', '#7A6A3A'));
 
   // Other section lanes in order
   for (const sec of boardSections.filter(s => s.id !== 'desk')) {
@@ -854,6 +859,15 @@ function wireModals() {
   }
 }
 
+// Only What's Hot and Individual Initiative entries can opt in to Upcoming Events.
+const UPCOMING_ELIGIBLE_SECTIONS = ['whats-hot', 'individual-init'];
+
+function syncUpcomingCheckboxVisibility() {
+  const section = document.getElementById('modal-section-dropdown')?.value;
+  const field = document.getElementById('edit-upcoming-field');
+  if (field) field.style.display = UPCOMING_ELIGIBLE_SECTIONS.includes(section) ? '' : 'none';
+}
+
 async function openEditModal(id) {
   currentEditId = id;
   const entry = allEntries.find(e => e.id === id);
@@ -899,7 +913,10 @@ function populateEditModal(entry) {
     dropdown.innerHTML = '<option value="">(none)</option>' +
       boardSections.map(s => `<option value="${s.id}"${entry.section === s.id ? ' selected' : ''}>${escapeHtml(s.label)}</option>`).join('');
     dropdown.value = entry.section || '';
+    dropdown.onchange = syncUpcomingCheckboxVisibility;
   }
+  document.getElementById('edit-show-upcoming').checked = !!entry.show_in_upcoming;
+  syncUpcomingCheckboxVisibility();
 
   // Hero image
   const heroImg = document.getElementById('modal-hero-img');
@@ -950,6 +967,8 @@ async function saveEntry() {
     hero_image: document.getElementById('modal-hero-value').value || null,
     section: document.getElementById('modal-section-dropdown').value || null,
   };
+  // Flag only applies to eligible sections; clear it if the entry was moved elsewhere
+  body.show_in_upcoming = UPCOMING_ELIGIBLE_SECTIONS.includes(body.section) && document.getElementById('edit-show-upcoming').checked;
 
   try {
     const r = await fetch(`/api/submissions/${currentEditId}`, {
@@ -1344,6 +1363,14 @@ function buildProtectedLane(sectionId, label, accentColor) {
       `<div class="protected-preview-row"><span class="protected-preview-row__role">${escapeHtml(f.from_name)}</span><span class="protected-preview-row__name">→ ${escapeHtml(f.to_name)}</span><span class="protected-preview-row__detail">${escapeHtml(f.ao)}</span></div>`
     ).join('');
     if (flags.length > 4) previewHtml += `<div class="protected-preview-more">+${flags.length - 4} more</div>`;
+  } else if (sectionId === 'recurring') {
+    const evs = staticSections.recurringEvents;
+    itemCount = evs.length;
+    const todayLocal = new Date().toLocaleDateString('en-CA');
+    previewHtml = sortRecurring(evs).filter(e => (e.event_date || '') >= todayLocal).slice(0, 5).map(e =>
+      `<div class="protected-preview-row"><span class="protected-preview-row__role">${escapeHtml(formatEventDate(e.event_date))}</span><span class="protected-preview-row__name">${escapeHtml(e.name)}</span></div>`
+    ).join('');
+    if (evs.length > 5) previewHtml += `<div class="protected-preview-more">+${evs.length - 5} more</div>`;
   } else if (sectionId === 'vqs') {
     const vqList = staticSections.vqs;
     itemCount = vqList.length;
@@ -1379,6 +1406,7 @@ function refreshProtectedLane(sectionId) {
   else if (sectionId === 'slt') { label = 'Shared Leadership Team'; color = '#3A7D5C'; }
   else if (sectionId === 'shovel-flags') { label = 'Shovel Flag Hand-off'; color = '#8B3A2A'; }
   else if (sectionId === 'vqs') { label = 'VQs This Week'; color = '#2A5F8B'; }
+  else if (sectionId === 'recurring') { label = 'Upcoming Events'; color = '#7A6A3A'; }
   else { label = 'Helpful Links'; color = '#8a6a2a'; }
   existing.replaceWith(buildProtectedLane(sectionId, label, color));
 }
@@ -1389,6 +1417,7 @@ function openStaticEditor(sectionId) {
   else if (sectionId === 'helpful-links') openLinksModal();
   else if (sectionId === 'shovel-flags') openShovelFlagsModal();
   else if (sectionId === 'vqs') openVqsModal();
+  else if (sectionId === 'recurring') openRecurringModal();
 }
 
 /* ============================================================
@@ -2070,6 +2099,161 @@ async function addShovelFlag() {
 }
 
 /* ============================================================
+   Upcoming Events Editor
+   ============================================================ */
+// "2026-10-24" -> "Sat Oct 24". Parsed as UTC so the label never shifts with the viewer's timezone.
+function formatEventDate(iso) {
+  if (!iso) return '(no date)';
+  const d = new Date(iso + 'T00:00:00Z');
+  return isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+}
+
+// Chronological, then position within a date — the same order the newsletter uses.
+function sortRecurring(list) {
+  return [...list].sort((a, b) => (a.event_date || '').localeCompare(b.event_date || '') || a.position - b.position);
+}
+
+function openRecurringModal() {
+  renderRecurringList();
+  openModal(document.getElementById('recurring-modal'));
+}
+
+function renderRecurringList() {
+  const list = document.getElementById('recurring-list');
+  if (!list) return;
+  const events = sortRecurring(staticSections.recurringEvents);
+  if (events.length === 0) { list.innerHTML = '<div class="static-editor-empty">No upcoming events yet.</div>'; return; }
+  list.innerHTML = events.map((e, idx) => {
+    const sameDayPrev = idx > 0 && events[idx - 1].event_date === e.event_date;
+    const sameDayNext = idx < events.length - 1 && events[idx + 1].event_date === e.event_date;
+    return `
+    <div class="se-row" data-id="${e.id}">
+      <div class="se-row__order">
+        <button class="se-order-btn" data-action="up" data-id="${e.id}" ${sameDayPrev ? '' : 'disabled'}>↑</button>
+        <button class="se-order-btn" data-action="down" data-id="${e.id}" ${sameDayNext ? '' : 'disabled'}>↓</button>
+      </div>
+      <div class="se-row__content">
+        <span class="se-val">${escapeHtml(formatEventDate(e.event_date))}</span>
+        <span class="se-detail">${escapeHtml(e.time || '')}</span>
+        <span class="se-val">${escapeHtml(e.name)}</span>
+        <span class="se-url">${escapeHtml([e.location, e.note].filter(Boolean).join(' · '))}${e.link_url ? ' ↗' : ''}</span>
+      </div>
+      <div class="se-row__actions">
+        <button class="kanban-card__btn se-edit-btn" data-id="${e.id}">Edit</button>
+        <button class="kanban-card__btn kanban-card__btn--danger se-del-btn" data-id="${e.id}">Del</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('.se-order-btn').forEach(btn =>
+    btn.addEventListener('click', () => moveRecurringEvent(parseInt(btn.dataset.id), btn.dataset.action))
+  );
+  list.querySelectorAll('.se-edit-btn').forEach(btn =>
+    btn.addEventListener('click', () => editRecurringInline(parseInt(btn.dataset.id)))
+  );
+  list.querySelectorAll('.se-del-btn').forEach(btn =>
+    btn.addEventListener('click', () => deleteRecurringEvent(parseInt(btn.dataset.id)))
+  );
+}
+
+function editRecurringInline(id) {
+  const ev = staticSections.recurringEvents.find(e => e.id === id);
+  if (!ev) return;
+  const rowEl = document.querySelector(`#recurring-list .se-row[data-id="${id}"]`);
+  if (!rowEl) return;
+
+  rowEl.innerHTML = `
+    <div class="se-inline-form">
+      <input type="date" id="rec-edit-date-${id}" value="${escapeHtml(ev.event_date || '')}">
+      <input type="text" id="rec-edit-time-${id}" value="${escapeHtml(ev.time || '')}" placeholder="Time">
+      <input type="text" id="rec-edit-name-${id}" value="${escapeHtml(ev.name)}" placeholder="Name">
+      <input type="text" id="rec-edit-location-${id}" value="${escapeHtml(ev.location || '')}" placeholder="Location">
+      <input type="text" id="rec-edit-note-${id}" value="${escapeHtml(ev.note || '')}" placeholder="Note">
+      <input type="text" id="rec-edit-blurb-${id}" value="${escapeHtml(ev.blurb || '')}" placeholder="Blurb" style="flex-basis:100%;">
+      <input type="url" id="rec-edit-link-${id}" value="${escapeHtml(ev.link_url || '')}" placeholder="Details link (https://…)" style="flex-basis:100%;">
+      <div class="se-inline-form__btns">
+        <button class="kanban-card__btn" id="rec-edit-save-${id}">Save</button>
+        <button class="kanban-card__btn" id="rec-edit-cancel-${id}">Cancel</button>
+      </div>
+    </div>`;
+
+  document.getElementById(`rec-edit-cancel-${id}`).addEventListener('click', () => renderRecurringList());
+  document.getElementById(`rec-edit-save-${id}`).addEventListener('click', async () => {
+    const body = {
+      event_date: document.getElementById(`rec-edit-date-${id}`).value,
+      time: document.getElementById(`rec-edit-time-${id}`).value.trim(),
+      name: document.getElementById(`rec-edit-name-${id}`).value.trim(),
+      location: document.getElementById(`rec-edit-location-${id}`).value.trim(),
+      note: document.getElementById(`rec-edit-note-${id}`).value.trim(),
+      blurb: document.getElementById(`rec-edit-blurb-${id}`).value.trim(),
+      link_url: document.getElementById(`rec-edit-link-${id}`).value.trim(),
+    };
+    if (!body.name) return;
+    if (!body.event_date) { document.getElementById(`rec-edit-date-${id}`).focus(); return; }
+    try {
+      const r = await fetch(`/api/static/recurring-events/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error);
+      const updated = await r.json();
+      const idx = staticSections.recurringEvents.findIndex(e => e.id === id);
+      if (idx !== -1) staticSections.recurringEvents[idx] = updated;
+      renderRecurringList();
+      refreshProtectedLane('recurring');
+      showToast('Saved', 'success');
+    } catch (err) { showToast(err.message || 'Save failed', 'error'); }
+  });
+}
+
+async function deleteRecurringEvent(id) {
+  if (!confirm('Delete this recurring event?')) return;
+  try {
+    const r = await fetch(`/api/static/recurring-events/${id}`, { method: 'DELETE' });
+    if (!r.ok) throw new Error();
+    staticSections.recurringEvents = staticSections.recurringEvents.filter(e => e.id !== id);
+    renderRecurringList();
+    refreshProtectedLane('recurring');
+    showToast('Deleted', 'success');
+  } catch { showToast('Delete failed', 'error'); }
+}
+
+// Reorder swaps with the neighbouring event on the same date (dates themselves are always chronological).
+async function moveRecurringEvent(id, direction) {
+  const sorted = sortRecurring(staticSections.recurringEvents);
+  const idx = sorted.findIndex(e => e.id === id);
+  const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+  if (idx === -1 || swapIdx < 0 || swapIdx >= sorted.length || sorted[swapIdx].event_date !== sorted[idx].event_date) return;
+  [sorted[idx], sorted[swapIdx]] = [sorted[swapIdx], sorted[idx]];
+  const order = sorted.map(e => e.id);
+  try {
+    const r = await fetch('/api/static/recurring-events/reorder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order }) });
+    if (!r.ok) throw new Error();
+    order.forEach((eid, pos) => { const e = staticSections.recurringEvents.find(x => x.id === eid); if (e) e.position = pos; });
+    renderRecurringList();
+    refreshProtectedLane('recurring');
+  } catch { showToast('Reorder failed', 'error'); }
+}
+
+async function addRecurringEvent() {
+  const event_date = document.getElementById('rec-add-date').value;
+  const time = document.getElementById('rec-add-time').value.trim();
+  const name = document.getElementById('rec-add-name').value.trim();
+  const location = document.getElementById('rec-add-location').value.trim();
+  const note = document.getElementById('rec-add-note').value.trim();
+  const blurb = document.getElementById('rec-add-blurb').value.trim();
+  const link_url = document.getElementById('rec-add-link').value.trim();
+  if (!event_date) { document.getElementById('rec-add-date').focus(); return; }
+  if (!name) { document.getElementById('rec-add-name').focus(); return; }
+  try {
+    const r = await fetch('/api/static/recurring-events', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event_date, time, name, location, note, blurb, link_url }) });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error);
+    staticSections.recurringEvents.push(await r.json());
+    ['time', 'name', 'location', 'note', 'blurb', 'link'].forEach(f => { document.getElementById(`rec-add-${f}`).value = ''; });
+    renderRecurringList();
+    refreshProtectedLane('recurring');
+    showToast('Added', 'success');
+  } catch (err) { showToast(err.message || 'Add failed', 'error'); }
+}
+
+/* ============================================================
    Wire Static Editors
    ============================================================ */
 function wireStaticEditors() {
@@ -2113,8 +2297,13 @@ function wireStaticEditors() {
   document.getElementById('shovel-flags-modal-close-btn')?.addEventListener('click', () => closeModal(document.getElementById('shovel-flags-modal')));
   document.getElementById('sf-add-btn')?.addEventListener('click', addShovelFlag);
 
+  // Upcoming Events modal
+  document.getElementById('recurring-modal-close')?.addEventListener('click', () => closeModal(document.getElementById('recurring-modal')));
+  document.getElementById('recurring-modal-close-btn')?.addEventListener('click', () => closeModal(document.getElementById('recurring-modal')));
+  document.getElementById('rec-add-btn')?.addEventListener('click', addRecurringEvent);
+
   // Click-outside to close static editor modals
-  ['three-fs-modal', 'slt-modal', 'links-modal', 'vqs-modal', 'shovel-flags-modal'].forEach(id => {
+  ['three-fs-modal', 'slt-modal', 'links-modal', 'vqs-modal', 'shovel-flags-modal', 'recurring-modal'].forEach(id => {
     document.getElementById(id)?.addEventListener('click', (e) => {
       if (e.target === document.getElementById(id)) closeModal(document.getElementById(id));
     });

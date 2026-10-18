@@ -158,6 +158,12 @@
               <input type="text" id="edit-location" name="location" placeholder="Optional">
             </div>
           </div>
+          <div class="edit-form__field edit-form__field--check" id="edit-upcoming-field" style="display:none;">
+            <label class="edit-check">
+              <input type="checkbox" id="edit-show-upcoming" name="show_in_upcoming">
+              <span>Also show in Upcoming Events <small>(links readers to this entry with a “Details below” note; uses the start date above)</small></span>
+            </label>
+          </div>
           <div class="edit-form__field">
             <label for="edit-link">Link</label>
             <input type="url" id="edit-link" name="link" placeholder="https://…">
@@ -513,6 +519,61 @@
       </div>
       <div class="modal__footer">
         <button class="btn btn--ghost btn--sm" id="shovel-flags-modal-close-btn">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="recurring-modal">
+    <div class="modal modal--wide">
+      <div class="modal__header">
+        <h3 class="modal__title">Upcoming Events</h3>
+        <button class="modal__close" id="recurring-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal__body">
+        <p class="static-editor-hint">Enter each occurrence with its actual date. Only events dated within the next 7 days appear in the newsletter.</p>
+        <div id="recurring-list" class="static-editor-list"></div>
+        <div class="static-editor-add-form">
+          <div class="static-editor-add-form__row">
+            <div class="static-editor-add-form__field">
+              <label>Date</label>
+              <input type="date" id="rec-add-date">
+            </div>
+            <div class="static-editor-add-form__field">
+              <label>Time</label>
+              <input type="text" id="rec-add-time" placeholder="0530–0615">
+            </div>
+            <div class="static-editor-add-form__field static-editor-add-form__field--grow">
+              <label>Name</label>
+              <input type="text" id="rec-add-name" placeholder="e.g. Coffeteria — East">
+            </div>
+          </div>
+          <div class="static-editor-add-form__row">
+            <div class="static-editor-add-form__field static-editor-add-form__field--grow">
+              <label>Location</label>
+              <input type="text" id="rec-add-location" placeholder="e.g. Humble Cup">
+            </div>
+            <div class="static-editor-add-form__field static-editor-add-form__field--grow">
+              <label>Note (optional)</label>
+              <input type="text" id="rec-add-note" placeholder="e.g. 3rd Thursday only">
+            </div>
+          </div>
+          <div class="static-editor-add-form__row">
+            <div class="static-editor-add-form__field static-editor-add-form__field--grow">
+              <label>Blurb (short description)</label>
+              <input type="text" id="rec-add-blurb" placeholder="One or two sentences about this event">
+            </div>
+          </div>
+          <div class="static-editor-add-form__row">
+            <div class="static-editor-add-form__field static-editor-add-form__field--grow">
+              <label>Details link (optional)</label>
+              <input type="url" id="rec-add-link" placeholder="https://…">
+            </div>
+            <button class="btn btn--secondary btn--sm" id="rec-add-btn" style="align-self:flex-end;margin-bottom:1rem;">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--ghost btn--sm" id="recurring-modal-close-btn">Done</button>
       </div>
     </div>
   </div>

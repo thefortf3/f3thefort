@@ -1163,6 +1163,103 @@ a, a:link, a:visited {
   vertical-align: middle;
 }
 
+/* ===== UPCOMING EVENTS (dated schedule, next 7 days) ===== */
+.recurring-list {
+  border-top: 1px solid var(--border);
+}
+.recurring-day {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+  border-spacing: 0;
+  border-bottom: 1px solid var(--border);
+}
+.recurring-day-label {
+  display: table-cell;
+  width: 56px;
+  vertical-align: top;
+  padding: 10px 0;
+  font-family: var(--display);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+.recurring-day-date {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+.recurring-day-events {
+  display: table-cell;
+  vertical-align: top;
+  padding: 4px 0;
+}
+.recurring-item {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+  border-spacing: 0;
+}
+.recurring-time {
+  display: table-cell;
+  width: 96px;
+  vertical-align: top;
+  padding: 5px 10px 5px 0;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.recurring-body {
+  display: table-cell;
+  vertical-align: top;
+  padding: 5px 0;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+.recurring-name {
+  font-family: var(--display);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-bright);
+}
+.recurring-where {
+  margin-left: 8px;
+  color: var(--text);
+}
+.recurring-note {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+.recurring-blurb {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--body);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+.recurring-more {
+  display: inline-block;
+  margin-top: 3px;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  color: var(--amber-dim);
+  text-decoration: none;
+}
+.recurring-more:hover { color: var(--amber-bright); }
+
 /* ===== FOOTER ===== */
 .footer {
   margin-top: 64px;
@@ -1352,6 +1449,8 @@ a, a:link, a:visited {
   .three-f-col + .three-f-col { border-left: none !important; border-top: 1px solid var(--border) !important; }
   .slt-compact { grid-template-columns: repeat(2, 1fr) !important; }
   .slt-entry-role { width: 120px !important; }
+  .recurring-day-label { width: 44px !important; }
+  .recurring-time { width: 80px !important; font-size: 0.7rem !important; white-space: nowrap !important; }
   .links-stack-label { width: 90px !important; }
   .word-card { padding: 20px 16px !important; }
   .word-main { font-size: 2rem !important; }
@@ -1402,6 +1501,9 @@ a, a:link, a:visited {
 
 <!-- ===== FNG / VQ ROSTER ===== -->
 {{ROSTER_SECTION}}
+
+<!-- ===== UPCOMING EVENTS ===== -->
+{{RECURRING_EVENTS_SECTION}}
 
 <!-- ===== DYNAMIC SECTIONS ===== -->
 {{DYNAMIC_SECTIONS}}

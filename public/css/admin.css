@@ -2379,6 +2379,33 @@ select:focus {
   border-color: var(--amber);
 }
 
+.static-editor-hint {
+  margin: 0 0 var(--space-sm);
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+#edit-entry-form .edit-check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9rem;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--text);
+}
+.edit-check input { width: auto; margin-top: 3px; }
+.edit-check small { display: block; font-size: 0.8rem; color: var(--text-dim); }
+
+/* Upcoming Events has five inline fields — let them share a row instead of stacking */
+#recurring-list .se-inline-form input,
+#recurring-list .se-inline-form select {
+  width: auto;
+  flex: 1 1 110px;
+}
+
 .se-event-fields,
 .se-link-fields {
   display: flex;

@@ -108,7 +108,7 @@ function getSubmissions(dbPath) {
   const rows = db.prepare(`
     SELECT s.id, s.title, s.leader, s.start_date, s.start_time, s.end_time, s.location,
            s.description, s.link, s.hero_image, s.video_url, s.section, s.position,
-           s.preblast_url
+           s.preblast_url, s.show_in_upcoming
     FROM submissions s
     LEFT JOIN sections sec ON s.section = sec.id
     WHERE s.section IS NOT NULL AND s.section != 'null' AND s.archived_at IS NULL
@@ -192,8 +192,12 @@ function getStaticSections(dbPath) {
   const helpfulLinks = db.prepare('SELECT * FROM helpful_links ORDER BY position ASC').all();
   const shovelFlags = db.prepare('SELECT * FROM shovel_flags ORDER BY position ASC').all();
   const weeklyVqs = db.prepare('SELECT * FROM vqs ORDER BY position ASC').all();
+  let recurringEvents = [];
+  try {
+    recurringEvents = db.prepare('SELECT * FROM recurring_events ORDER BY event_date ASC, position ASC').all();
+  } catch { /* table not created yet on older DBs */ }
   db.close();
-  return { threeFsItems, sltEntries, helpfulLinks, shovelFlags, weeklyVqs };
+  return { threeFsItems, sltEntries, helpfulLinks, shovelFlags, weeklyVqs, recurringEvents };
 }
 
 function buildThreeFsSection(items) {
@@ -278,6 +282,105 @@ function buildHelpfulLinksSection(links) {
 ${linksHtml}
   </div>
 </div>`;
+}
+
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MONTH_ABBRS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const UPCOMING_WINDOW_DAYS = 7;
+// Dates in the schedule are calendar dates for the Fort's region, so "today" is read in that
+// zone rather than the server's (the production container runs in UTC).
+const NEWSLETTER_TZ = process.env.NEWSLETTER_TZ || 'America/New_York';
+
+/** Today's calendar date (YYYY-MM-DD) in the newsletter's timezone. */
+export function todayIsoDate(now = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: NEWSLETTER_TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+}
+
+function addDaysIso(iso, n) {
+  const d = new Date(iso + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+// Upcoming schedule: only events dated from today through the next 7 days, grouped by date.
+export function buildRecurringEventsSection(events, today = todayIsoDate()) {
+  const last = addDaysIso(today, UPCOMING_WINDOW_DAYS);
+  const upcoming = events
+    .filter(e => e.event_date && e.event_date >= today && e.event_date <= last)
+    .sort((a, b) => a.event_date.localeCompare(b.event_date) || (a.position ?? 0) - (b.position ?? 0));
+  if (upcoming.length === 0) return '';
+
+  const dates = [...new Set(upcoming.map(e => e.event_date))];
+  const daysHtml = dates.map(date => {
+    const d = new Date(date + 'T00:00:00Z');
+    const weekday = WEEKDAYS[d.getUTCDay()];
+    const dateLabel = `${MONTH_ABBRS[d.getUTCMonth()]} ${d.getUTCDate()}`;
+    const itemsHtml = upcoming.filter(e => e.event_date === date).map(e => {
+      const where = e.location ? `<span class="recurring-where">@ ${escapeHtml(e.location)}</span>` : '';
+      const note = e.note ? `<span class="recurring-note">${escapeHtml(e.note)}</span>` : '';
+      const blurb = e.blurb ? `<span class="recurring-blurb">${escapeHtml(e.blurb)}</span>` : '';
+      const more = e.link_url && /^https?:\/\//i.test(e.link_url)
+        ? `<a class="recurring-more" href="${escapeHtml(e.link_url)}" target="_blank" rel="noopener">More details ↗</a>` : '';
+      return `
+        <div class="recurring-item">
+          <span class="recurring-time">${escapeHtml(e.time || '')}</span>
+          <span class="recurring-body"><span class="recurring-name">${escapeHtml(e.name)}</span>${where}${note}${blurb}${more}</span>
+        </div>`;
+    }).join('');
+    return `
+    <div class="recurring-day">
+      <span class="recurring-day-label" title="${weekday}, ${dateLabel}">${weekday.slice(0, 3)}<span class="recurring-day-date">${dateLabel}</span></span>
+      <span class="recurring-day-events">${itemsHtml}
+      </span>
+    </div>`;
+  }).join('');
+
+  return `
+<!-- ===== UPCOMING EVENTS ===== -->
+<div class="section section--reference section--recurring">
+  <div class="section-header">
+    <span class="section-number">&#8635;</span>
+    <span class="section-name">Upcoming Events</span>
+    <span class="section-accent"><span class="section-accent-line"></span></span>
+  </div>
+  <div class="recurring-list">${daysHtml}
+  </div>
+</div>`;
+}
+
+// Sections whose entries may opt in to the Upcoming Events list via the "show in upcoming" flag.
+const UPCOMING_ELIGIBLE_SECTIONS = ['whats-hot', 'individual-init'];
+
+/**
+ * Turns opted-in What's Hot / Individual Initiative entries into upcoming-event rows pointing the
+ * reader at the full write-up further down. Entries without a usable calendar date are skipped
+ * (the section builder applies the 7-day window).
+ */
+export function submissionsToUpcomingEvents(submissions) {
+  return submissions
+    .filter(s => s.show_in_upcoming && UPCOMING_ELIGIBLE_SECTIONS.includes(s.section))
+    .map(s => {
+      const raw = s.start_date || '';
+      const [datePart, isoTime] = raw.split('T');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return null;
+      // Legacy rows keep the time inside start_date's ISO string; newer rows use free-form start_time.
+      let time = s.start_time || (isoTime ? isoTime.slice(0, 5).replace(':', '') : '');
+      if (s.end_time) {
+        const endPart = s.end_time.includes('T') ? s.end_time.split('T')[1] : s.end_time;
+        const [eh, em] = (endPart || '').split(':');
+        if (time && eh && em) time += `-${eh.padStart(2, '0')}${em.padStart(2, '0')}`;
+      }
+      return {
+        event_date: datePart,
+        time,
+        name: s.title,
+        location: s.location,
+        blurb: 'Details below',
+        // Sort after hand-entered events on the same date
+        position: 1000 + (s.position ?? 0),
+      };
+    })
+    .filter(Boolean);
 }
 
 function buildShovelFlagSection(flags) {
@@ -663,12 +766,13 @@ export function generateNewsletter({ dbPath, outputPath, baseUrl: _baseUrl }) {
   const fngStats = getFngStats(dbPath);
   const issueDate = getIssueDate();
   const headerDate = getHeaderDate();
-  const { threeFsItems, sltEntries, helpfulLinks, shovelFlags, weeklyVqs } = getStaticSections(dbPath);
+  const { threeFsItems, sltEntries, helpfulLinks, shovelFlags, weeklyVqs, recurringEvents } = getStaticSections(dbPath);
 
   const nantanSection = buildNantanSection(submissions);
   const shovelFlagSection = buildShovelFlagSection(shovelFlags);
   const weeklyFngs = getWeeklyFngs(dbPath);
   const rosterSection = buildRosterSection(weeklyFngs, weeklyVqs);
+  const upcomingEventsSection = buildRecurringEventsSection([...recurringEvents, ...submissionsToUpcomingEvents(submissions)]);
   const dynamicSections = buildDynamicSections(submissions, dbSections);
 
   let html = template
@@ -683,6 +787,7 @@ export function generateNewsletter({ dbPath, outputPath, baseUrl: _baseUrl }) {
     .replace('{{SHOVEL_FLAG_SECTION}}', shovelFlagSection)
     .replace('{{ROSTER_SECTION}}', rosterSection)
     .replace('{{DYNAMIC_SECTIONS}}', dynamicSections)
+    .replace('{{RECURRING_EVENTS_SECTION}}', upcomingEventsSection)
     .replace('{{THREE_FS_SECTION}}', buildThreeFsSection(threeFsItems))
     .replace('{{SLT_SECTION}}', buildSltSection(sltEntries))
     .replace('{{HELPFUL_LINKS_SECTION}}', buildHelpfulLinksSection(helpfulLinks));

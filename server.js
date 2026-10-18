@@ -4,7 +4,7 @@ import { randomBytes } from 'crypto';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { eq, desc, count, isNull, isNotNull, like, or, and, sql as drizzleSql } from 'drizzle-orm';
-import { submissions, fngs, newsletter_sends, audit_log, sections, three_fs_items, slt_entries, helpful_links, shovel_flags, vqs } from './schema.js';
+import { submissions, fngs, newsletter_sends, audit_log, sections, three_fs_items, slt_entries, helpful_links, shovel_flags, vqs, recurring_events } from './schema.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync, readFileSync } from 'fs';
@@ -144,6 +144,14 @@ try {
   if (!e.message.includes('duplicate column name')) throw e;
 }
 
+// Idempotent migration: add show_in_upcoming flag (What's Hot / Individual Initiative entries
+// can opt in to the Upcoming Events section)
+try {
+  sqlite.exec(`ALTER TABLE submissions ADD COLUMN show_in_upcoming INTEGER DEFAULT 0`);
+} catch (e) {
+  if (!e.message.includes('duplicate column name')) throw e;
+}
+
 // Idempotent migration: create audit_log table
 sqlite.exec(`CREATE TABLE IF NOT EXISTS audit_log (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -222,6 +230,29 @@ sqlite.exec(`CREATE TABLE IF NOT EXISTS shovel_flags (
   position INTEGER DEFAULT 0,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP
 )`);
+
+sqlite.exec(`CREATE TABLE IF NOT EXISTS recurring_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  day TEXT NOT NULL,
+  time TEXT,
+  name TEXT NOT NULL,
+  location TEXT,
+  note TEXT,
+  blurb TEXT,
+  link_url TEXT,
+  event_date TEXT,
+  position INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+)`);
+// Idempotent migration: columns added after the table first shipped.
+// `day` (Mon..Sun) is now derived from event_date on every write; it is kept only because the
+// original table declared it NOT NULL.
+{
+  const cols = sqlite.prepare('PRAGMA table_info(recurring_events)').all().map(c => c.name);
+  if (!cols.includes('event_date')) sqlite.exec('ALTER TABLE recurring_events ADD COLUMN event_date TEXT');
+  if (!cols.includes('blurb')) sqlite.exec('ALTER TABLE recurring_events ADD COLUMN blurb TEXT');
+  if (!cols.includes('link_url')) sqlite.exec('ALTER TABLE recurring_events ADD COLUMN link_url TEXT');
+}
 
 // Seed Three F's items
 if (sqlite.prepare('SELECT COUNT(*) as c FROM three_fs_items').get().c === 0) {
@@ -864,7 +895,7 @@ app.patch('/api/submissions/:id', requireAuth, async (req, res) => {
     const [existing] = await db.select().from(submissions).where(eq(submissions.id, id));
     if (!existing) return res.status(404).json({ error: 'Submission not found' });
 
-    const { section, hero_image, video_url, title, leader, start_date, start_time, end_time, location, description, link } = req.body;
+    const { section, hero_image, video_url, title, leader, start_date, start_time, end_time, location, description, link, show_in_upcoming } = req.body;
 
     if (section !== undefined && section !== null) {
       const validSection = sqlite.prepare(`SELECT id FROM sections WHERE id = ?`).get(section);
@@ -883,6 +914,7 @@ app.patch('/api/submissions/:id', requireAuth, async (req, res) => {
     if (location !== undefined) updates.location = location || null;
     if (description !== undefined) updates.description = sanitizeHtml(description);
     if (link !== undefined) updates.link = link || null;
+    if (show_in_upcoming !== undefined) updates.show_in_upcoming = show_in_upcoming ? 1 : 0;
 
     const [row] = await db
       .update(submissions)
@@ -896,7 +928,7 @@ app.patch('/api/submissions/:id', requireAuth, async (req, res) => {
     }
 
     // Audit log: field updates (excluding section and hero_image)
-    const CONTENT_FIELDS = ['title', 'leader', 'start_date', 'start_time', 'end_time', 'location', 'description', 'link'];
+    const CONTENT_FIELDS = ['title', 'leader', 'start_date', 'start_time', 'end_time', 'location', 'description', 'link', 'show_in_upcoming'];
     const changedFields = CONTENT_FIELDS.filter(f => f in updates && updates[f] !== existing[f]);
     if (changedFields.length > 0) {
       logAudit(id, 'updated', row.title, { fields: changedFields });
@@ -1513,6 +1545,90 @@ app.delete('/api/static/shovel-flags/:id', requireAuth, (req, res) => {
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete shovel flag' });
+  }
+});
+
+// Recurring Events Routes
+const WEEKDAY_ABBRS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+// Returns the weekday abbreviation for a real YYYY-MM-DD date, or null if it isn't one.
+function weekdayOfIsoDate(s) {
+  if (typeof s !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  const d = new Date(s + 'T00:00:00Z');
+  if (isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== s) return null;
+  return WEEKDAY_ABBRS[d.getUTCDay()];
+}
+// Empty is allowed; anything else must be an http(s) URL (blocks javascript: etc.)
+const isValidLinkUrl = (u) => !u || /^https?:\/\/\S+$/i.test(u);
+
+app.get('/api/static/recurring-events', requireAuth, (req, res) => {
+  try {
+    res.json(sqlite.prepare('SELECT * FROM recurring_events ORDER BY event_date ASC, position ASC').all());
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch recurring events' });
+  }
+});
+
+app.post('/api/static/recurring-events/reorder', requireAuth, (req, res) => {
+  try {
+    const { order } = req.body;
+    if (!Array.isArray(order)) return res.status(400).json({ error: 'order must be an array' });
+    const update = sqlite.prepare('UPDATE recurring_events SET position = ? WHERE id = ?');
+    const tx = sqlite.transaction((ids) => ids.forEach((id, pos) => update.run(pos, id)));
+    tx(order);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to reorder recurring events' });
+  }
+});
+
+app.post('/api/static/recurring-events', requireAuth, (req, res) => {
+  try {
+    const { event_date, time, name, location, note, blurb, link_url } = req.body;
+    const day = weekdayOfIsoDate(event_date);
+    if (!day) return res.status(400).json({ error: 'event_date must be a valid date (YYYY-MM-DD)' });
+    if (!name) return res.status(400).json({ error: 'name is required' });
+    if (!isValidLinkUrl(link_url)) return res.status(400).json({ error: 'link_url must start with http:// or https://' });
+    const maxPos = sqlite.prepare('SELECT COALESCE(MAX(position),-1) as m FROM recurring_events').get().m;
+    const { lastInsertRowid } = sqlite.prepare('INSERT INTO recurring_events (day, event_date, time, name, location, note, blurb, link_url, position) VALUES (?,?,?,?,?,?,?,?,?)')
+      .run(day, event_date, time || null, name, location || null, note || null, blurb || null, link_url || null, maxPos + 1);
+    res.status(201).json(sqlite.prepare('SELECT * FROM recurring_events WHERE id = ?').get(lastInsertRowid));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to create recurring event' });
+  }
+});
+
+app.patch('/api/static/recurring-events/:id', requireAuth, (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
+    if (!sqlite.prepare('SELECT id FROM recurring_events WHERE id = ?').get(id)) return res.status(404).json({ error: 'Not found' });
+    const { event_date, time, name, location, note, blurb, link_url } = req.body;
+    const day = event_date !== undefined ? weekdayOfIsoDate(event_date) : undefined;
+    if (event_date !== undefined && !day) return res.status(400).json({ error: 'event_date must be a valid date (YYYY-MM-DD)' });
+    if (name !== undefined && !name) return res.status(400).json({ error: 'name cannot be empty' });
+    if (link_url !== undefined && !isValidLinkUrl(link_url)) return res.status(400).json({ error: 'link_url must start with http:// or https://' });
+    if (day !== undefined) sqlite.prepare('UPDATE recurring_events SET day = ?, event_date = ? WHERE id = ?').run(day, event_date, id);
+    if (time !== undefined) sqlite.prepare('UPDATE recurring_events SET time = ? WHERE id = ?').run(time || null, id);
+    if (name !== undefined) sqlite.prepare('UPDATE recurring_events SET name = ? WHERE id = ?').run(name, id);
+    if (location !== undefined) sqlite.prepare('UPDATE recurring_events SET location = ? WHERE id = ?').run(location || null, id);
+    if (note !== undefined) sqlite.prepare('UPDATE recurring_events SET note = ? WHERE id = ?').run(note || null, id);
+    if (blurb !== undefined) sqlite.prepare('UPDATE recurring_events SET blurb = ? WHERE id = ?').run(blurb || null, id);
+    if (link_url !== undefined) sqlite.prepare('UPDATE recurring_events SET link_url = ? WHERE id = ?').run(link_url || null, id);
+    res.json(sqlite.prepare('SELECT * FROM recurring_events WHERE id = ?').get(id));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update recurring event' });
+  }
+});
+
+app.delete('/api/static/recurring-events/:id', requireAuth, (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid ID' });
+    if (!sqlite.prepare('SELECT id FROM recurring_events WHERE id = ?').get(id)) return res.status(404).json({ error: 'Not found' });
+    sqlite.prepare('DELETE FROM recurring_events WHERE id = ?').run(id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete recurring event' });
   }
 });
 
