@@ -2,7 +2,7 @@
 Theme Name: Fort
 Theme URI: https://f3thefort.com
 Description: F3 The Fort — the site The Fort Weekly newsletter summarizes. Events and region info come from the Fort Weekly plugin; workouts and backblast stats come from the stats API; posts and pages work as usual.
-Version: 0.2.4
+Version: 0.2.6
 Requires at least: 6.0
 Requires PHP: 7.4
 Author: F3 The Fort
@@ -79,13 +79,20 @@ a:hover { color: #f3cf74; }
 .fort-home { padding-top: 48px; padding-bottom: 96px; display: flex; flex-direction: column; gap: 80px; }
 .fort-notice { padding: 24px; background: var(--panel); }
 
-.fort-featured { display: flex; flex-wrap: wrap; background: var(--panel); }
-.fort-featured__media { flex: 1 1 460px; min-height: 360px; background: var(--panel-2); }
-.fort-featured__media img { width: 100%; height: 100%; object-fit: cover; }
-.fort-featured__body { flex: 1 1 420px; padding: 48px 52px; display: flex; flex-direction: column; gap: 16px; justify-content: center; }
+.fort-featured { display: flex; background: var(--panel); }
+/* A fixed height with the image shown whole (flyers carry text, so no cropping): a wide photo fills
+   it, a square or tall flyer sits centred on the dark backdrop instead of stretching the card. */
+.fort-featured__media { flex: 0 1 auto; max-width: 58%; height: 380px; display: flex; align-items: center; justify-content: center; background: var(--panel-2); overflow: hidden; }
+.fort-featured__media img { width: auto; height: 100%; max-width: 100%; object-fit: contain; }
+.fort-featured__body { flex: 1 1 360px; min-width: 0; padding: 40px 48px; display: flex; flex-direction: column; gap: 16px; justify-content: center; }
 .fort-featured__title { margin: 0; font-family: var(--display); font-size: 44px; font-weight: 600; line-height: 1.06; letter-spacing: 0.02em; }
 .fort-featured__title a { color: var(--text-bright); }
 .fort-featured__summary { margin: 0; font-size: 18px; line-height: 1.6; max-width: 46ch; }
+@media (max-width: 900px) {
+	.fort-featured { flex-direction: column; }
+	.fort-featured__media { max-width: none; height: 300px; }
+	.fort-featured__body { flex: none; } /* Its 360px basis is a width side by side, not a height when stacked. */
+}
 
 /* Who we are */
 .fort-about { display: flex; flex-wrap: wrap; gap: 40px 64px; padding-top: 8px; }
@@ -321,7 +328,7 @@ a.fort-bb:hover .fort-bb__title { color: var(--amber-bright); }
 	.fort-nav__list a { font-size: 11px; letter-spacing: 0.06em; }
 	.fort-nav .fort-btn { padding: 9px 12px; font-size: 11px; }
 	.fort-home { padding-top: 24px; gap: 48px; }
-	.fort-featured__media { min-height: 200px; flex-basis: 100%; }
+	.fort-featured__media { height: 240px; max-width: none; }
 	.fort-featured__body { padding: 22px 20px 24px; }
 	.fort-featured__title { font-size: 30px; }
 	.fort-about { gap: 28px; }
