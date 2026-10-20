@@ -49,7 +49,7 @@ services:
       WORDPRESS_CONFIG_EXTRA: |
         define( 'FORT_NL_API', 'http://newsletter:3002' );
         define( 'FORT_NL_SECRET', 'local-only-secret' );
-        define( 'FORT_STATS_API', getenv( 'FORT_STATS_API' ) ?: 'http://stats:5000' );
+        define( 'FORT_STATS_API', getenv( 'FORT_STATS_API' ) ?: 'http://stats:8080' );
         define( 'FORT_API_TTL', 15 );
     volumes:
       - wp:/var/www/html
