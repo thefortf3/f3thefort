@@ -62,7 +62,7 @@ get_header();
 		<div class="fort-field-row">
 			<div class="fort-field<?php echo in_array( 'date', $fields, true ) ? ' is-invalid' : ''; ?>"><label for="f-date"><?php esc_html_e( 'Date', 'fort' ); ?></label><input id="f-date" name="start_date" type="date"></div>
 			<div class="fort-field"><label for="f-start"><?php esc_html_e( 'Start', 'fort' ); ?></label><input id="f-start" name="start_time" placeholder="0530" maxlength="40"></div>
-			<div class="fort-field"><label for="f-end"><?php esc_html_e( 'End', 'fort' ); ?></label><input id="f-end" name="end_time" type="time"></div>
+			<div class="fort-field"><label for="f-end"><?php esc_html_e( 'End', 'fort' ); ?></label><input id="f-end" name="end_time" placeholder="0630" maxlength="40"></div>
 		</div>
 		<div class="fort-field-row">
 			<div class="fort-field fort-field--grow"><label for="f-location"><?php esc_html_e( 'Where', 'fort' ); ?></label><input id="f-location" name="location" maxlength="200"></div>
