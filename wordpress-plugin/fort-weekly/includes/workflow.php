@@ -21,6 +21,11 @@ function fortw_clear_page_cache() {
 }
 
 function fortw_approve( $post_id ) {
+	// A submitter's proposed change is applied to its live event instead (admin-changes.php).
+	$routed = apply_filters( 'fortw_approve_target', null, $post_id );
+	if ( null !== $routed ) {
+		return $routed;
+	}
 	return wp_update_post( array( 'ID' => $post_id, 'post_status' => 'publish' ), true );
 }
 

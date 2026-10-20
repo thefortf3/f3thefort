@@ -63,11 +63,26 @@ function fortw_slack_configured() {
 }
 
 function fortw_notify_new_submission( $post_id ) {
-	$message = fortw_slack_message(
-		fortw_entry( $post_id ),
-		fortw_entry_private( $post_id ),
-		admin_url( 'post.php?post=' . (int) $post_id . '&action=edit' )
+	fortw_slack_post(
+		fortw_slack_message(
+			fortw_entry( $post_id ),
+			fortw_entry_private( $post_id ),
+			admin_url( 'post.php?post=' . (int) $post_id . '&action=edit' )
+		)
 	);
+}
+
+/** A submitter edited their event: a change to review (live event) or an updated submission. */
+function fortw_notify_submitter_edit( $event_id, $is_change ) {
+	$review  = $is_change ? fortw_pending_change( $event_id ) : $event_id;
+	$message = fortw_slack_message( fortw_entry( $event_id ), fortw_entry_private( $event_id ), admin_url( 'post.php?post=' . (int) $review . '&action=edit' ) );
+	$title   = fortw_slack_text( get_post_field( 'post_title', $event_id ), 160 );
+	$message['text'] = ( $is_change ? 'Change to a live event needs approval: ' : 'Submission updated (still needs approval): ' ) . $title;
+	$message['blocks'][0]['text']['text'] = preg_replace( '/^:inbox_tray: \*New event waiting for approval\*/', $is_change ? ':pencil2: *Submitter changed a live event — review the change*' : ':pencil2: *Submitter updated their event (still waiting for approval)*', $message['blocks'][0]['text']['text'] );
+	fortw_slack_post( $message );
+}
+
+function fortw_slack_post( $message ) {
 	if ( ! fortw_slack_configured() ) {
 		error_log( '[fort-weekly slack dry-run] ' . $message['text'] );
 		return false;

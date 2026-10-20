@@ -140,6 +140,7 @@ function fortw_box_submitter( $post ) {
 			esc_attr( (string) $who[ $k ] )
 		);
 	}
+	do_action( 'fortw_submitter_box_end', $post );
 }
 
 /** Saving the boxes. Bad dates keep the old ones and show a notice. */
@@ -177,8 +178,10 @@ add_action(
 		foreach ( array( '_fort_link', '_fort_video_url' ) as $key ) {
 			fortw_update_or_delete( $post_id, $key, fortw_http_url( (string) ( $post[ $key ] ?? '' ) ) );
 		}
-		fortw_set_featured( $post_id, ! empty( $post['_fort_featured'] ) );
-		fortw_set_hold( $post_id, ! empty( $post['_fort_hold'] ) );
+		if ( ! fortw_is_change( $post_id ) ) { // A proposal has no Newsletter box (see admin-changes.php).
+			fortw_set_featured( $post_id, ! empty( $post['_fort_featured'] ) );
+			fortw_set_hold( $post_id, ! empty( $post['_fort_hold'] ) );
+		}
 		if ( ! get_post_meta( $post_id, '_fort_preblast_post_id', true ) ) {
 			fortw_update_or_delete( $post_id, '_fort_preblast_requested', empty( $post['_fort_preblast_requested'] ) ? '' : '1' );
 		}

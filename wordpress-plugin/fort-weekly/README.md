@@ -43,6 +43,8 @@ only administrators can import or delete. Give each approver their own account.
 | `FORT_MAILCHIMP_API_KEY` (`…-us10`), `FORT_MAILCHIMP_LIST_ID` | Save as Mailchimp draft | Button disabled |
 | `FORT_MAILCHIMP_FROM_NAME`, `FORT_MAILCHIMP_FROM_EMAIL` | Draft's sender | "The Fort Weekly", newsletter@thefort.org |
 | `FORT_GROQ_API_KEY` | "Write one for me" summaries | Button disabled |
+| `FORT_SUBMITTER_EMAILS` (`true`) | Emailing submitters when their event (or their change) is approved | Logs what it would have sent |
+| `FORT_EMAIL_FROM` | Those emails' sender, e.g. `'The Fort Weekly <newsletter@f3thefort.com>'` | WordPress's default sender |
 | `FORT_STATS_API` | FNG numbers | `https://stats.f3thefort.com` |
 | `FORT_CLIENT_IP_HEADER` | Per-visitor submit limit behind a proxy/CDN (e.g. `'HTTP_CF_CONNECTING_IP'`) | Uses the connecting address |
 | `FORT_WEEKLY_TZ` | What "today" is | `America/New_York` |
@@ -51,6 +53,28 @@ only administrators can import or delete. Give each approver their own account.
 named like the old app named them ("October 25, 2026"). It never sends, schedules or test-sends,
 and its request helper refuses every Mailchimp `/actions/` endpoint. A campaign that is already
 scheduled or sent in Mailchimp is left alone. Review, schedule and send in Mailchimp.
+
+## Submitters editing their events
+
+Every event sent through the form gets a **private edit link** (`/submit/?edit=…`). It shows on
+the thank-you page, and it's in the "your event is live" email if they gave an address. The link
+opens the form filled in with the event's current details.
+
+- **Not approved yet:** an edit simply updates the submission.
+- **Already live:** the edit becomes a **proposed change** in Needs approval, labelled "Change to
+  live event". The site and newsletter keep the current version until an editor approves it.
+  - The change's screen shows what's live now next to what's proposed.
+  - **Approve change** (or Publish) copies it onto the live event. Reject leaves the live event
+    as it is.
+  - A second edit replaces a change that's still waiting.
+- **Limits:** links stop working a month after the event's last date. Edits are limited to 10 an
+  hour per event.
+- **Resetting:** editors can see, copy or reset a link in the event's "Submitted by" box. Resetting
+  stops the old link working.
+
+**Emails:** the submitter gets one when the event is approved, and again when a change is. Nothing
+is sent unless `FORT_SUBMITTER_EMAILS` is `true`. On HostGator, set up an SMTP plugin (e.g.
+WP Mail SMTP with a real mailbox) first, or WordPress's mail may land in spam.
 
 ## Moving the data from the old app
 

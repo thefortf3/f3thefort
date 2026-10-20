@@ -2,7 +2,7 @@
 Theme Name: Fort
 Theme URI: https://f3thefort.com
 Description: F3 The Fort — the site The Fort Weekly newsletter summarizes. Events and region info come from the Fort Weekly plugin; workouts and backblast stats come from the stats API; posts and pages work as usual.
-Version: 0.2.6
+Version: 0.2.7
 Requires at least: 6.0
 Requires PHP: 7.4
 Author: F3 The Fort
@@ -280,6 +280,18 @@ a.fort-bb:hover .fort-bb__title { color: var(--amber-bright); }
 	.fort-sched { grid-template-columns: minmax(0, 1fr); }
 	.fort-sched__q { max-width: 11em; font-size: 14px; }
 }
+
+/* Submit: edit mode and the private edit link */
+.fort-field__label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-mute); }
+.fort-fixed { margin: 0; color: var(--text-bright); }
+.fort-hint { margin: 4px 0 0; font-size: 14px; }
+.fort-current-flyer { max-width: 160px; max-height: 200px; width: auto; border: 1px solid var(--line-2); }
+.fort-check { display: flex; gap: 8px; align-items: center; font-family: var(--body); font-size: 15px; letter-spacing: 0; text-transform: none; color: var(--text); }
+.fort-check input { width: auto; }
+.fort-editlink { display: flex; flex-direction: column; gap: 8px; border-color: var(--accent2); }
+.fort-editlink__row { display: flex; gap: 8px; }
+.fort-editlink__row input { flex: 1; min-width: 0; font-family: var(--mono); font-size: 13px; padding: 10px 12px; background: var(--bg-deep); border: 1px solid var(--line-2); color: var(--text-bright); }
+.fort-editlink__row .fort-btn { padding: 10px 14px; }
 
 /* Submit: preview before sending */
 .fort-preview { margin-top: 8px; }

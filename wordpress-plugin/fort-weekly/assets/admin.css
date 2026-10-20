@@ -107,3 +107,11 @@
 	.post-type-fort_event .column-fort_event .row-actions > span { padding: 0; }
 	.post-type-fort_event .column-fort_event .row-actions a { padding: 4px 0; }
 }
+
+/* Proposed changes */
+.fortw-diff th[scope=row] { width: 9em; }
+.fortw-diff td { vertical-align: top; }
+.fortw-diff__old { color: #8a2424; background: #fcf0f1; }
+.fortw-diff__new { color: #00450c; background: #edfaef; }
+.fortw-thumb--big { width: 120px; max-height: 160px; }
+.fortw-editlink input { margin: 4px 0; font-size: 12px; }

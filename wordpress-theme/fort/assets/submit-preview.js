@@ -51,7 +51,8 @@
 
     var when = part('when');
     when.textContent = '';
-    var date = longDate(val('f-date'));
+    var fixed = form.getAttribute('data-fixed-when'); // Edit mode, several dates: not editable here.
+    var date = fixed ? '' : longDate(val('f-date'));
     if (date) {
       var line = document.createElement('span');
       line.className = 'fort-facts__date';
@@ -67,7 +68,7 @@
       }
       when.appendChild(line);
     } else {
-      when.textContent = 'Ongoing — no date given';
+      when.textContent = fixed || 'Ongoing — no date given';
     }
 
     var where = oneLine(val('f-location'));
@@ -98,6 +99,8 @@
     }
     fig.hidden = true;
     problem.hidden = true;
+    var current = form.getAttribute('data-current-flyer');
+    var remove = document.getElementById('f-remove-flyer');
     if (file) {
       if (FLYER_TYPES.indexOf(file.type) === -1 || file.size > FLYER_MAX) {
         problem.hidden = false;
@@ -107,6 +110,10 @@
         fig.querySelector('img').alt = 'Flyer for ' + part('title').textContent;
         fig.hidden = false;
       }
+    } else if (current && !(remove && remove.checked)) {
+      fig.querySelector('img').src = current; // Edit mode: the flyer it already has.
+      fig.querySelector('img').alt = 'Flyer for ' + part('title').textContent;
+      fig.hidden = false;
     }
     return problem.hidden; // True when it can be sent (no flyer problem).
   }

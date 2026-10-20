@@ -3,7 +3,7 @@
  * Plugin Name:       Fort Weekly
  * Plugin URI:        https://f3thefort.com
  * Description:       The Fort's events, approvals, region info and The Fort Weekly newsletter, inside WordPress. PAX submit events, editors approve them, and approved events appear on the site and in the next issue.
- * Version:           0.1.7
+ * Version:           0.2.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            F3 The Fort
@@ -15,7 +15,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FORT_WEEKLY_VERSION', '0.1.7' );
+define( 'FORT_WEEKLY_VERSION', '0.2.0' );
 define( 'FORT_WEEKLY_FILE', __FILE__ );
 define( 'FORT_WEEKLY_DIR', __DIR__ );
 
@@ -29,6 +29,7 @@ require_once __DIR__ . '/includes/import.php';
 require_once __DIR__ . '/includes/workflow.php';
 require_once __DIR__ . '/includes/integrations.php';
 require_once __DIR__ . '/includes/submit.php';
+require_once __DIR__ . '/includes/edits.php';
 require_once __DIR__ . '/includes/mailchimp.php';
 require_once __DIR__ . '/includes/newsletter.php';
 if ( is_admin() ) {
@@ -37,6 +38,7 @@ if ( is_admin() ) {
 	require_once __DIR__ . '/includes/admin-tags.php';
 	require_once __DIR__ . '/includes/admin-region.php';
 	require_once __DIR__ . '/includes/admin-import.php';
+	require_once __DIR__ . '/includes/admin-changes.php';
 }
 
 register_activation_hook( __FILE__, 'fortw_activate' );

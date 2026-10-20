@@ -4,7 +4,8 @@
  * fort_submit). Everything lands as a pending event for an editor to approve; nothing is
  * published from here.
  *
- * Abuse limits: nonce + honeypot, 6 submissions an hour per visitor and 60 an hour in total,
+ * Abuse limits: nonce + honeypot, 6 submissions an hour per visitor (10 edits an hour per event)
+ * and 60 an hour in total,
  * field length caps, and a flyer that must really be a JPG/PNG/GIF/WebP under 5 MB.
  *
  * Behind a reverse proxy or CDN, define FORT_CLIENT_IP_HEADER in wp-config.php (for example
@@ -17,6 +18,7 @@ defined( 'ABSPATH' ) || exit;
 
 const FORTW_SUBMIT_PER_IP_HOUR = 6;
 const FORTW_SUBMIT_TOTAL_HOUR  = 60;
+const FORTW_EDITS_PER_EVENT_HOUR = 10;
 const FORTW_FLYER_MAX_BYTES    = 5242880; // 5 MB.
 
 add_action( 'admin_post_nopriv_fort_submit', 'fortw_handle_submission' );
@@ -78,14 +80,32 @@ function fortw_handle_submission() {
 		fortw_submit_redirect( array( 'fort_error' => 'missing', 'fields' => implode( ',', $errors ) ) );
 	}
 
-	$ip = fortw_client_ip();
-	if ( ! fortw_take_slot( 'fortw_sub_' . md5( $ip ), FORTW_SUBMIT_PER_IP_HOUR ) || ! fortw_take_slot( 'fortw_sub_all', FORTW_SUBMIT_TOTAL_HOUR ) ) {
+	// An edit of an existing event (its private edit link)?
+	$edit_param = isset( $_POST['fort_edit'] ) ? sanitize_text_field( wp_unslash( $_POST['fort_edit'] ) ) : '';
+	$event      = null;
+	if ( '' !== $edit_param ) {
+		$event = fortw_edit_target( $edit_param );
+		if ( is_wp_error( $event ) ) {
+			fortw_submit_redirect( array( 'fort_error' => 'link' ) );
+		}
+	}
+
+	// New submissions are limited per visitor; edits per event (so fixing a typo doesn't use up
+	// anyone's allowance). Both count toward the overall hourly limit.
+	$slot = $event
+		? fortw_take_slot( 'fortw_edit_' . $event->ID, FORTW_EDITS_PER_EVENT_HOUR )
+		: fortw_take_slot( 'fortw_sub_' . md5( fortw_client_ip() ), FORTW_SUBMIT_PER_IP_HOUR );
+	if ( ! $slot || ! fortw_take_slot( 'fortw_sub_all', FORTW_SUBMIT_TOTAL_HOUR ) ) {
 		fortw_submit_redirect( array( 'fort_error' => 'busy' ) );
 	}
 
 	$has_flyer = ! empty( $_FILES['flyer']['tmp_name'] ) && UPLOAD_ERR_NO_FILE !== (int) ( $_FILES['flyer']['error'] ?? UPLOAD_ERR_NO_FILE ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
 	if ( $has_flyer && ! fortw_flyer_ok( $_FILES['flyer'] ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- checked in fortw_flyer_ok
 		fortw_submit_redirect( array( 'fort_error' => 'image' ) );
+	}
+
+	if ( $event ) {
+		fortw_handle_submitter_edit( $event, $field, $title, $date, $description, $has_flyer );
 	}
 
 	$post_id = wp_insert_post(
@@ -133,7 +153,38 @@ function fortw_handle_submission() {
 	}
 
 	fortw_notify_new_submission( $post_id );
-	fortw_submit_redirect( array( 'submitted' => '1' ) );
+	fortw_submit_redirect( array( 'submitted' => '1', 'fort_link' => fortw_edit_param( $post_id ) ) );
+}
+
+/** The form came in through an edit link: save it as an edit of $event (see edits.php). */
+function fortw_handle_submitter_edit( $event, $field, $title, $date, $description, $has_flyer ) {
+	// phpcs:disable WordPress.Security.NonceVerification.Missing -- verified in fortw_handle_submission
+	$meta = array(
+		'_fort_leader'          => $field( 'leader', 120 ),
+		'_fort_location'        => $field( 'location', 200 ),
+		'_fort_link'            => isset( $_POST['link'] ) ? fortw_http_url( wp_unslash( $_POST['link'] ) ) : '', // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		'_fort_submitter_name'  => $field( 'submitter_name', 120 ),
+		'_fort_submitter_email' => sanitize_email( $field( 'submitter_email', 200 ) ),
+		'_fort_submitter_phone' => $field( 'submitter_phone', 40 ),
+	);
+	// Events with several dates (set by an editor) keep their dates; the form only edits one.
+	$occ = null;
+	if ( count( fortw_get_occurrences( $event->ID ) ) <= 1 ) {
+		$occ = $date ? array( array( 'date' => $date, 'start_time' => $field( 'start_time', 40 ), 'end_time' => $field( 'end_time', 40 ) ) ) : array();
+	}
+	$flyer = ! empty( $_POST['remove_flyer'] ) ? 'remove' : 'keep';
+	// phpcs:enable
+	$target = fortw_save_submitter_edit( $event, array( 'title' => $title, 'content' => $description, 'meta' => $meta, 'occurrences' => $occ, 'flyer' => $flyer ) );
+	if ( $has_flyer ) {
+		$attachment = fortw_store_flyer( $target );
+		if ( is_wp_error( $attachment ) ) {
+			error_log( 'Fort Weekly: flyer upload failed: ' . $attachment->get_error_message() );
+		} else {
+			set_post_thumbnail( $target, $attachment );
+		}
+	}
+	fortw_notify_submitter_edit( $event->ID, $target !== $event->ID );
+	fortw_submit_redirect( array( 'submitted' => '1', 'changed' => $target !== $event->ID ? 'live' : 'pending', 'fort_link' => fortw_edit_param( $event->ID ) ) );
 }
 
 /** The allowed flyer types, by extension. */

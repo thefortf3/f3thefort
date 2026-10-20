@@ -286,6 +286,11 @@ add_action(
 				}
 				break;
 			case 'fort_about':
+				$custom = apply_filters( 'fortw_queue_details', '', $post_id );
+				if ( '' !== $custom ) {
+					echo $custom; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped by the filter (admin-changes.php)
+					break;
+				}
 				$text = wp_trim_words( wp_strip_all_tags( $e['summary'] ? $e['summary'] : $e['description'] ), 30, '…' );
 				echo '<p class="fortw-excerpt">' . ( '' !== $text ? esc_html( $text ) : '<span class="fortw-dim">' . esc_html__( 'No description', 'fort-weekly' ) . '</span>' ) . '</p>';
 				$meta = array_filter( array( $e['location'] ? '📍 ' . $e['location'] : '', $e['leader'] ? 'Q: ' . $e['leader'] : '', $e['link'] ? __( 'has a sign-up link', 'fort-weekly' ) : '' ) );
@@ -399,7 +404,11 @@ add_action(
 				if ( ! current_user_can( 'publish_fort_events' ) ) {
 					wp_die( esc_html__( 'Sorry, you are not allowed to approve events.', 'fort-weekly' ), 403 );
 				}
-				fortw_approve( $post_id );
+				$result = fortw_approve( $post_id );
+				if ( ! is_wp_error( $result ) && fortw_is_change_result( $post_id, $result ) ) {
+					$do      = 'approve_change';
+					$post_id = (int) $result;
+				}
 				break;
 			case 'feature':
 			case 'unfeature':
@@ -473,6 +482,8 @@ add_action(
 		$messages = array(
 			/* translators: %s: event title */
 			'approve'      => sprintf( __( 'Approved “%s”. It is on the site now and goes in the next newsletter.', 'fort-weekly' ), $title ),
+			/* translators: %s: event title */
+			'approve_change' => sprintf( __( 'Approved the change to “%s”. The live event is updated.', 'fort-weekly' ), $title ),
 			/* translators: %s: event title */
 			'reject'       => sprintf( __( 'Rejected “%s”.', 'fort-weekly' ), $title ),
 			/* translators: %s: event title */
@@ -649,5 +660,10 @@ function fortw_render_event_cell( $e, $post ) {
 		</span>
 	</div>
 	<?php
+}
+
+/** True when approving $post_id applied a change (the result is the live event's id, not the post). */
+function fortw_is_change_result( $post_id, $result ) {
+	return is_int( $result ) && $result !== (int) $post_id;
 }
 

@@ -39,6 +39,9 @@ function fortw_meta_keys() {
 		'_fort_submitter_name'    => 'string',  // Private: shown to editors only.
 		'_fort_submitter_email'   => 'string',
 		'_fort_submitter_phone'   => 'string',
+		'_fort_edit_token'        => 'string',  // The submitter's private edit link (editors only).
+		'_fort_change_of'         => 'integer', // On a proposed change: the live event it changes.
+		'_fort_live_email_sent'   => 'string',  // When "your event is live" went to the submitter.
 	);
 }
 
