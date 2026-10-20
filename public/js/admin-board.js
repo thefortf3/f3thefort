@@ -84,7 +84,9 @@ function renderBoard() {
   board.innerHTML = '';
 
   // Unsorted lane first
-  const unsorted = allEntries.filter(e => !e.section);
+  // Incoming = still awaiting approval. Entries approved in the new admin with tags but no
+  // section (and rejected ones) don't belong in this lane.
+  const unsorted = allEntries.filter(e => !e.section && (e.status || 'pending') === 'pending');
   board.appendChild(buildLane(null, unsorted));
 
   // Locked Header (desk) lane — always first among sections

@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Newsletter</title>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <!-- =====================================================
+       Login View
+       ===================================================== -->
+  <div class="container">
+    <div id="login-view" class="login-container">
+      <div class="card">
+        <header class="page-header">
+          <span class="page-header__eyebrow">Restricted Area</span>
+          <h2 class="page-header__title">Admin Login</h2>
+          <p class="page-header__subtitle">Enter your credentials to manage newsletter entries</p>
+        </header>
+        <div id="login-alert"></div>
+        <form id="login-form">
+          <div class="form-group">
+            <label for="admin-password">Password</label>
+            <input type="password" id="admin-password" name="password" placeholder="Enter admin password" required autofocus>
+          </div>
+          <div class="form-actions" style="border-top: none; padding-top: 0; margin-top: 0;">
+            <div class="form-actions__right" style="justify-content: center;">
+              <button type="submit" class="btn btn--primary" id="login-btn">
+                <span id="login-text">Login</span>
+                <span id="login-spinner" class="spinner" style="display:none;"></span>
+              </button>
+            </div>
+          </div>
+        </form>
+        <p style="margin-top: var(--space-lg);">
+          <a href="/" class="btn btn--ghost">&larr; Back to Newsletter</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       Dashboard View
+       ===================================================== -->
+  <div id="dashboard-view" class="board-layout" style="display: none;">
+
+    <!-- Nav (full width) -->
+    <nav class="admin-nav">
+      <span class="admin-nav__brand">Fort Weekly Admin</span>
+      <div class="admin-nav__links">
+        <a href="/admin" class="admin-nav__link">New admin →</a>
+        <a href="/" class="admin-nav__link">Submit Entry</a>
+        <button class="admin-nav__btn" id="manage-sections-btn">Manage Sections</button>
+        <a href="/help.html" class="admin-nav__link">Help</a>
+        <a href="#" class="admin-nav__link" id="logout-btn">Logout</a>
+      </div>
+    </nav>
+
+    <!-- Two-column split: board (left) + preview (right) -->
+    <div class="board-split" id="board-split">
+
+      <!-- Board pane (left, scrollable) -->
+      <div class="board-pane">
+
+        <!-- Board Toolbar (tabs + actions) -->
+        <div class="board-toolbar">
+          <div class="board-tabs">
+            <button class="board-tab board-tab--active" data-tab="board">Board</button>
+            <button class="board-tab" data-tab="archive">Archive</button>
+          </div>
+          <div class="board-actions">
+            <span id="entry-count" style="font-family:var(--mono);font-size:0.65rem;color:var(--text-dim);letter-spacing:0.08em;"></span>
+            <button class="btn btn--ghost btn--sm" id="changelog-btn">Changes This Week</button>
+            <button class="btn btn--primary btn--sm" id="generate-newsletter-btn">&#9654; Preview Newsletter</button>
+          </div>
+        </div>
+
+        <!-- Board View -->
+        <div id="board-view">
+          <div id="kanban-board" class="kanban-board">
+            <!-- Lanes injected by JS -->
+          </div>
+        </div>
+
+        <!-- Archive View -->
+        <div id="archive-view" style="display:none;">
+          <div class="archive-toolbar">
+            <input id="archive-search" class="archive-search__input" type="text" placeholder="Search archive by title or description…" autocomplete="off">
+          </div>
+          <div id="archive-list"></div>
+        </div>
+
+      </div><!-- /.board-pane -->
+
+      <!-- Preview pane (right, sticky) -->
+      <aside class="preview-pane" id="preview-pane">
+        <div class="preview-pane__header">
+          <div class="preview-viewport-toggle">
+            <button class="preview-viewport-btn preview-viewport-btn--active" id="preview-desktop-btn" title="Desktop view">
+              <svg width="15" height="13" viewBox="0 0 24 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="1" width="22" height="14" rx="2"/><line x1="8" y1="19" x2="16" y2="19"/><line x1="12" y1="15" x2="12" y2="19"/></svg>
+            </button>
+            <button class="preview-viewport-btn" id="preview-mobile-btn" title="Mobile view (375px)">
+              <svg width="10" height="15" viewBox="0 0 16 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="1" width="14" height="22" rx="3"/><circle cx="8" cy="19" r="1" fill="currentColor" stroke="none"/></svg>
+            </button>
+          </div>
+          <span class="preview-pane__label">Newsletter Preview</span>
+          <div class="preview-pane__actions">
+            <a href="/newsletter-dark" target="_blank" class="btn btn--ghost btn--sm">Open &#8599;</a>
+            <button class="btn btn--secondary btn--sm" id="campaign-btn" style="display:none;">Create Campaign</button>
+            <button class="btn btn--ghost btn--sm preview-pane__close" id="preview-dismiss-btn" aria-label="Close preview">&#10005;</button>
+          </div>
+        </div>
+        <div class="preview-pane__viewport" id="preview-viewport">
+          <iframe id="newsletter-iframe" src="" frameborder="0"></iframe>
+        </div>
+      </aside>
+
+    </div><!-- /.board-split -->
+
+  </div>
+
+  <!-- =====================================================
+       Detail / Edit Modal
+       ===================================================== -->
+  <div class="modal-overlay" id="detail-modal">
+    <div class="modal modal--wide">
+      <div class="modal__header">
+        <h3 class="modal__title">Edit Entry</h3>
+        <button class="modal__close" id="modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal__body">
+        <form id="edit-entry-form" autocomplete="off">
+          <div class="edit-form__row">
+            <div class="edit-form__field edit-form__field--grow">
+              <label for="edit-title">Title</label>
+              <input type="text" id="edit-title" name="title" required>
+            </div>
+            <div class="edit-form__field">
+              <label for="edit-leader">Leader (Q)</label>
+              <input type="text" id="edit-leader" name="leader" placeholder="Optional">
+            </div>
+          </div>
+          <div class="edit-form__row">
+            <div class="edit-form__field">
+              <label for="edit-start-date">Start Date</label>
+              <input type="date" id="edit-start-date" name="start_date">
+            </div>
+            <div class="edit-form__field">
+              <label for="edit-start-time">Start Time</label>
+              <input type="text" id="edit-start-time" name="start_time" placeholder="e.g. 0530, Saturdays">
+            </div>
+            <div class="edit-form__field">
+              <label for="edit-end-time">End Time</label>
+              <input type="time" id="edit-end-time" name="end_time">
+            </div>
+            <div class="edit-form__field edit-form__field--grow">
+              <label for="edit-location">Location</label>
+              <input type="text" id="edit-location" name="location" placeholder="Optional">
+            </div>
+          </div>
+          <div class="edit-form__field edit-form__field--check" id="edit-upcoming-field" style="display:none;">
+            <label class="edit-check">
+              <input type="checkbox" id="edit-show-upcoming" name="show_in_upcoming">
+              <span>Also show in Upcoming Events <small>(links readers to this entry with a “Details below” note; uses the start date above)</small></span>
+            </label>
+          </div>
+          <div class="edit-form__field">
+            <label for="edit-link">Link</label>
+            <input type="url" id="edit-link" name="link" placeholder="https://…">
+          </div>
+          <div class="edit-form__field">
+            <label for="edit-video-url">Video URL</label>
+            <input type="url" id="edit-video-url" name="video_url" placeholder="https://www.youtube.com/watch?v=… or https://vimeo.com/…">
+          </div>
+          <div class="edit-form__field">
+            <label>Description</label>
+            <div class="rich-editor" id="modal-rich-editor">
+              <div class="rich-editor__toolbar" role="toolbar">
+                <button type="button" data-command="bold" title="Bold"><strong>B</strong></button>
+                <button type="button" data-command="italic" title="Italic"><em>I</em></button>
+                <button type="button" data-command="underline" title="Underline"><u>U</u></button>
+                <div class="separator"></div>
+                <button type="button" data-command="createLink" title="Link">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                </button>
+                <button type="button" data-command="insertImage" title="Image">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                </button>
+                <div class="separator"></div>
+                <button type="button" data-command="formatBlock" data-value="h3" title="Heading">H</button>
+                <button type="button" data-command="insertUnorderedList" title="Bullet List">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="currentColor"/><circle cx="3" cy="12" r="1" fill="currentColor"/><circle cx="3" cy="18" r="1" fill="currentColor"/></svg>
+                </button>
+                <button type="button" data-command="insertOrderedList" title="Numbered List">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><text x="1" y="7" font-size="8" fill="currentColor">1</text><text x="1" y="13" font-size="8" fill="currentColor">2</text><text x="1" y="19" font-size="8" fill="currentColor">3</text></svg>
+                </button>
+                <div class="separator"></div>
+                <button type="button" data-command="justifyLeft" title="Align Left">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
+                </button>
+                <button type="button" data-command="justifyCenter" title="Align Center">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+                </button>
+                <button type="button" data-command="justifyRight" title="Align Right">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg>
+                </button>
+              </div>
+              <div class="rich-editor__content" id="modal-editor-content" contenteditable="true"></div>
+            </div>
+            <input type="hidden" id="modal-description" name="description">
+          </div>
+          <div class="edit-form__field">
+            <label>Hero Image</label>
+            <div class="hero-upload" id="modal-hero-upload">
+              <input type="file" id="modal-hero-input" accept="image/*" style="display:none;">
+              <div class="hero-upload__placeholder" id="modal-hero-placeholder">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <span>Click to upload a hero image</span>
+                <span class="hero-upload__hint">Optional — appears at the top of your entry (max 5MB)</span>
+              </div>
+              <div class="hero-upload__preview" id="modal-hero-preview" style="display:none;">
+                <img id="modal-hero-img" src="" alt="Hero preview">
+                <button type="button" class="hero-upload__remove" id="modal-hero-remove" aria-label="Remove hero image">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+            </div>
+            <input type="hidden" id="modal-hero-value" name="hero_image">
+          </div>
+          <div id="edit-submitter-info" class="edit-submitter-info"></div>
+        </form>
+      </div>
+      <div class="modal__footer">
+        <select id="modal-section-dropdown" class="section-dropdown section-dropdown--modal" aria-label="Section">
+          <option value="">(none)</option>
+        </select>
+        <button class="btn btn--primary btn--sm" id="modal-save-btn">Save Changes</button>
+        <button class="btn btn--danger btn--sm" id="modal-delete-btn">Archive Entry</button>
+        <button class="btn btn--ghost btn--sm" id="modal-close-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       VQ Names Modal
+       ===================================================== -->
+  <div class="modal-overlay" id="vq-modal">
+    <div class="modal" style="max-width: 520px;">
+      <div class="modal__header">
+        <h3 class="modal__title">Generate Newsletter Preview</h3>
+        <button class="modal__close" id="vq-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal__body">
+        <div class="form-group">
+          <label>FNGs This Week</label>
+          <div id="vq-modal-fngs" class="vq-modal-fngs">—</div>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--ghost btn--sm" id="vq-modal-cancel">Cancel</button>
+        <button class="btn btn--primary btn--sm" id="vq-modal-confirm">Generate &amp; Preview</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       Changelog Modal
+       ===================================================== -->
+  <div class="modal-overlay" id="changelog-modal">
+    <div class="modal modal--wide">
+      <div class="modal__header">
+        <h3 class="modal__title">Changes This Week</h3>
+        <button class="modal__close" id="changelog-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal__body">
+        <pre id="changelog-output" class="changelog-output">Loading…</pre>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--secondary btn--sm" id="changelog-copy-btn">Copy to Clipboard</button>
+        <button class="btn btn--ghost btn--sm" id="changelog-close-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       Archive / Delete Confirm Modal
+       ===================================================== -->
+  <div class="modal-overlay" id="delete-modal">
+    <div class="modal" style="max-width: 420px;">
+      <div class="modal__header">
+        <h3 class="modal__title" id="delete-modal-title">Confirm Archive</h3>
+        <button class="modal__close" id="delete-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal__body">
+        <p style="font-size: 1rem; line-height: 1.6;" id="delete-modal-body">
+          This entry will be moved to the archive. You can restore it at any time.
+        </p>
+        <p style="font-style: italic; color: var(--color-text-muted); margin-top: var(--space-md);" id="delete-entry-title"></p>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--ghost btn--sm" id="delete-cancel-btn">Cancel</button>
+        <button class="btn btn--danger btn--sm" id="delete-confirm-btn">Archive</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       Sections Manager Modal
+       ===================================================== -->
+  <div class="modal-overlay" id="sections-modal">
+    <div class="modal modal--wide">
+      <div class="modal__header">
+        <h3 class="modal__title">Manage Sections</h3>
+        <button class="modal__close" id="sections-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal__body">
+        <div class="sections-manager">
+          <p style="font-family:var(--mono);font-size:0.7rem;color:var(--text-dim);margin-bottom:var(--space-md);">
+            Drag to reorder. Section order determines the newsletter column order.
+          </p>
+          <div class="sections-manager-list" id="sections-manager-list">
+            <!-- Rendered by JS -->
+          </div>
+          <div class="sections-manager__add-row">
+            <div class="form-group">
+              <label>New Section Name</label>
+              <input type="text" id="new-section-name" placeholder="e.g. Community Events" autocomplete="off">
+            </div>
+            <div class="form-group" style="flex:0 0 auto;">
+              <label>Color</label>
+              <input type="color" id="new-section-color" class="color-picker-input" value="#888888">
+            </div>
+            <button class="btn btn--secondary btn--sm" id="add-section-btn" style="flex-shrink:0;align-self:flex-end;margin-bottom:1rem;">
+              + Add Section
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--ghost btn--sm" id="sections-modal-close-btn">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       Three F's Editor Modal
+       ===================================================== -->
+  <div class="modal-overlay" id="three-fs-modal">
+    <div class="modal modal--wide">
+      <div class="modal__header">
+        <h3 class="modal__title">The Three F's</h3>
+        <button class="modal__close" id="three-fs-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal__body">
+        <div class="static-editor-tabs" id="three-fs-tabs">
+          <button class="static-editor-tab static-editor-tab--active" data-col="fitness">Fitness</button>
+          <button class="static-editor-tab" data-col="fellowship">Fellowship</button>
+          <button class="static-editor-tab" data-col="faith">Faith</button>
+        </div>
+        <div id="three-fs-list" class="static-editor-list"></div>
+        <div class="static-editor-add-form">
+          <div class="static-editor-add-form__row">
+            <div class="static-editor-add-form__field">
+              <label>Type</label>
+              <select id="three-fs-add-type" style="width:auto;">
+                <option value="event">Event</option>
+                <option value="link">Link</option>
+              </select>
+            </div>
+          </div>
+          <div id="three-fs-event-fields" class="static-editor-add-form__row">
+            <div class="static-editor-add-form__field static-editor-add-form__field--grow">
+              <label>Event Name</label>
+              <input type="text" id="three-fs-add-name" placeholder="e.g. Pizza Night">
+            </div>
+            <div class="static-editor-add-form__field static-editor-add-form__field--grow">
+              <label>Detail</label>
+              <input type="text" id="three-fs-add-detail" placeholder="e.g. 1800 · Every Fri · Main St">
+            </div>
+          </div>
+          <div id="three-fs-link-fields" class="static-editor-add-form__row" style="display:none;">
+            <div class="static-editor-add-form__field">
+              <label>Link Label</label>
+              <input type="text" id="three-fs-add-link-label" placeholder="e.g. Q Calendar">
+            </div>
+            <div class="static-editor-add-form__field static-editor-add-form__field--grow">
+              <label>URL</label>
+              <input type="url" id="three-fs-add-link-url" placeholder="https://…">
+            </div>
+          </div>
+          <button class="btn btn--secondary btn--sm" id="three-fs-add-btn">+ Add Item</button>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--ghost btn--sm" id="three-fs-modal-close-btn">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       SLT Editor Modal
+       ===================================================== -->
+  <div class="modal-overlay" id="slt-modal">
+    <div class="modal modal--wide">
+      <div class="modal__header">
+        <h3 class="modal__title">Shared Leadership Team</h3>
+        <button class="modal__close" id="slt-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal__body">
+        <div id="slt-list" class="static-editor-list"></div>
+        <div class="static-editor-add-form">
+          <div class="static-editor-add-form__row">
+            <div class="static-editor-add-form__field">
+              <label>Role</label>
+              <input type="text" id="slt-add-role" placeholder="e.g. Nan'tan">
+            </div>
+            <div class="static-editor-add-form__field static-editor-add-form__field--grow">
+              <label>Name</label>
+              <input type="text" id="slt-add-name" placeholder="e.g. Band Camp">
+            </div>
+            <button class="btn btn--secondary btn--sm" id="slt-add-btn" style="align-self:flex-end;margin-bottom:1rem;">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--ghost btn--sm" id="slt-modal-close-btn">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       Helpful Links Editor Modal
+       ===================================================== -->
+  <div class="modal-overlay" id="links-modal">
+    <div class="modal modal--wide">
+      <div class="modal__header">
+        <h3 class="modal__title">Helpful Links</h3>
+        <button class="modal__close" id="links-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal__body">
+        <div id="links-list" class="static-editor-list"></div>
+        <div class="static-editor-add-form">
+          <div class="static-editor-add-form__row">
+            <div class="static-editor-add-form__field">
+              <label>Label</label>
+              <input type="text" id="links-add-label" placeholder="e.g. Q Schedule">
+            </div>
+            <div class="static-editor-add-form__field">
+              <label>Name</label>
+              <input type="text" id="links-add-name" placeholder="e.g. GloomSchedule">
+            </div>
+            <div class="static-editor-add-form__field static-editor-add-form__field--grow">
+              <label>URL</label>
+              <input type="url" id="links-add-url" placeholder="https://…">
+            </div>
+            <button class="btn btn--secondary btn--sm" id="links-add-btn" style="align-self:flex-end;margin-bottom:1rem;">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--ghost btn--sm" id="links-modal-close-btn">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="vqs-modal">
+    <div class="modal modal--wide">
+      <div class="modal__header">
+        <h3 class="modal__title">VQs This Week</h3>
+        <button class="modal__close" id="vqs-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal__body">
+        <div id="vqs-list" class="static-editor-list"></div>
+        <div class="static-editor-add-form">
+          <div class="static-editor-add-form__row">
+            <div class="static-editor-add-form__field">
+              <label>Name</label>
+              <input type="text" id="vq-add-name" placeholder="F3 Name">
+            </div>
+            <div class="static-editor-add-form__field static-editor-add-form__field--grow">
+              <label>AO</label>
+              <input type="text" id="vq-add-ao" placeholder="e.g. Dawn Patrol">
+            </div>
+            <button class="btn btn--secondary btn--sm" id="vq-add-btn" style="align-self:flex-end;margin-bottom:1rem;">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--ghost btn--sm" id="vqs-modal-close-btn">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="shovel-flags-modal">
+    <div class="modal modal--wide">
+      <div class="modal__header">
+        <h3 class="modal__title">Shovel Flag Hand-off</h3>
+        <button class="modal__close" id="shovel-flags-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal__body">
+        <div id="shovel-flags-list" class="static-editor-list"></div>
+        <div class="static-editor-add-form">
+          <div class="static-editor-add-form__row">
+            <div class="static-editor-add-form__field">
+              <label>From</label>
+              <input type="text" id="sf-add-from" placeholder="Outgoing PAX">
+            </div>
+            <div class="static-editor-add-form__field">
+              <label>To</label>
+              <input type="text" id="sf-add-to" placeholder="Incoming PAX">
+            </div>
+            <div class="static-editor-add-form__field static-editor-add-form__field--grow">
+              <label>AO</label>
+              <input type="text" id="sf-add-ao" placeholder="e.g. Dawn Patrol">
+            </div>
+            <button class="btn btn--secondary btn--sm" id="sf-add-btn" style="align-self:flex-end;margin-bottom:1rem;">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--ghost btn--sm" id="shovel-flags-modal-close-btn">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="recurring-modal">
+    <div class="modal modal--wide">
+      <div class="modal__header">
+        <h3 class="modal__title">Upcoming Events</h3>
+        <button class="modal__close" id="recurring-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal__body">
+        <p class="static-editor-hint">Enter each occurrence with its actual date. Only events dated within the next 7 days appear in the newsletter.</p>
+        <div id="recurring-list" class="static-editor-list"></div>
+        <div class="static-editor-add-form">
+          <div class="static-editor-add-form__row">
+            <div class="static-editor-add-form__field">
+              <label>Date</label>
+              <input type="date" id="rec-add-date">
+            </div>
+            <div class="static-editor-add-form__field">
+              <label>Time</label>
+              <input type="text" id="rec-add-time" placeholder="0530–0615">
+            </div>
+            <div class="static-editor-add-form__field static-editor-add-form__field--grow">
+              <label>Name</label>
+              <input type="text" id="rec-add-name" placeholder="e.g. Coffeteria — East">
+            </div>
+          </div>
+          <div class="static-editor-add-form__row">
+            <div class="static-editor-add-form__field static-editor-add-form__field--grow">
+              <label>Location</label>
+              <input type="text" id="rec-add-location" placeholder="e.g. Humble Cup">
+            </div>
+            <div class="static-editor-add-form__field static-editor-add-form__field--grow">
+              <label>Note (optional)</label>
+              <input type="text" id="rec-add-note" placeholder="e.g. 3rd Thursday only">
+            </div>
+          </div>
+          <div class="static-editor-add-form__row">
+            <div class="static-editor-add-form__field static-editor-add-form__field--grow">
+              <label>Blurb (short description)</label>
+              <input type="text" id="rec-add-blurb" placeholder="One or two sentences about this event">
+            </div>
+          </div>
+          <div class="static-editor-add-form__row">
+            <div class="static-editor-add-form__field static-editor-add-form__field--grow">
+              <label>Details link (optional)</label>
+              <input type="url" id="rec-add-link" placeholder="https://…">
+            </div>
+            <button class="btn btn--secondary btn--sm" id="rec-add-btn" style="align-self:flex-end;margin-bottom:1rem;">+ Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--ghost btn--sm" id="recurring-modal-close-btn">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/admin-board.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initAdminBoard();
+    });
+  </script>
+</body>
+</html>

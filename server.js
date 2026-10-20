@@ -1684,9 +1684,12 @@ app.post('/api/admin/logout', (req, res) => {
   res.json({ success: true });
 });
 
-// Serve admin.html for /admin route
+// Admin: the entries list at /admin; the original kanban board stays available at /admin/classic
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+app.get('/admin/classic', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin-classic.html'));
 });
 
 // Serve newsletter-dark.html for /newsletter-dark route
