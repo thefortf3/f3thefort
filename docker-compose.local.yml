@@ -76,6 +76,7 @@ services:
     volumes:
       - wp:/var/www/html
       - ./wordpress-theme/fort:/var/www/html/wp-content/themes/fort:ro
+      - ./wordpress-plugin/fort-weekly:/var/www/html/wp-content/plugins/fort-weekly:ro
       - ./scripts/local/apache-uploads-proxy.conf:/etc/apache2/conf-enabled/fort-uploads-proxy.conf:ro
 
   wpcli:
@@ -92,6 +93,7 @@ services:
     volumes:
       - wp:/var/www/html
       - ./wordpress-theme/fort:/var/www/html/wp-content/themes/fort:ro
+      - ./wordpress-plugin/fort-weekly:/var/www/html/wp-content/plugins/fort-weekly:ro
       - ./.local/seed:/seed:ro
 
 volumes:
