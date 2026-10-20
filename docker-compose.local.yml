@@ -6,8 +6,11 @@
 #   docker compose -f docker-compose.local.yml up -d --build
 #   bash scripts/local/seed-wordpress.sh  # first run only: install WP + import sample posts
 #
-#   newsletter admin  → http://localhost:3002/admin   (password: test123)
-#   site              → http://localhost:8088
+#   newsletter admin  → http://$DEV_HOST:3002/admin   (password: test123)
+#   site              → http://$DEV_HOST:8088
+#
+# DEV_HOST is the name your browser uses to reach this machine (default develop.lan);
+# override with e.g. `DEV_HOST=localhost docker compose -f docker-compose.local.yml up -d`.
 #
 # Tear down (keeps nothing):  docker compose -f docker-compose.local.yml down -v
 
@@ -18,8 +21,8 @@ services:
       PORT: "3002"
       ADMIN_PASSWORD: test123
       DB_PATH: /data/dev.db
-      BASE_URL: http://localhost:3002
-      SITE_BASE_URL: http://localhost:8088
+      BASE_URL: http://${DEV_HOST:-develop.lan}:3002
+      SITE_BASE_URL: http://${DEV_HOST:-develop.lan}:8088
       FORT_SHARED_SECRET: local-only-secret
       SITE_FLUSH_URL: http://wordpress/wp-json/fort/v1/flush
       TZ: America/New_York
@@ -46,10 +49,14 @@ services:
       WORDPRESS_DB_USER: wordpress
       WORDPRESS_DB_PASSWORD: wordpress
       WORDPRESS_DB_NAME: wordpress
+      DEV_HOST: ${DEV_HOST:-develop.lan}
       WORDPRESS_CONFIG_EXTRA: |
+        define( 'WP_HOME', 'http://' . getenv( 'DEV_HOST' ) . ':8088' );
+        define( 'WP_SITEURL', 'http://' . getenv( 'DEV_HOST' ) . ':8088' );
         define( 'FORT_NL_API', 'http://newsletter:3002' );
         define( 'FORT_NL_SECRET', 'local-only-secret' );
         define( 'FORT_STATS_API', getenv( 'FORT_STATS_API' ) ?: 'http://stats:8080' );
+        define( 'FORT_STATS_URL', 'https://stats.f3thefort.com' );
         define( 'FORT_API_TTL', 15 );
     volumes:
       - wp:/var/www/html
@@ -61,6 +68,7 @@ services:
     depends_on: [wordpress]
     user: "33:33"
     environment:
+      DEV_HOST: ${DEV_HOST:-develop.lan}
       WORDPRESS_DB_HOST: db
       WORDPRESS_DB_USER: wordpress
       WORDPRESS_DB_PASSWORD: wordpress

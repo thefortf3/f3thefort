@@ -207,7 +207,7 @@ $bbs     = fort_backblasts( 4 );
 				<?php endif; ?>
 				<?php if ( ! empty( $summary['top_aos'][0] ) ) : ?>
 					<p class="fort-dim"><?php echo esc_html( sprintf( /* translators: 1: AO name, 2: number of posts */ __( 'Busiest AO: %1$s, %2$d posts.', 'fort' ), $summary['top_aos'][0]['ao'], (int) $summary['top_aos'][0]['posts'] ) ); ?>
-						<a class="fort-accent2" href="<?php echo esc_url( FORT_STATS_API ); ?>"><?php esc_html_e( 'Leaderboards & streaks ↗', 'fort' ); ?></a></p>
+						<a class="fort-accent2" href="<?php echo esc_url( FORT_STATS_URL ); ?>"><?php esc_html_e( 'Leaderboards & streaks ↗', 'fort' ); ?></a></p>
 				<?php endif; ?>
 			</section>
 		<?php endif; ?>

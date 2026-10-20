@@ -36,7 +36,7 @@ defined( 'ABSPATH' ) || exit;
 					<li><a href="<?php echo esc_url( home_url( '/#this-week' ) ); ?>"><?php esc_html_e( 'This week', 'fort' ); ?></a></li>
 					<li><a href="<?php echo esc_url( home_url( '/#coming-up' ) ); ?>"><?php esc_html_e( 'Calendar', 'fort' ); ?></a></li>
 					<li><a href="<?php echo esc_url( home_url( '/#backblasts' ) ); ?>"><?php esc_html_e( 'Backblasts', 'fort' ); ?></a></li>
-					<li><a href="<?php echo esc_url( FORT_STATS_API ); ?>"><?php esc_html_e( 'Stats ↗', 'fort' ); ?></a></li>
+					<li><a href="<?php echo esc_url( FORT_STATS_URL ); ?>"><?php esc_html_e( 'Stats ↗', 'fort' ); ?></a></li>
 				</ul>
 				<?php
 			}

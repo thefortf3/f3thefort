@@ -5,6 +5,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
+DEV_HOST="${DEV_HOST:-develop.lan}"
 COMPOSE=(docker compose -f docker-compose.local.yml)
 WP=("${COMPOSE[@]}" run --rm wpcli wp)
 mkdir -p .local/seed
@@ -14,7 +15,7 @@ for _ in $(seq 1 30); do "${WP[@]}" core version >/dev/null 2>&1 && break; sleep
 
 if ! "${WP[@]}" core is-installed >/dev/null 2>&1; then
   echo "[2/4] Installing WordPress…"
-  "${WP[@]}" core install --url=http://localhost:8088 --title="F3 The Fort" \
+  "${WP[@]}" core install --url="http://${DEV_HOST}:8088" --title="F3 The Fort" \
     --admin_user=admin --admin_password=admin --admin_email=admin@example.com --skip-email
 fi
 "${WP[@]}" rewrite structure '/%year%/%monthnum%/%day%/%postname%/' --hard >/dev/null
@@ -46,4 +47,4 @@ for i, p in enumerate(posts):
         wp('post', 'term', 'set', pid, 'category', *ids, '--by=id')
     print('  ', pid, html.unescape(p['title']['rendered']), cats)
 PY
-echo "Done → http://localhost:8088  (wp-admin: admin / admin)"
+echo "Done → http://${DEV_HOST}:8088  (wp-admin: admin / admin)"
