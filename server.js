@@ -18,6 +18,9 @@ import { importFngs } from './scripts/import-fngs.mjs';
 import { generateNewsletter } from './scripts/generate-newsletter.mjs';
 import { sanitizeHtml } from './lib/sanitize-html.js';
 import { rateLimit } from './lib/rate-limit.js';
+import { migrateEntries, getEntry, setOccurrences, uniqueSlug, legacyToOccurrence } from './lib/entries.js';
+import { registerEntryRoutes } from './lib/entries-routes.js';
+import { notifySubmission } from './lib/slack.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -296,6 +299,9 @@ if (sqlite.prepare('SELECT COUNT(*) as c FROM helpful_links').get().c === 0) {
     ('Newsletter','Submit Entries','https://submit.f3thefort.com',5)
   `);
 }
+
+// Approval status, slugs, multi-date occurrences, tags and region settings (all additive).
+migrateEntries(sqlite);
 
 function logAudit(submissionId, action, title, detail = null) {
   sqlite.prepare(
@@ -834,16 +840,8 @@ app.post('/api/submissions', submitLimiter, requireSameOrigin, async (req, res) 
       return res.status(400).json({ error: 'A start date is required for pre-blast posts.' });
     }
 
-    let preblastUrl = null;
-    if (preblast && preblast_content) {
-      try {
-        preblastUrl = await postPreblast(title, preblast_content, leader, location, start_date, link);
-      } catch (err) {
-        console.error('WordPress preblast post failed:', err.message);
-        return res.status(502).json({ error: `Failed to post to WordPress: ${err.message}` });
-      }
-    }
-
+    // New submissions wait for approval; the pre-blast (if requested) is posted to WordPress
+    // when an admin approves the entry, not here.
     const [row] = await db.insert(submissions).values({
       title,
       leader: leader || null,
@@ -858,11 +856,18 @@ app.post('/api/submissions', submitLimiter, requireSameOrigin, async (req, res) 
       submitter_name: submitter_name || null,
       submitter_email: submitter_email || null,
       submitter_phone: submitter_phone || null,
-      preblast_url: preblastUrl,
       preblast_content: (preblast && preblast_content) ? preblast_content : null,
+      status: 'pending',
+      preblast_requested: (preblast && preblast_content) ? 1 : 0,
+      origin: 'submission',
+      slug: uniqueSlug(sqlite, title),
     }).returning();
 
+    const occ = legacyToOccurrence(row.start_date, row.start_time, row.end_time);
+    if (occ) setOccurrences(sqlite, row.id, [occ]);
+
     logAudit(row.id, 'created', row.title, { section: null });
+    notifySubmission(getEntry(sqlite, row.id));  // never throws; dry-run unless Slack is configured
     res.status(201).json(row);
   } catch (err) {
     console.error('POST /api/submissions error:', err.message);
@@ -921,6 +926,24 @@ app.patch('/api/submissions/:id', requireAuth, async (req, res) => {
       .set(updates)
       .where(eq(submissions.id, id))
       .returning();
+
+    // Classic board compatibility: moving an entry out of Incoming into a section is its
+    // approval, and the section maps onto the matching tag.
+    if (section) {
+      if (existing.status !== 'approved') {
+        sqlite.prepare(`UPDATE submissions SET status = 'approved', approved_at = COALESCE(approved_at, CURRENT_TIMESTAMP) WHERE id = ?`).run(id);
+      }
+      sqlite.prepare(`INSERT OR IGNORE INTO submission_tags (submission_id, tag_id)
+        SELECT ?, id FROM tags WHERE legacy_section = ?`).run(id, section);
+    }
+    // Keep a single-date entry's occurrence in step with edits made on the classic board.
+    if (start_date !== undefined || start_time !== undefined || end_time !== undefined) {
+      const count = sqlite.prepare('SELECT COUNT(*) AS c FROM occurrences WHERE submission_id = ?').get(id).c;
+      if (count <= 1) {
+        const occ = legacyToOccurrence(row.start_date, row.start_time, row.end_time);
+        setOccurrences(sqlite, id, occ ? [occ] : []);
+      }
+    }
 
     // Audit log: section move
     if (section !== undefined && section !== existing.section) {
@@ -1631,6 +1654,9 @@ app.delete('/api/static/recurring-events/:id', requireAuth, (req, res) => {
     res.status(500).json({ error: 'Failed to delete recurring event' });
   }
 });
+
+// Entries admin API (approval, occurrences, tags, Nan'tan message)
+registerEntryRoutes(app, { sqlite, requireAuth, logAudit, postPreblast, sanitizeHtml });
 
 // Admin routes
 

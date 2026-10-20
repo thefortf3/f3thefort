@@ -23,6 +23,47 @@ export const submissions = sqliteTable('submissions', {
   submitter_phone: text('submitter_phone'),
   created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
   archived_at: text('archived_at'),
+  // Approval + entries model (see lib/entries.js; dates live in the `occurrences` table)
+  status: text('status'),
+  slug: text('slug'),
+  summary: text('summary'),
+  featured: integer('featured').default(0),
+  hold_from_newsletter: integer('hold_from_newsletter').default(0),
+  approved_at: text('approved_at'),
+  reject_reason: text('reject_reason'),
+  updated_at: text('updated_at'),
+  preblast_requested: integer('preblast_requested').default(0),
+  origin: text('origin'),
+});
+
+export const occurrences = sqliteTable('occurrences', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  submission_id: integer('submission_id').notNull(),
+  date: text('date').notNull(),
+  start_time: text('start_time'),
+  end_time: text('end_time'),
+  position: integer('position').default(0),
+});
+
+export const tags = sqliteTable('tags', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  label: text('label').notNull(),
+  slug: text('slug').notNull(),
+  color: text('color'),
+  position: integer('position').default(0),
+  legacy_section: text('legacy_section'),
+  created_at: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const submission_tags = sqliteTable('submission_tags', {
+  submission_id: integer('submission_id').notNull(),
+  tag_id: integer('tag_id').notNull(),
+});
+
+export const region_settings = sqliteTable('region_settings', {
+  key: text('key').primaryKey(),
+  value: text('value'),
+  updated_at: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const sections = sqliteTable('sections', {
