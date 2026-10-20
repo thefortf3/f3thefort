@@ -28,6 +28,7 @@ require_once __DIR__ . '/includes/public.php';
 require_once __DIR__ . '/includes/import.php';
 require_once __DIR__ . '/includes/workflow.php';
 require_once __DIR__ . '/includes/integrations.php';
+require_once __DIR__ . '/includes/submit.php';
 if ( is_admin() ) {
 	require_once __DIR__ . '/includes/admin-list.php';
 	require_once __DIR__ . '/includes/admin-edit.php';

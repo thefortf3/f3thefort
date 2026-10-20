@@ -50,3 +50,41 @@ function fortw_groq_summary( $title, $text ) {
 	$out  = trim( preg_replace( '/[\[(][^\])]*\blink\b[^\])]*[\])]/i', '', $out ) ); // A made-up "[link]" placeholder.
 	return mb_substr( $out, 0, 400 );
 }
+
+// ── Slack: "new submission needs approval" ──────────────────────────────
+//
+//   define( 'FORT_SLACK_BOT_TOKEN', 'xoxb-…' );
+//   define( 'FORT_SLACK_CHANNEL', 'C0123456' );
+//
+// Without both it only logs what it would have sent, so test sites never post to the workspace.
+
+function fortw_slack_configured() {
+	return defined( 'FORT_SLACK_BOT_TOKEN' ) && FORT_SLACK_BOT_TOKEN && defined( 'FORT_SLACK_CHANNEL' ) && FORT_SLACK_CHANNEL;
+}
+
+function fortw_notify_new_submission( $post_id ) {
+	$message = fortw_slack_message(
+		fortw_entry( $post_id ),
+		fortw_entry_private( $post_id ),
+		admin_url( 'post.php?post=' . (int) $post_id . '&action=edit' )
+	);
+	if ( ! fortw_slack_configured() ) {
+		error_log( '[fort-weekly slack dry-run] ' . $message['text'] );
+		return false;
+	}
+	$response = wp_remote_post(
+		'https://slack.com/api/chat.postMessage',
+		array(
+			'timeout' => 8,
+			'headers' => array( 'Content-Type' => 'application/json; charset=utf-8', 'Authorization' => 'Bearer ' . FORT_SLACK_BOT_TOKEN ),
+			'body'    => wp_json_encode( array_merge( array( 'channel' => FORT_SLACK_CHANNEL ), $message ) ),
+		)
+	);
+	$data = is_wp_error( $response ) ? null : json_decode( wp_remote_retrieve_body( $response ), true );
+	if ( empty( $data['ok'] ) ) {
+		// Never blocks the submission; editors still see the count in wp-admin.
+		error_log( 'Fort Weekly: Slack notify failed: ' . ( is_wp_error( $response ) ? $response->get_error_message() : ( $data['error'] ?? wp_remote_retrieve_response_code( $response ) ) ) );
+		return false;
+	}
+	return true;
+}

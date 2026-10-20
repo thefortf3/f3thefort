@@ -68,6 +68,8 @@ services:
         $$fort_host = preg_replace( '/[^A-Za-z0-9.:-]/', '', explode( ',', $$fort_host )[0] );
         define( 'WP_HOME', ( $$fort_https ? 'https://' : 'http://' ) . $$fort_host );
         define( 'WP_SITEURL', WP_HOME );
+        // The reverse proxy in front of this test site passes the visitor's address here.
+        define( 'FORT_CLIENT_IP_HEADER', 'HTTP_X_REAL_IP' );
         define( 'FORT_NL_API', 'http://newsletter:3002' );
         define( 'FORT_NL_SECRET', 'local-only-secret' );
         define( 'FORT_STATS_API', getenv( 'FORT_STATS_API' ) ?: 'http://stats:8080' );

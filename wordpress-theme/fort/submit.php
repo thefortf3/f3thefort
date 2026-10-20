@@ -1,7 +1,7 @@
 <?php
 /**
- * /submit/ — the PAX "Submit an event" form. Posts to admin-post.php (inc/submit.php), which
- * forwards to the newsletter app's approval queue.
+ * /submit/ — the PAX "Submit an event" form. Posts to admin-post.php, where the Fort Weekly
+ * plugin turns it into a pending event for an editor to approve.
  *
  * @package Fort
  */
@@ -10,7 +10,11 @@ defined( 'ABSPATH' ) || exit;
 
 // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only status flags in the URL
 $submitted = isset( $_GET['submitted'] );
-$error     = isset( $_GET['error'] ) ? sanitize_key( wp_unslash( $_GET['error'] ) ) : '';
+// Not "error": WordPress removes that parameter from every front-end request.
+$error     = isset( $_GET['fort_error'] ) ? sanitize_key( wp_unslash( $_GET['fort_error'] ) ) : '';
+if ( ! function_exists( 'fortw_handle_submission' ) ) {
+	$error = 'disabled'; // The Fort Weekly plugin isn't active.
+}
 $fields    = isset( $_GET['fields'] ) ? explode( ',', sanitize_text_field( wp_unslash( $_GET['fields'] ) ) ) : array();
 // phpcs:enable
 
@@ -44,7 +48,7 @@ get_header();
 		<?php endif; ?>
 	</div>
 
-	<?php if ( ! $submitted ) : ?>
+	<?php if ( ! $submitted && 'disabled' !== $error ) : ?>
 	<form class="fort-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data">
 		<input type="hidden" name="action" value="fort_submit">
 		<?php wp_nonce_field( 'fort_submit', 'fort_nonce' ); ?>

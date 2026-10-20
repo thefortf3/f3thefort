@@ -113,7 +113,7 @@ $principles = array(
 
 		<?php
 		// Today's and tomorrow's workouts (GloomSchedule, via the stats API). Independent of the
-		// newsletter app, so it still shows if that API is down.
+		// events, so it shows even when the calendar is empty.
 		$schedule = fort_schedule();
 		if ( $schedule ) :
 			?>

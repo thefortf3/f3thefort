@@ -45,6 +45,7 @@ const entries = listEntries(sqlite, { includeArchived: true }).map(e => ({
   video_url: e.video_url || null,
   hero_image: e.hero_image || null,
   preblast_url: e.preblast_url || null,
+  preblast_content: e.preblast_content || null,
   featured: e.featured,
   hold_from_newsletter: e.hold_from_newsletter,
   preblast_requested: e.preblast_requested,

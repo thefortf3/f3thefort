@@ -121,3 +121,60 @@ add_filter(
 	10,
 	3
 );
+
+// ── Pre-blast: posted when an event that asked for one is approved ──────
+
+add_action( 'fortw_event_approved', 'fortw_maybe_post_preblast' );
+
+/**
+ * Creates the Pre-Blast post for an approved event that requested one (once). It goes in the
+ * Pre-Blast category and, when "Where" matches an existing category (the AO), that one too. No
+ * new categories are made from free text. Returns the post id, 0 if none was needed, or WP_Error.
+ */
+function fortw_maybe_post_preblast( $post_id ) {
+	if ( fortw_importing() || ! get_post_meta( $post_id, '_fort_preblast_requested', true ) || get_post_meta( $post_id, '_fort_preblast_post_id', true ) ) {
+		return 0;
+	}
+	$e   = fortw_entry( $post_id );
+	$cat = get_cat_ID( 'Pre-Blast' );
+	if ( ! $cat ) {
+		$made = wp_insert_term( 'Pre-Blast', 'category' );
+		$cat  = is_wp_error( $made ) ? 0 : (int) $made['term_id'];
+	}
+	$cats = array_filter( array( $cat ) );
+	if ( $e['location'] ) {
+		$ao = get_term_by( 'name', $e['location'], 'category' );
+		if ( $ao ) {
+			$cats[] = (int) $ao->term_id;
+		}
+	}
+	$custom  = (string) get_post_meta( $post_id, '_fort_preblast_content', true );
+	$content = '' !== trim( $custom ) ? $custom : $e['description'];
+	$content .= "\n" . '<p><a href="' . esc_url( get_permalink( $post_id ) ) . '">' . esc_html__( 'Event details', 'fort-weekly' ) . '</a>'
+		. ( $e['link'] ? ' · <a href="' . esc_url( $e['link'] ) . '">' . esc_html__( 'Sign up', 'fort-weekly' ) . '</a>' : '' ) . '</p>';
+	$pre = wp_insert_post(
+		array(
+			'post_type'     => 'post',
+			'post_status'   => 'publish',
+			'post_title'    => $e['title'],
+			'post_content'  => wp_kses_post( $content ),
+			'post_category' => $cats,
+			'post_author'   => get_current_user_id(),
+		),
+		true
+	);
+	if ( is_wp_error( $pre ) ) {
+		error_log( 'Fort Weekly: pre-blast post failed: ' . $pre->get_error_message() );
+		return $pre;
+	}
+	// The fields the site's backblast/pre-blast posts carry (as the app's REST post set them).
+	if ( $e['leader'] ) {
+		update_post_meta( $pre, 'qic', $e['leader'] );
+	}
+	if ( $e['next_occurrence'] ) {
+		update_post_meta( $pre, 'workout_date', gmdate( 'm/d/Y', strtotime( $e['next_occurrence']['date'] . ' 00:00:00 UTC' ) ) );
+	}
+	update_post_meta( $post_id, '_fort_preblast_post_id', (int) $pre );
+	return (int) $pre;
+}
+

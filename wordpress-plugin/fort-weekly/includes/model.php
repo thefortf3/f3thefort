@@ -31,6 +31,7 @@ function fortw_meta_keys() {
 		'_fort_preblast_requested' => 'boolean',
 		'_fort_preblast_post_id'  => 'integer',
 		'_fort_preblast_url'      => 'string',  // From the old app, for imported events.
+		'_fort_preblast_content'  => 'string',  // Pre-blast text, if different from the description.
 		'_fort_approved_at'       => 'string',  // UTC, 'Y-m-d H:i:s'.
 		'_fort_reject_reason'     => 'string',
 		'_fort_origin'            => 'string',  // form / admin / import / recurring.

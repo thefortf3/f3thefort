@@ -182,6 +182,7 @@ function fortw_import_entry( $e, $dry, $update, $images, &$report ) {
 		'_fort_preblast_url'       => fortw_http_url( $e['preblast_url'] ?? '' ),
 		'_fort_hold'               => empty( $e['hold_from_newsletter'] ) ? '' : '1',
 		'_fort_preblast_requested' => empty( $e['preblast_requested'] ) ? '' : '1',
+		'_fort_preblast_content'   => wp_kses_post( (string) ( $e['preblast_content'] ?? '' ) ),
 		'_fort_approved_at'        => $text( $e['approved_at'] ?? '' ),
 		'_fort_reject_reason'      => sanitize_textarea_field( (string) ( $e['reject_reason'] ?? '' ) ),
 		'_fort_origin'             => $text( $e['origin'] ?? 'import' ),
