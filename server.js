@@ -15,7 +15,8 @@ import multer from 'multer';
 import juice from 'juice';
 import * as cheerio from 'cheerio';
 import { importFngs } from './scripts/import-fngs.mjs';
-import { generateNewsletter, generateAgendaNewsletter } from './scripts/generate-newsletter.mjs';
+import { generateNewsletter, generateAgendaNewsletter, getFngStats, getWeeklyFngs, getStaticSections } from './scripts/generate-newsletter.mjs';
+import { registerPublicRoutes } from './lib/public-api.js';
 import { sanitizeHtml } from './lib/sanitize-html.js';
 import { rateLimit } from './lib/rate-limit.js';
 import { migrateEntries, getEntry, setOccurrences, uniqueSlug, legacyToOccurrence } from './lib/entries.js';
@@ -829,52 +830,60 @@ app.post('/api/generate-snippet', snippetLimiter, requireSameOrigin, async (req,
   }
 });
 
+/**
+ * Creates a pending submission from a public form body (this app's form or the WordPress
+ * theme's, via /api/public/submissions). Returns { status, body } for the HTTP response.
+ */
+async function createSubmission(reqBody, origin = 'submission') {
+  const { title, leader, start_date, start_time, end_time, location, link, hero_image, video_url, submitter_name, submitter_email, submitter_phone, preblast } = reqBody || {};
+  // description and preblast_content are rich HTML from an unauthenticated endpoint —
+  // sanitize before storage so neither the admin editor nor the newsletter renders attacker markup.
+  const description = sanitizeHtml(reqBody?.description);
+  const preblast_content = sanitizeHtml(reqBody?.preblast_content);
+
+  if (!title || !description) {
+    return { status: 400, body: { error: 'Missing required fields: title, description' } };
+  }
+  if (preblast && !start_date) {
+    return { status: 400, body: { error: 'A start date is required for pre-blast posts.' } };
+  }
+
+  // New submissions wait for approval; the pre-blast (if requested) is posted to WordPress
+  // when an admin approves the entry, not here.
+  const [row] = await db.insert(submissions).values({
+    title,
+    leader: leader || null,
+    start_date: start_date || '',
+    start_time: start_time || null,
+    end_time: end_time || null,
+    location: location || null,
+    description,
+    link: link || null,
+    hero_image: hero_image || null,
+    video_url: video_url || null,
+    submitter_name: submitter_name || null,
+    submitter_email: submitter_email || null,
+    submitter_phone: submitter_phone || null,
+    preblast_content: (preblast && preblast_content) ? preblast_content : null,
+    status: 'pending',
+    preblast_requested: (preblast && preblast_content) ? 1 : 0,
+    origin,
+    slug: uniqueSlug(sqlite, title),
+  }).returning();
+
+  const occ = legacyToOccurrence(row.start_date, row.start_time, row.end_time);
+  if (occ) setOccurrences(sqlite, row.id, [occ]);
+
+  logAudit(row.id, 'created', row.title, { section: null, origin });
+  notifySubmission(getEntry(sqlite, row.id));  // never throws; dry-run unless Slack is configured
+  return { status: 201, body: row };
+}
+
 // POST /api/submissions — Create new submission
 app.post('/api/submissions', submitLimiter, requireSameOrigin, async (req, res) => {
   try {
-    const { title, leader, start_date, start_time, end_time, location, link, hero_image, video_url, submitter_name, submitter_email, submitter_phone, preblast } = req.body;
-    // description and preblast_content are rich HTML from an unauthenticated endpoint —
-    // sanitize before storage so neither the admin editor nor the newsletter renders attacker markup.
-    const description = sanitizeHtml(req.body.description);
-    const preblast_content = sanitizeHtml(req.body.preblast_content);
-
-    if (!title || !description) {
-      return res.status(400).json({ error: 'Missing required fields: title, description' });
-    }
-
-    if (preblast && !start_date) {
-      return res.status(400).json({ error: 'A start date is required for pre-blast posts.' });
-    }
-
-    // New submissions wait for approval; the pre-blast (if requested) is posted to WordPress
-    // when an admin approves the entry, not here.
-    const [row] = await db.insert(submissions).values({
-      title,
-      leader: leader || null,
-      start_date: start_date || '',
-      start_time: start_time || null,
-      end_time: end_time || null,
-      location: location || null,
-      description,
-      link: link || null,
-      hero_image: hero_image || null,
-      video_url: video_url || null,
-      submitter_name: submitter_name || null,
-      submitter_email: submitter_email || null,
-      submitter_phone: submitter_phone || null,
-      preblast_content: (preblast && preblast_content) ? preblast_content : null,
-      status: 'pending',
-      preblast_requested: (preblast && preblast_content) ? 1 : 0,
-      origin: 'submission',
-      slug: uniqueSlug(sqlite, title),
-    }).returning();
-
-    const occ = legacyToOccurrence(row.start_date, row.start_time, row.end_time);
-    if (occ) setOccurrences(sqlite, row.id, [occ]);
-
-    logAudit(row.id, 'created', row.title, { section: null });
-    notifySubmission(getEntry(sqlite, row.id));  // never throws; dry-run unless Slack is configured
-    res.status(201).json(row);
+    const { status, body } = await createSubmission(req.body);
+    res.status(status).json(body);
   } catch (err) {
     console.error('POST /api/submissions error:', err.message);
     res.status(500).json({ error: 'Failed to create submission' });
@@ -1663,6 +1672,17 @@ app.delete('/api/static/recurring-events/:id', requireAuth, (req, res) => {
 
 // Entries admin API (approval, occurrences, tags, Nan'tan message)
 registerEntryRoutes(app, { sqlite, requireAuth, logAudit, postPreblast, sanitizeHtml });
+
+// Public read-only API for the WordPress theme, and its shared-secret submission proxy
+registerPublicRoutes(app, {
+  sqlite,
+  sanitizeHtml,
+  loadRegionInputs: () => ({ statics: getStaticSections(DB_PATH), fngStats: getFngStats(DB_PATH), weeklyFngs: getWeeklyFngs(DB_PATH) }),
+  createSubmission,
+  upload,
+  makeLimiter,
+  windowMs: WINDOW_MS,
+});
 
 // Admin routes
 

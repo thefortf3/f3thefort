@@ -129,7 +129,7 @@ function getSections(dbPath) {
   return rows;
 }
 
-function getFngStats(dbPath) {
+export function getFngStats(dbPath) {
   const db = new Database(dbPath);
   const goal = 226;
   const now = new Date();
@@ -163,7 +163,7 @@ function getFngStats(dbPath) {
   };
 }
 
-function getWeeklyFngs(dbPath) {
+export function getWeeklyFngs(dbPath) {
   const now = new Date();
   const dayOfWeek = now.getDay();
   const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
@@ -189,7 +189,7 @@ function getWeeklyFngs(dbPath) {
 }
 
 // ─── Static section data ─────────────────────────────────────────────
-function getStaticSections(dbPath) {
+export function getStaticSections(dbPath) {
   const db = new Database(dbPath);
   const threeFsItems = db.prepare('SELECT * FROM three_fs_items ORDER BY f_column, position ASC').all();
   const sltEntries = db.prepare('SELECT * FROM slt_entries ORDER BY position ASC').all();
