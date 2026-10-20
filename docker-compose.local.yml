@@ -1,27 +1,31 @@
-# Local-only preview stack: the newsletter app + a throwaway WordPress running the Fort theme.
-# Nothing here talks to production. Slack stays in dry-run, pre-blast posting is off, and no
-# Mailchimp keys are set.
+# Local-only preview stack: a throwaway WordPress running the Fort theme and the Fort Weekly
+# plugin (events, approvals, newsletter). Nothing here talks to production: Slack stays in
+# dry-run, and no Mailchimp or Groq keys are set.
 #
-#   cp dev.db .local/data/dev.db          # a COPY — the app migrates it on start
-#   docker compose -f docker-compose.local.yml up -d --build
-#   bash scripts/local/seed-wordpress.sh  # first run only: install WP + import sample posts
+#   cp dev.db .local/data/dev.db          # a COPY of the old app's database (for the import)
+#   docker compose -f docker-compose.local.yml up -d
+#   bash scripts/local/seed-wordpress.sh  # first run only: install WP, sample posts, import events
 #
-#   newsletter admin  → http://$DEV_HOST:3002/admin   (password: test123)
-#   site              → http://$DEV_HOST:8088, or any hostname / https proxy that forwards to it
+#   site      → http://$DEV_HOST:8088, or any hostname / https proxy that forwards to it
+#   wp-admin  → /wp-admin  (admin: password in .local/wp-admin-password;
+#                           Fort editor "fortedit": .local/wp-editor-password)
 #
-# The site takes its address from each request (Host, X-Forwarded-Host/-Proto), and entry images
-# are served from the site's own origin (/uploads/ is proxied to the app), so it works through a
-# reverse proxy as well as directly.
+# The site takes its address from each request (Host, X-Forwarded-Host/-Proto), so it works
+# through a reverse proxy as well as directly.
 #
-# DEV_HOST is the name your browser uses to reach this machine (default develop.lan). It's used
-# for the admin's links, the email preview, and as the site address for wp-cli; override with e.g.
-# `DEV_HOST=localhost docker compose -f docker-compose.local.yml up -d`.
+# The old newsletter app is the optional "legacy" profile, used to export its data and serve its
+# images during an import, or to compare side by side:
+#   docker compose -f docker-compose.local.yml --profile legacy up -d newsletter   # :3002/admin, test123
+#
+# DEV_HOST is the name your browser uses to reach this machine (default develop.lan); it's the
+# site address for wp-cli. Override with e.g. `DEV_HOST=localhost docker compose … up -d`.
 #
 # Tear down (keeps nothing):  docker compose -f docker-compose.local.yml down -v
 
 services:
   newsletter:
     build: .
+    profiles: [legacy]
     environment:
       PORT: "3002"
       ADMIN_PASSWORD: test123
@@ -49,10 +53,8 @@ services:
 
   wordpress:
     image: wordpress:6-php8.2-apache
-    depends_on: [db, newsletter]
+    depends_on: [db]
     ports: ["8088:80"]
-    # Enable Apache's proxy modules for /uploads/, then hand over to the image's normal start-up.
-    command: ["bash", "-c", "a2enmod -q proxy proxy_http && exec docker-entrypoint.sh apache2-foreground"]
     environment:
       WORDPRESS_DB_HOST: db
       WORDPRESS_DB_USER: wordpress
@@ -70,16 +72,12 @@ services:
         define( 'WP_SITEURL', WP_HOME );
         // The reverse proxy in front of this test site passes the visitor's address here.
         define( 'FORT_CLIENT_IP_HEADER', 'HTTP_X_REAL_IP' );
-        define( 'FORT_NL_API', 'http://newsletter:3002' );
-        define( 'FORT_NL_SECRET', 'local-only-secret' );
         define( 'FORT_STATS_API', getenv( 'FORT_STATS_API' ) ?: 'http://stats:8080' );
         define( 'FORT_STATS_URL', 'https://stats.f3thefort.com' );
-        define( 'FORT_API_TTL', 15 );
     volumes:
       - wp:/var/www/html
       - ./wordpress-theme/fort:/var/www/html/wp-content/themes/fort:ro
       - ./wordpress-plugin/fort-weekly:/var/www/html/wp-content/plugins/fort-weekly:ro
-      - ./scripts/local/apache-uploads-proxy.conf:/etc/apache2/conf-enabled/fort-uploads-proxy.conf:ro
 
   wpcli:
     image: wordpress:cli-php8.2
