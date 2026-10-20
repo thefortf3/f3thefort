@@ -25,6 +25,10 @@ foreach ( glob( __DIR__ . '/includes/pure/*.php' ) as $fortw_file ) {
 require_once __DIR__ . '/includes/model.php';
 require_once __DIR__ . '/includes/entries.php';
 require_once __DIR__ . '/includes/public.php';
+require_once __DIR__ . '/includes/import.php';
+if ( is_admin() ) {
+	require_once __DIR__ . '/includes/admin-import.php';
+}
 
 register_activation_hook( __FILE__, 'fortw_activate' );
 register_deactivation_hook( __FILE__, 'fortw_deactivate' );

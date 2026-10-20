@@ -130,8 +130,17 @@ function fortw_next_date_key( $occurrences, $today ) {
 	return $next ? $next['date'] : '0000-00-00';
 }
 
-/** Sort order for entry lists: next date first (soonest first), then undated, then past (most recent first). */
+/**
+ * Sort order for entry lists: next date first (soonest first), then undated, then past (most
+ * recent first). Ties keep creation order (oldest first), as the old app's stable sort did.
+ */
 function fortw_compare_entries( $a, $b ) {
+	return fortw_compare_entries_main( $a, $b )
+		?: strcmp( (string) ( $a['created_at'] ?? '' ), (string) ( $b['created_at'] ?? '' ) )
+		?: ( ( $a['id'] ?? 0 ) <=> ( $b['id'] ?? 0 ) );
+}
+
+function fortw_compare_entries_main( $a, $b ) {
 	$an = $a['next_occurrence']['date'] ?? null;
 	$bn = $b['next_occurrence']['date'] ?? null;
 	if ( $an && $bn ) {
