@@ -11,7 +11,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FORT_THEME_VERSION', '0.2.0' );
+define( 'FORT_THEME_VERSION', '0.2.1' );
 
 require_once __DIR__ . '/inc/config.php';
 require_once __DIR__ . '/inc/api.php';
@@ -42,6 +42,9 @@ add_action(
 		wp_enqueue_style( 'fort-fonts', 'https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap', array(), null );
 		wp_enqueue_style( 'fort', get_stylesheet_uri(), array( 'fort-fonts' ), FORT_THEME_VERSION );
 		wp_add_inline_style( 'fort', ':root{--accent2:' . esc_attr( fort_accent2() ) . ';}' );
+		if ( get_query_var( 'fort_submit' ) ) {
+			wp_enqueue_script( 'fort-submit-preview', get_template_directory_uri() . '/assets/submit-preview.js', array(), FORT_THEME_VERSION, true );
+		}
 	}
 );
 

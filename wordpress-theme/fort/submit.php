@@ -83,8 +83,42 @@ get_header();
 			</div>
 		</fieldset>
 
-		<button class="fort-btn" type="submit"><?php esc_html_e( 'Send for approval', 'fort' ); ?></button>
+		<div class="fort-actions">
+			<?php // With JavaScript, "Preview" replaces the plain send button (assets/submit-preview.js). ?>
+			<button class="fort-btn" type="button" id="fort-preview-open" hidden><?php esc_html_e( 'Preview', 'fort' ); ?></button>
+			<button class="fort-btn" type="submit" id="fort-send"><?php esc_html_e( 'Send for approval', 'fort' ); ?></button>
+		</div>
 	</form>
+
+	<section id="fort-preview" class="fort-preview" hidden aria-labelledby="fort-preview-label">
+		<p class="fort-preview__banner" id="fort-preview-label" tabindex="-1">
+			<strong><?php esc_html_e( 'Preview', 'fort' ); ?></strong>
+			<?php esc_html_e( 'This is how your event will look on the site once it’s approved. Nothing has been sent yet.', 'fort' ); ?>
+		</p>
+		<div class="fort-preview__page">
+			<header class="fort-entry__head">
+				<h1 class="fort-entry__title" data-preview="title"></h1>
+			</header>
+			<figure class="fort-entry__hero" data-preview="flyer" hidden><img alt=""></figure>
+			<p class="fort-alert fort-alert--error" data-preview="flyer-problem" hidden><?php esc_html_e( 'That flyer won’t go through: use a JPG, PNG, GIF or WebP under 5 MB, or leave it off.', 'fort' ); ?></p>
+			<dl class="fort-facts">
+				<dt><?php esc_html_e( 'When', 'fort' ); ?></dt>
+				<dd data-preview="when"></dd>
+				<dt data-preview-row="where"><?php esc_html_e( 'Where', 'fort' ); ?></dt>
+				<dd data-preview-row="where" data-preview="where"></dd>
+				<dt data-preview-row="q"><?php esc_html_e( 'Q', 'fort' ); ?></dt>
+				<dd data-preview-row="q" data-preview="q"></dd>
+			</dl>
+			<div class="fort-actions fort-actions--full" data-preview="link-row" hidden>
+				<span class="fort-btn"><?php esc_html_e( 'Details / register ↗', 'fort' ); ?></span>
+			</div>
+			<div class="fort-prose" data-preview="description"></div>
+		</div>
+		<div class="fort-actions fort-preview__actions">
+			<button class="fort-btn" type="button" id="fort-preview-send"><?php esc_html_e( 'Looks good — send for approval', 'fort' ); ?></button>
+			<button class="fort-btn fort-btn--outline" type="button" id="fort-preview-edit"><?php esc_html_e( 'Keep editing', 'fort' ); ?></button>
+		</div>
+	</section>
 	<?php endif; ?>
 </main>
 <?php

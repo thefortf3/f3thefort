@@ -2,7 +2,7 @@
 Theme Name: Fort
 Theme URI: https://f3thefort.com
 Description: F3 The Fort — the site The Fort Weekly newsletter summarizes. Events and region info come from the Fort Weekly plugin; workouts and backblast stats come from the stats API; posts and pages work as usual.
-Version: 0.2.0
+Version: 0.2.1
 Requires at least: 6.0
 Requires PHP: 7.4
 Author: F3 The Fort
@@ -237,6 +237,16 @@ a.fort-bb:hover .fort-bb__title { color: var(--amber-bright); }
 .fort-alert { padding: 14px 16px; margin-bottom: 20px; border: 1px solid var(--line-2); background: var(--panel); }
 .fort-alert--ok { border-color: var(--accent2); }
 .fort-alert--error { border-color: #d98a6a; color: #f0c1ad; }
+
+/* Submit: preview before sending */
+.fort-preview { margin-top: 8px; }
+.fort-preview__banner { margin: 0 0 24px; padding: 14px 16px; border: 1px solid var(--accent2); border-left-width: 4px; background: color-mix(in srgb, var(--accent2) 10%, var(--bg)); color: var(--text-bright); }
+.fort-preview__banner:focus { outline: none; }
+.fort-preview__page { padding: 24px 0 8px; border-top: 1px dashed var(--line-2); border-bottom: 1px dashed var(--line-2); }
+.fort-preview__page .fort-btn { cursor: default; }
+.fort-preview__actions { margin-top: 24px; }
+/* The theme gives buttons and the form a display value, which would override the hidden attribute. */
+.fort-submit [hidden] { display: none !important; }
 
 /* Footer */
 .fort-footer { background: var(--bg-deep); border-top: 1px solid var(--line); }
