@@ -88,12 +88,11 @@ function fort_entry_image( $entry ) {
 	return '';
 }
 
-/** Region data (from the homepage payload), cached per request. */
+/** Region data (Nan'tan note, Three F's, SLT, links…), cached per request. */
 function fort_region() {
 	static $region = null;
 	if ( null === $region ) {
-		$home   = fort_home();
-		$region = $home['region'] ?? array();
+		$region = function_exists( 'fort_weekly_region' ) ? fort_weekly_region() : array();
 	}
 	return $region;
 }

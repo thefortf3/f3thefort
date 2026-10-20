@@ -1,11 +1,10 @@
 <?php
 /**
- * Cached reads from the newsletter app's public API and the stats API.
+ * Where the theme's data comes from: events and region info from the Fort Weekly plugin (in this
+ * WordPress), and workouts, backblasts and stats from the stats API.
  *
- * Every response is cached in a transient; the newsletter app can bump the cache version
- * through POST /wp-json/fort/v1/flush when an entry is approved or edited. The last good copy
- * of each response is also kept in an option, so the site keeps showing data if an API is
- * briefly unreachable.
+ * Stats responses are cached in a transient; the last good copy of each is also kept in an
+ * option, so the site keeps showing data if the stats API is briefly unreachable.
  *
  * @package Fort
  */
@@ -67,23 +66,23 @@ function fort_is_missing( $data ) {
 	return ! is_array( $data ) || ! empty( $data['__missing'] );
 }
 
-/** Homepage data: featured, this week, coming up, ongoing, region info. */
+/** Homepage data: featured, this week, coming up, ongoing, region info. Null without the plugin. */
 function fort_home() {
-	$data = fort_remote_json( FORT_NL_API, '/api/public/home', FORT_API_TTL );
-	return fort_is_missing( $data ) ? null : $data;
+	static $home = false;
+	if ( false === $home ) {
+		$home = function_exists( 'fort_weekly_home' ) ? fort_weekly_home() : null;
+	}
+	return $home;
 }
 
-/** One entry page by slug: array( entry, same_day, related ) or null. */
-function fort_entry( $slug ) {
-	$data = fort_remote_json( FORT_NL_API, '/api/public/entries/' . rawurlencode( $slug ), FORT_API_TTL );
-	return fort_is_missing( $data ) || empty( $data['entry'] ) ? null : $data;
+/** One event page: array( entry, same_day, related ) or null. $post: the event post (or its slug). */
+function fort_entry( $post ) {
+	return function_exists( 'fort_weekly_entry_page' ) ? fort_weekly_entry_page( $post ) : null;
 }
 
-/** Upcoming entries, optionally filtered by tag slug. */
+/** Upcoming events, optionally filtered (tag, from, to, include_past, limit). */
 function fort_entries( $args = array() ) {
-	$query = $args ? '?' . http_build_query( $args ) : '';
-	$data  = fort_remote_json( FORT_NL_API, '/api/public/entries' . $query, FORT_API_TTL );
-	return fort_is_missing( $data ) ? array() : ( $data['items'] ?? array() );
+	return function_exists( 'fort_weekly_entries' ) ? fort_weekly_entries( $args ) : array();
 }
 
 /** Recent workouts (backblasts) from the stats API, newest first. */

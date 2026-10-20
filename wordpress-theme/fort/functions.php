@@ -11,7 +11,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FORT_THEME_VERSION', '0.1.3' );
+define( 'FORT_THEME_VERSION', '0.2.0' );
 
 require_once __DIR__ . '/inc/config.php';
 require_once __DIR__ . '/inc/api.php';
@@ -118,12 +118,11 @@ add_action(
 	}
 );
 
-// ── Routes: /events/<slug>/ and /submit/ ──────────────────────────────
+// ── Routes: /submit/ (events at /events/<slug>/ are the plugin's post type) ──
 
 add_action(
 	'init',
 	function () {
-		add_rewrite_rule( '^events/([^/]+)/?$', 'index.php?fort_event=$matches[1]', 'top' );
 		add_rewrite_rule( '^submit/?$', 'index.php?fort_submit=1', 'top' );
 	}
 );
@@ -131,21 +130,24 @@ add_action(
 add_filter(
 	'query_vars',
 	function ( $vars ) {
-		$vars[] = 'fort_event';
 		$vars[] = 'fort_submit';
 		return $vars;
 	}
 );
 
+/** True on an event page (the Fort Weekly plugin's fort_event post type). */
+function fort_is_event_page() {
+	return is_singular( 'fort_event' );
+}
+
 add_action( 'after_switch_theme', 'flush_rewrite_rules' );
 
-/** The current entry for /events/<slug>/ requests (loaded once). */
+/** The current event page's data (loaded once). WordPress has already checked who may see it. */
 function fort_current_entry() {
 	static $loaded = false, $data = null;
 	if ( ! $loaded ) {
 		$loaded = true;
-		$slug   = get_query_var( 'fort_event' );
-		$data   = $slug ? fort_entry( sanitize_title( $slug ) ) : null;
+		$data   = fort_is_event_page() ? fort_entry( get_queried_object() ) : null;
 	}
 	return $data;
 }
@@ -161,7 +163,7 @@ add_filter(
 			nocache_headers();
 			return locate_template( 'submit.php' ) ?: $template;
 		}
-		if ( get_query_var( 'fort_event' ) ) {
+		if ( fort_is_event_page() ) {
 			if ( ! fort_current_entry() ) {
 				global $wp_query;
 				$wp_query->set_404();
@@ -179,7 +181,7 @@ add_filter(
 add_action(
 	'parse_query',
 	function ( $q ) {
-		if ( $q->is_main_query() && ( $q->get( 'fort_event' ) || $q->get( 'fort_submit' ) ) ) {
+		if ( $q->is_main_query() && $q->get( 'fort_submit' ) ) {
 			$q->is_home = false;
 			$q->is_page = true;
 		}
@@ -192,7 +194,7 @@ add_filter(
 		if ( get_query_var( 'fort_submit' ) ) {
 			return __( 'Submit an event', 'fort' ) . ' — ' . get_bloginfo( 'name' );
 		}
-		$data = get_query_var( 'fort_event' ) ? fort_current_entry() : null;
+		$data = fort_current_entry();
 		return $data ? $data['entry']['title'] . ' — ' . get_bloginfo( 'name' ) : $title;
 	}
 );
@@ -201,7 +203,7 @@ add_filter(
 add_action(
 	'wp_head',
 	function () {
-		$data = get_query_var( 'fort_event' ) ? fort_current_entry() : null;
+		$data = fort_current_entry();
 		if ( ! $data ) {
 			return;
 		}
@@ -220,31 +222,4 @@ add_action(
 	}
 );
 
-// ── Cache flush hook for the newsletter app ───────────────────────────
-
-add_action(
-	'rest_api_init',
-	function () {
-		register_rest_route(
-			'fort/v1',
-			'/flush',
-			array(
-				'methods'             => 'POST',
-				'permission_callback' => '__return_true',
-				'callback'            => function ( WP_REST_Request $req ) {
-					$sent = (string) $req->get_header( 'x_fort_secret' );
-					if ( '' === FORT_NL_SECRET || ! hash_equals( FORT_NL_SECRET, $sent ) ) {
-						return new WP_Error( 'fort_forbidden', 'Forbidden', array( 'status' => 401 ) );
-					}
-					fort_flush_cache();
-					// The live site runs WP Super Cache; drop its cached pages too so an approval
-					// shows up right away rather than when the page cache expires.
-					if ( function_exists( 'wp_cache_clear_cache' ) ) {
-						wp_cache_clear_cache();
-					}
-					return array( 'flushed' => true );
-				},
-			)
-		);
-	}
-);
+// Approvals and edits clear the page cache from the plugin (fortw_clear_page_cache()).
