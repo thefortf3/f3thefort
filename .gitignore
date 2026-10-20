@@ -9,6 +9,7 @@ fng-data.csv
 .env
 # Generated newsletter output
 newsletter-dark.html
+newsletter-agenda.html
 newsletter-email.html
 newsletter-email-rendered.html
 newsletter-preview.html

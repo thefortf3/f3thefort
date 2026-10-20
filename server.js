@@ -15,7 +15,7 @@ import multer from 'multer';
 import juice from 'juice';
 import * as cheerio from 'cheerio';
 import { importFngs } from './scripts/import-fngs.mjs';
-import { generateNewsletter } from './scripts/generate-newsletter.mjs';
+import { generateNewsletter, generateAgendaNewsletter } from './scripts/generate-newsletter.mjs';
 import { sanitizeHtml } from './lib/sanitize-html.js';
 import { rateLimit } from './lib/rate-limit.js';
 import { migrateEntries, getEntry, setOccurrences, uniqueSlug, legacyToOccurrence } from './lib/entries.js';
@@ -653,6 +653,12 @@ app.post('/api/newsletter/generate', requireAuth, async (req, res) => {
     const proto = req.get('x-forwarded-proto') || req.protocol;
     const host = req.get('x-forwarded-host') || req.get('host');
     const derivedBaseUrl = process.env.BASE_URL || `${proto}://${host}`;
+    // The agenda layout renders to its own file so previewing it never replaces the classic
+    // newsletter-dark.html that the campaign button sends.
+    if ((req.body?.layout || process.env.NEWSLETTER_LAYOUT) === 'agenda') {
+      generateAgendaNewsletter({ dbPath: DB_PATH, outputPath: path.join(__dirname, 'newsletter-agenda.html'), baseUrl: derivedBaseUrl });
+      return res.json({ success: true, url: '/newsletter-email-preview?layout=agenda' });
+    }
     generateNewsletter({ dbPath: DB_PATH, outputPath, baseUrl: derivedBaseUrl });
     console.log('Newsletter generated successfully');
     res.json({ success: true, url: '/newsletter-email-preview' });
@@ -1704,7 +1710,7 @@ app.get('/newsletter-dark', (req, res) => {
 
 // Serve the email-prepared HTML (juice-inlined, var() resolved) for testing
 app.get('/newsletter-email-preview', (req, res) => {
-  const filePath = path.join(__dirname, 'newsletter-dark.html');
+  const filePath = path.join(__dirname, req.query.layout === 'agenda' ? 'newsletter-agenda.html' : 'newsletter-dark.html');
   if (!existsSync(filePath)) {
     return res.status(404).send('Newsletter not generated yet. Use admin dashboard to generate.');
   }

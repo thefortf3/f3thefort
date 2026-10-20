@@ -234,7 +234,13 @@
     <div class="ea-panel__head">
       <h2 class="ea-panel__title" id="preview-title">Newsletter preview</h2>
       <div class="ea-preview-actions">
-        <a class="btn btn--ghost btn--sm" href="/newsletter-dark" target="_blank" rel="noopener">Open ↗</a>
+        <label class="ea-sr" for="preview-layout">Layout</label>
+        <select id="preview-layout" class="ea-input ea-input--select">
+          <option value="agenda">New agenda layout</option>
+          <option value="classic">Classic layout (what goes out today)</option>
+        </select>
+        <button type="button" class="ea-icon-btn" id="preview-width" aria-pressed="false" title="Phone width" aria-label="Show at phone width">▯</button>
+        <a class="btn btn--ghost btn--sm" id="preview-open" href="/newsletter-email-preview?layout=agenda" target="_blank" rel="noopener">Open ↗</a>
         <button type="button" class="ea-icon-btn" id="preview-close" aria-label="Close">✕</button>
       </div>
     </div>

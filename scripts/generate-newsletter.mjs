@@ -17,10 +17,14 @@ import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { sanitizeHtml } from '../lib/sanitize-html.js';
+import { listEntries, getRegionSetting } from '../lib/entries.js';
+import { renderAgenda } from '../lib/newsletter-agenda.js';
+import { todayIsoDate as regionToday } from '../lib/dates.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const templatePath = resolve(__dirname, '..', 'public', 'newsletter-template.html');
+const agendaTemplatePath = resolve(__dirname, '..', 'public', 'newsletter-agenda-template.html');
 let baseUrl = process.env.BASE_URL || '';
 
 // ─── Helpers ─────────────────────────────────────────────────────────
@@ -796,6 +800,50 @@ export function generateNewsletter({ dbPath, outputPath, baseUrl: _baseUrl }) {
   console.log(`Newsletter generated → ${outputPath}`);
 }
 
+/**
+ * The new "agenda" layout (design canvas E3), built from the entries model: approved entries
+ * by next occurrence, the Nan'tan message from region settings, and the same static sections.
+ * Needs a database the server has already migrated (lib/entries.js) — it never migrates itself.
+ */
+export function generateAgendaNewsletter({ dbPath, outputPath, baseUrl: _baseUrl, siteBaseUrl, today }) {
+  baseUrl = _baseUrl || process.env.BASE_URL;
+  if (!baseUrl) throw new Error('BASE_URL is required');
+  const site = siteBaseUrl || process.env.SITE_BASE_URL || 'https://f3thefort.com';
+  const day = today || regionToday();
+
+  const db = new Database(dbPath, { readonly: true });
+  let entries, nantan;
+  try {
+    if (!db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'occurrences'").get()) {
+      throw new Error('This database has not been migrated to the entries model yet — start the server once against it first.');
+    }
+    entries = listEntries(db, { today: day });
+    nantan = getRegionSetting(db, 'nantan');
+  } finally {
+    db.close();
+  }
+
+  const { threeFsItems, sltEntries, helpfulLinks, shovelFlags, weeklyVqs } = getStaticSections(dbPath);
+  const region = {
+    fngStats: getFngStats(dbPath),
+    weeklyFngs: getWeeklyFngs(dbPath),
+    nantan,
+    shovelFlags,
+    vqs: weeklyVqs,
+    threeFsItems,
+    sltEntries,
+    helpfulLinks,
+  };
+  const html = renderAgenda(readFileSync(agendaTemplatePath, 'utf-8'), { entries, region, today: day }, {
+    siteBaseUrl: site,
+    submitUrl: process.env.SUBMIT_URL || `${site.replace(/\/$/, '')}/submit`,
+    asset: resolveAssetUrl,
+    rewrite: rewriteHtmlImages,
+  });
+  writeFileSync(outputPath, html, 'utf-8');
+  console.log(`Agenda newsletter generated → ${outputPath}`);
+}
+
 // ─── CLI entry point ─────────────────────────────────────────────────
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const args = process.argv.slice(2);
@@ -816,5 +864,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     process.exit(1);
   }
 
-  generateNewsletter({ dbPath: cliDbPath, outputPath: cliOutputPath });
+  if ((getArg('layout') || process.env.NEWSLETTER_LAYOUT) === 'agenda') {
+    generateAgendaNewsletter({ dbPath: cliDbPath, outputPath: getArg('output') || resolve(__dirname, '..', 'newsletter-agenda.html') });
+  } else {
+    generateNewsletter({ dbPath: cliDbPath, outputPath: cliOutputPath });
+  }
 }

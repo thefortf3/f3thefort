@@ -653,18 +653,32 @@
   });
 
   // ── Newsletter preview ────────────────────────────────────────────
+  async function renderPreview() {
+    const layout = $('#preview-layout').value;
+    const data = await api('/api/newsletter/generate', { method: 'POST', body: { layout } });
+    const sep = data.url.includes('?') ? '&' : '?';
+    $('#preview-frame').src = `${data.url}${sep}t=${Date.now()}`;
+    $('#preview-open').href = data.url;
+  }
   $('#preview-btn').addEventListener('click', async () => {
     const btn = $('#preview-btn');
     btn.disabled = true;
     btn.textContent = 'Generating…';
     try {
-      const data = await api('/api/newsletter/generate', { method: 'POST', body: {} });
-      $('#preview-frame').src = `${data.url}?t=${Date.now()}`;
+      await renderPreview();
       $('#preview-panel').hidden = false;
       $('#panel-scrim').hidden = false;
     } catch (e) { toast(e.message, 'error'); }
     btn.disabled = false;
     btn.textContent = 'Preview newsletter';
+  });
+  $('#preview-layout').addEventListener('change', () => renderPreview().catch(e => toast(e.message, 'error')));
+  $('#preview-width').addEventListener('click', () => {
+    const btn = $('#preview-width');
+    const phone = btn.getAttribute('aria-pressed') !== 'true';
+    btn.setAttribute('aria-pressed', String(phone));
+    $('#preview-frame').style.width = phone ? '390px' : '100%';
+    $('#preview-frame').style.margin = phone ? '0 auto' : '';
   });
   $('#preview-close').addEventListener('click', () => { $('#preview-panel').hidden = true; $('#panel-scrim').hidden = true; });
   // Campaign creation/scheduling intentionally isn't wired here yet: Mailchimp stays on the
