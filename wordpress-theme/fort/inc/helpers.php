@@ -127,3 +127,28 @@ function fort_post_ao() {
 	}
 	return null;
 }
+
+/** A page on this site by slug (e.g. the existing "locations" page), else $fallback. */
+function fort_page_url( $slug, $fallback ) {
+	$page = get_page_by_path( $slug );
+	return ( $page && 'publish' === $page->post_status ) ? get_permalink( $page ) : $fallback;
+}
+
+/**
+ * The homepage "Who we are" copy. Each piece can be changed in Appearance → Customize → Who we are;
+ * the defaults come from the site's existing Mission of F3 and 5 Core Principles pages.
+ */
+function fort_about_defaults() {
+	return array(
+		'fort_about_heading' => __( 'Free workouts for men. Rain or shine.', 'fort' ),
+		'fort_about_f3'      => __( 'F3 is a free, peer-led workout group for men. Our three Fs stand for Fitness, Fellowship and Faith, and our mission is to plant, grow and serve small workout groups for men for the invigoration of male community leadership.', 'fort' ),
+		'fort_about_fort'    => __( 'The Fort is the F3 region for Fort Mill and Tega Cay. We work out six days a week at parks, schools and parking lots around town — boot camps, runs, rucks and gear workouts, most starting at 0515 — and stick around for coffee, lunches and Bible studies in between.', 'fort' ),
+		'fort_about_fng'     => __( 'First time? Just show up. No sign-up, no cost, any fitness level. Get there a few minutes early and tell the Q you’re new.', 'fort' ),
+	);
+}
+
+function fort_about( $key ) {
+	$defaults = fort_about_defaults();
+	$value    = trim( (string) get_theme_mod( $key, '' ) );
+	return '' !== $value ? $value : $defaults[ $key ];
+}

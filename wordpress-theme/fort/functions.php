@@ -11,7 +11,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FORT_THEME_VERSION', '0.1.2' );
+define( 'FORT_THEME_VERSION', '0.1.3' );
 
 require_once __DIR__ . '/inc/config.php';
 require_once __DIR__ . '/inc/api.php';
@@ -77,6 +77,32 @@ add_action(
 				)
 			)
 		);
+
+		$wp_customize->add_section(
+			'fort_about',
+			array(
+				'title'       => __( 'Who we are', 'fort' ),
+				'description' => __( 'The introduction on the homepage. Leave a box empty to use the default wording.', 'fort' ),
+			)
+		);
+		$about_labels = array(
+			'fort_about_heading' => array( __( 'Heading', 'fort' ), 'text' ),
+			'fort_about_f3'      => array( __( 'What is F3', 'fort' ), 'textarea' ),
+			'fort_about_fort'    => array( __( 'About The Fort', 'fort' ), 'textarea' ),
+			'fort_about_fng'     => array( __( 'New here? note', 'fort' ), 'textarea' ),
+		);
+		foreach ( fort_about_defaults() as $key => $default ) {
+			$wp_customize->add_setting( $key, array( 'default' => '', 'sanitize_callback' => 'sanitize_textarea_field' ) );
+			$wp_customize->add_control(
+				$key,
+				array(
+					'label'       => $about_labels[ $key ][0],
+					'section'     => 'fort_about',
+					'type'        => $about_labels[ $key ][1],
+					'input_attrs' => array( 'placeholder' => $default ),
+				)
+			);
+		}
 
 		$wp_customize->add_section( 'fort_newsletter', array( 'title' => __( 'The Fort Weekly', 'fort' ) ) );
 		$wp_customize->add_setting( 'fort_subscribe_url', array( 'default' => '', 'sanitize_callback' => 'esc_url_raw' ) );

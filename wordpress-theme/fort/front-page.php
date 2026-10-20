@@ -44,44 +44,54 @@ $bbs     = fort_backblasts( 4 );
 	</section>
 <?php endif; ?>
 
-<?php if ( ! empty( $region['nantan']['text_html'] ) || ! empty( $region['fng_stats'] ) ) : ?>
-	<section class="fort-intro">
-		<?php if ( ! empty( $region['nantan']['text_html'] ) ) : ?>
-			<figure class="fort-quote">
-				<blockquote class="fort-quote__text"><?php echo wp_kses_post( $region['nantan']['text_html'] ); ?></blockquote>
-				<figcaption class="fort-label">— <?php echo esc_html( strtoupper( trim( ( $region['nantan']['author'] ? $region['nantan']['author'] . ', ' : '' ) . "Nan'tan" ) ) ); ?></figcaption>
-			</figure>
-		<?php endif; ?>
-		<div class="fort-intro__side">
-			<?php if ( ! empty( $region['fng_stats'] ) ) : $fs = $region['fng_stats']; ?>
-				<div class="fort-stat">
-					<span class="fort-label"><?php echo esc_html( sprintf( /* translators: %d: year */ __( 'FNGs IN %d', 'fort' ), $fs['year'] ) ); ?></span>
-					<span class="fort-stat__num fort-amber"><?php echo esc_html( $fs['total'] ); ?> <small><?php echo esc_html( sprintf( /* translators: %d: goal */ __( 'of %d', 'fort' ), $fs['goal'] ) ); ?></small></span>
-					<span class="fort-bar"><span style="width:<?php echo esc_attr( min( 100, round( 100 * $fs['total'] / max( 1, $fs['goal'] ) ) ) ); ?>%"></span></span>
-				</div>
-			<?php endif; ?>
-			<?php foreach ( $region['shovel_flags'] ?? array() as $s ) : ?>
-				<div class="fort-stat">
-					<span class="fort-label"><?php esc_html_e( 'SHOVEL FLAG', 'fort' ); ?></span>
-					<span class="fort-stat__line"><?php echo esc_html( $s['from'] . ' → ' . $s['to'] ); ?></span>
-					<?php if ( ! empty( $s['ao'] ) ) : ?><span class="fort-mono-dim">@ <?php echo esc_html( $s['ao'] ); ?></span><?php endif; ?>
-				</div>
-			<?php endforeach; ?>
-			<?php if ( ! empty( $region['vqs'] ) || ! empty( $region['weekly_fngs'] ) ) : ?>
-				<div class="fort-stat">
-					<?php if ( ! empty( $region['vqs'] ) ) : ?>
-						<span class="fort-label"><?php esc_html_e( 'VQs THIS WEEK', 'fort' ); ?></span>
-						<span class="fort-stat__line"><?php echo esc_html( implode( ', ', array_map( fn( $v ) => $v['name'] . ( $v['ao'] ? ' @ ' . $v['ao'] : '' ), $region['vqs'] ) ) ); ?></span>
-					<?php endif; ?>
-					<?php if ( ! empty( $region['weekly_fngs'] ) ) : ?>
-						<span class="fort-label"><?php esc_html_e( 'NEW FNGs', 'fort' ); ?></span>
-						<span class="fort-stat__line"><?php echo esc_html( implode( ', ', $region['weekly_fngs'] ) ); ?></span>
-					<?php endif; ?>
-				</div>
-			<?php endif; ?>
+<?php
+// Who we are: what F3 is and what The Fort is, for anyone landing here for the first time.
+// (The Nan'tan's note, FNG count and shovel flags stay in the newsletter.)
+$fs_tiles = array(
+	array( '1st F', __( 'Fitness', 'fort' ), __( 'Outdoor beatdowns for every fitness level, led by a different man each day. The group stays together.', 'fort' ) ),
+	array( '2nd F', __( 'Fellowship', 'fort' ), __( 'The reason men keep coming back: friendships built in the gloom, over coffee and lunch.', 'fort' ) ),
+	array( '3rd F', __( 'Faith', 'fort' ), __( 'Something bigger than yourself — Bible studies, service projects, and men showing up for each other.', 'fort' ) ),
+);
+$principles = array(
+	__( 'Free of charge', 'fort' ),
+	__( 'Open to all men', 'fort' ),
+	__( 'Outdoors, rain or shine, heat or cold', 'fort' ),
+	__( 'Led by the men who post, in rotation — no certification needed', 'fort' ),
+	__( 'Ends with a Circle of Trust', 'fort' ),
+);
+?>
+<section id="who-we-are" class="fort-about" aria-labelledby="fort-about-title">
+	<div class="fort-about__intro">
+		<span class="fort-kicker"><?php esc_html_e( 'Who we are', 'fort' ); ?></span>
+		<h2 id="fort-about-title" class="fort-about__title"><?php echo esc_html( fort_about( 'fort_about_heading' ) ); ?></h2>
+		<p class="fort-about__lede"><?php echo esc_html( fort_about( 'fort_about_f3' ) ); ?></p>
+		<p><?php echo esc_html( fort_about( 'fort_about_fort' ) ); ?></p>
+		<div class="fort-about__fng">
+			<p><?php echo esc_html( fort_about( 'fort_about_fng' ) ); ?></p>
+			<div class="fort-actions">
+				<a class="fort-btn" href="<?php echo esc_url( fort_page_url( 'locations', home_url( '/#workouts' ) ) ); ?>"><?php esc_html_e( 'Find a workout', 'fort' ); ?></a>
+				<a class="fort-more" href="<?php echo esc_url( fort_page_url( 'mission-of-f3', 'https://f3nation.com/' ) ); ?>"><?php esc_html_e( 'More about F3 →', 'fort' ); ?></a>
+			</div>
 		</div>
-	</section>
-<?php endif; ?>
+	</div>
+	<div class="fort-about__side">
+		<ul class="fort-fs">
+			<?php foreach ( $fs_tiles as $t ) : ?>
+				<li class="fort-fs__tile">
+					<span class="fort-fs__num"><?php echo esc_html( $t[0] ); ?></span>
+					<span class="fort-fs__name"><?php echo esc_html( $t[1] ); ?></span>
+					<span class="fort-fs__text"><?php echo esc_html( $t[2] ); ?></span>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+		<div class="fort-principles">
+			<a class="fort-label fort-principles__head" href="<?php echo esc_url( fort_page_url( '5-core-principles', home_url( '/#who-we-are' ) ) ); ?>"><?php esc_html_e( 'Every F3 workout is…', 'fort' ); ?></a>
+			<ol class="fort-principles__list">
+				<?php foreach ( $principles as $p ) : ?><li><?php echo esc_html( $p ); ?></li><?php endforeach; ?>
+			</ol>
+		</div>
+	</div>
+</section>
 
 <div class="fort-columns">
 	<div class="fort-columns__main">

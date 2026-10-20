@@ -47,7 +47,7 @@ $region = fort_region();
 		<?php endif; ?>
 	</div>
 	<div class="fort-wrap fort-footer__base">
-		<span>© <?php echo esc_html( gmdate( 'Y' ) ); ?> THE FORT F3 · FORT MILL · TEGA CAY · ROCK HILL</span>
+		<span>© <?php echo esc_html( gmdate( 'Y' ) ); ?> THE FORT F3 · FORT MILL · TEGA CAY</span>
 		<span><a href="mailto:thefort@f3nation.com">EMAIL</a> <a href="https://www.instagram.com/f3_thefort/">INSTAGRAM</a></span>
 	</div>
 </footer>
