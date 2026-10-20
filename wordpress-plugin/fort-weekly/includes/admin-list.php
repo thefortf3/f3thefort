@@ -215,15 +215,12 @@ add_filter(
 				'fort_from'  => __( 'Submitted by', 'fort-weekly' ),
 			);
 		}
+		// Everything else reads like the site's agenda: a date badge, then the event with its
+		// time, place, Q, tags and newsletter flags, then the flyer.
 		return array(
-			'cb'            => '<input type="checkbox">',
-			'title'         => __( 'Event', 'fort-weekly' ),
-			'fort_next'     => __( 'Next date', 'fort-weekly' ),
-			'fort_tags'     => __( 'Tags', 'fort-weekly' ),
-			'fort_q'        => __( 'Q', 'fort-weekly' ),
-			'fort_location' => __( 'Where', 'fort-weekly' ),
-			'fort_flags'    => __( 'Newsletter', 'fort-weekly' ),
-			'fort_flyer'    => __( 'Flyer', 'fort-weekly' ),
+			'cb'         => '<input type="checkbox">',
+			'fort_event' => __( 'Event', 'fort-weekly' ),
+			'fort_flyer' => __( 'Flyer', 'fort-weekly' ),
 		);
 	}
 );
@@ -231,7 +228,7 @@ add_filter(
 add_filter(
 	'manage_edit-' . FORTW_POST_TYPE . '_sortable_columns',
 	function () {
-		return array( 'fort_next' => 'fort_next', 'title' => 'title' );
+		return array( 'fort_next' => 'fort_next', 'fort_event' => 'fort_next', 'title' => 'title' );
 	}
 );
 
@@ -244,6 +241,9 @@ add_action(
 		}
 		$e = $cache[ $post_id ];
 		switch ( $column ) {
+			case 'fort_event':
+				fortw_render_event_cell( $e, get_post( $post_id ) );
+				break;
 			case 'fort_next':
 				if ( $e['next_occurrence'] ) {
 					$p    = fortw_date_parts( $e['next_occurrence']['date'] );
@@ -557,4 +557,97 @@ add_filter(
 		return $classes;
 	}
 );
+
+// The agenda-style list puts its own Event column first, so row actions and the phone layout
+// hang off it.
+add_filter(
+	'list_table_primary_column',
+	function ( $default, $screen_id ) {
+		return 'edit-' . FORTW_POST_TYPE === $screen_id && 'pending' !== fortw_current_view() ? 'fort_event' : $default;
+	},
+	10,
+	2
+);
+
+/** One event as an agenda row: date badge, title, when · where · Q, tags and flags. */
+function fortw_render_event_cell( $e, $post ) {
+	$today = fortw_today();
+	$next  = $e['next_occurrence'];
+	if ( $next ) {
+		$p    = fortw_date_parts( $next['date'] );
+		$soon = $next['date'] <= fortw_add_days( $today, FORTW_THIS_WEEK_DAYS - 1 );
+		$tone = $next['date'] === $today ? 'today' : ( $soon ? 'soon' : 'later' );
+		$top  = $next['date'] === $today ? __( 'TODAY', 'fort-weekly' ) : $p['dow'];
+		$mid  = (string) $p['day'];
+		$low  = $p['mon'];
+	} elseif ( $e['occurrences'] ) {
+		$p    = fortw_date_parts( end( $e['occurrences'] )['date'] );
+		$tone = 'past';
+		$top  = __( 'PAST', 'fort-weekly' );
+		$mid  = (string) $p['day'];
+		$low  = $p['mon'];
+	} else {
+		$tone = 'ongoing';
+		$top  = '';
+		$mid  = '∞';
+		$low  = __( 'ONGOING', 'fort-weekly' );
+	}
+	$when = array();
+	if ( $next && $next['start_time'] ) {
+		$when[] = $next['end_time'] ? $next['start_time'] . '–' . $next['end_time'] : $next['start_time'];
+	}
+	foreach ( array( $e['location'], $e['leader'] ? 'Q: ' . $e['leader'] : '' ) as $bit ) {
+		if ( $bit ) {
+			$when[] = $bit;
+		}
+	}
+	$more   = $next ? count( fortw_upcoming_dates( $e['occurrences'], $today ) ) - 1 : 0;
+	$states = array(
+		'pending'       => __( 'Needs approval', 'fort-weekly' ),
+		'draft'         => __( 'Draft', 'fort-weekly' ),
+		'fort_rejected' => __( 'Rejected', 'fort-weekly' ),
+		'fort_archived' => __( 'Archived', 'fort-weekly' ),
+	);
+	$edit = get_edit_post_link( $post->ID );
+	?>
+	<div class="fortw-ev">
+		<span class="fortw-ev__date fortw-ev__date--<?php echo esc_attr( $tone ); ?>" aria-hidden="true">
+			<span class="fortw-ev__dow"><?php echo esc_html( $top ); ?></span>
+			<span class="fortw-ev__day"><?php echo esc_html( $mid ); ?></span>
+			<span class="fortw-ev__mon"><?php echo esc_html( $low ); ?></span>
+		</span>
+		<span class="fortw-ev__body">
+			<strong class="fortw-ev__title">
+				<?php if ( $edit ) : ?>
+					<a class="row-title" href="<?php echo esc_url( $edit ); ?>"><?php echo esc_html( $e['title'] ); ?></a>
+				<?php else : ?>
+					<?php echo esc_html( $e['title'] ); ?>
+				<?php endif; ?>
+				<?php if ( isset( $states[ $post->post_status ] ) ) : ?>
+					<span class="fortw-ev__state fortw-ev__state--<?php echo esc_attr( $post->post_status ); ?>"><?php echo esc_html( $states[ $post->post_status ] ); ?></span>
+				<?php endif; ?>
+			</strong>
+			<span class="screen-reader-text"><?php echo esc_html( $next ? sprintf( '%s %s %d.', $p['dow'], $p['mon'], $p['day'] ) : ( $e['occurrences'] ? __( 'Past event.', 'fort-weekly' ) : __( 'Ongoing.', 'fort-weekly' ) ) ); ?></span>
+			<?php if ( $when ) : ?>
+				<span class="fortw-ev__meta"><?php echo esc_html( implode( ' · ', $when ) ); ?></span>
+			<?php endif; ?>
+			<span class="fortw-ev__chips">
+				<?php foreach ( $e['tags'] as $t ) : ?>
+					<span class="fortw-tag" style="--c:<?php echo esc_attr( $t['color'] ); ?>"><?php echo esc_html( $t['label'] ); ?></span>
+				<?php endforeach; ?>
+				<?php if ( $e['featured'] ) : ?>
+					<span class="fortw-flag fortw-flag--featured">★ <?php esc_html_e( 'Featured', 'fort-weekly' ); ?></span>
+				<?php endif; ?>
+				<?php if ( $e['hold_from_newsletter'] ) : ?>
+					<span class="fortw-flag fortw-flag--held"><?php esc_html_e( 'Held from newsletter', 'fort-weekly' ); ?></span>
+				<?php endif; ?>
+				<?php if ( $more > 0 ) : ?>
+					<?php /* translators: %d: number of later dates */ ?>
+					<span class="fortw-dim"><?php echo esc_html( sprintf( _n( '+%d more date', '+%d more dates', $more, 'fort-weekly' ), $more ) ); ?></span>
+				<?php endif; ?>
+			</span>
+		</span>
+	</div>
+	<?php
+}
 

@@ -70,3 +70,40 @@
 .fortw-nl-widths .button[aria-pressed=true] { background: #2271b1; color: #fff; border-color: #2271b1; }
 .fortw-inline { display: inline; margin: 0; }
 .fortw-nl-preview { display: block; margin-top: 12px; border: 1px solid #c3c4c7; background: #0d0e10; max-width: 100%; }
+
+/* Agenda-style events list: date badge · event · flyer */
+.post-type-fort_event .column-fort_event { width: auto; }
+.post-type-fort_event .column-fort_flyer { width: 72px; }
+.post-type-fort_event .column-fort_flyer .fortw-thumb { width: 56px; max-height: 76px; }
+.fortw-ev { display: flex; gap: 14px; align-items: flex-start; }
+.fortw-ev__date {
+	flex: 0 0 56px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+	padding: 6px 0 7px; border-radius: 6px; line-height: 1.05; text-align: center;
+	background: #f6f7f7; border: 1px solid #dcdcde; color: #50575e;
+}
+.fortw-ev__dow, .fortw-ev__mon { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; }
+.fortw-ev__day { font-size: 22px; font-weight: 700; margin: 2px 0; }
+.fortw-ev__date--today { background: #d4a03c; border-color: #b8862a; color: #1d1a12; }
+.fortw-ev__date--soon { background: #fcf3dc; border-color: #e6c77e; color: #6b4b00; }
+.fortw-ev__date--later { background: #eaf1f8; border-color: #b9cfe4; color: #23466b; }
+.fortw-ev__date--past { opacity: 0.6; }
+.fortw-ev__date--ongoing .fortw-ev__day { font-size: 20px; }
+.fortw-ev__body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fortw-ev__title { font-size: 14px; line-height: 1.35; }
+.fortw-ev__title .row-title { overflow-wrap: anywhere; }
+.fortw-ev__meta { color: #50575e; font-size: 13px; overflow-wrap: anywhere; }
+.fortw-ev__chips { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; }
+.fortw-ev__chips .fortw-tag, .fortw-ev__chips .fortw-flag { margin: 0; }
+.fortw-ev__state { margin-left: 6px; padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 600; background: #f0f0f1; color: #50575e; vertical-align: 1px; }
+.fortw-ev__state--pending { background: #fcf9e8; color: #614a00; }
+.fortw-ev__state--fort_rejected { background: #fcf0f1; color: #8a2424; }
+.post-type-fort_event .column-fort_event .row-actions { padding-left: 70px; }
+@media screen and (max-width: 782px) {
+	/* WordPress keeps row actions off-screen until hover but still reserves their height on narrow
+	   screens; show them, under the title. */
+	.post-type-fort_event .column-fort_event .row-actions {
+		position: static; left: auto; display: flex; flex-wrap: wrap; gap: 0 16px; margin: 0; padding: 6px 0 0 70px; font-size: 13px;
+	}
+	.post-type-fort_event .column-fort_event .row-actions > span { padding: 0; }
+	.post-type-fort_event .column-fort_event .row-actions a { padding: 4px 0; }
+}
