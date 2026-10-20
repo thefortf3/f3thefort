@@ -7,10 +7,15 @@
 #   bash scripts/local/seed-wordpress.sh  # first run only: install WP + import sample posts
 #
 #   newsletter admin  → http://$DEV_HOST:3002/admin   (password: test123)
-#   site              → http://$DEV_HOST:8088
+#   site              → http://$DEV_HOST:8088, or any hostname / https proxy that forwards to it
 #
-# DEV_HOST is the name your browser uses to reach this machine (default develop.lan);
-# override with e.g. `DEV_HOST=localhost docker compose -f docker-compose.local.yml up -d`.
+# The site takes its address from each request (Host, X-Forwarded-Host/-Proto), and entry images
+# are served from the site's own origin (/uploads/ is proxied to the app), so it works through a
+# reverse proxy as well as directly.
+#
+# DEV_HOST is the name your browser uses to reach this machine (default develop.lan). It's used
+# for the admin's links, the email preview, and as the site address for wp-cli; override with e.g.
+# `DEV_HOST=localhost docker compose -f docker-compose.local.yml up -d`.
 #
 # Tear down (keeps nothing):  docker compose -f docker-compose.local.yml down -v
 
@@ -23,6 +28,8 @@ services:
       DB_PATH: /data/dev.db
       BASE_URL: http://${DEV_HOST:-develop.lan}:3002
       SITE_BASE_URL: http://${DEV_HOST:-develop.lan}:8088
+      # Public API image URLs stay root-relative; the WordPress container proxies /uploads/ here.
+      PUBLIC_ASSET_BASE_URL: ""
       FORT_SHARED_SECRET: local-only-secret
       SITE_FLUSH_URL: http://wordpress/wp-json/fort/v1/flush
       TZ: America/New_York
@@ -44,6 +51,8 @@ services:
     image: wordpress:6-php8.2-apache
     depends_on: [db, newsletter]
     ports: ["8088:80"]
+    # Enable Apache's proxy modules for /uploads/, then hand over to the image's normal start-up.
+    command: ["bash", "-c", "a2enmod -q proxy proxy_http && exec docker-entrypoint.sh apache2-foreground"]
     environment:
       WORDPRESS_DB_HOST: db
       WORDPRESS_DB_USER: wordpress
@@ -51,8 +60,14 @@ services:
       WORDPRESS_DB_NAME: wordpress
       DEV_HOST: ${DEV_HOST:-develop.lan}
       WORDPRESS_CONFIG_EXTRA: |
-        define( 'WP_HOME', 'http://' . getenv( 'DEV_HOST' ) . ':8088' );
-        define( 'WP_SITEURL', 'http://' . getenv( 'DEV_HOST' ) . ':8088' );
+        // Site address from the request, so it works directly and behind an https proxy.
+        // (Doubled dollar signs are compose's escape for PHP's $.)
+        $$fort_https = ( $$_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '' ) === 'https';
+        if ( $$fort_https ) { $$_SERVER['HTTPS'] = 'on'; }
+        $$fort_host = $$_SERVER['HTTP_X_FORWARDED_HOST'] ?? $$_SERVER['HTTP_HOST'] ?? ( getenv( 'DEV_HOST' ) . ':8088' );
+        $$fort_host = preg_replace( '/[^A-Za-z0-9.:-]/', '', explode( ',', $$fort_host )[0] );
+        define( 'WP_HOME', ( $$fort_https ? 'https://' : 'http://' ) . $$fort_host );
+        define( 'WP_SITEURL', WP_HOME );
         define( 'FORT_NL_API', 'http://newsletter:3002' );
         define( 'FORT_NL_SECRET', 'local-only-secret' );
         define( 'FORT_STATS_API', getenv( 'FORT_STATS_API' ) ?: 'http://stats:8080' );
@@ -61,6 +76,7 @@ services:
     volumes:
       - wp:/var/www/html
       - ./wordpress-theme/fort:/var/www/html/wp-content/themes/fort:ro
+      - ./scripts/local/apache-uploads-proxy.conf:/etc/apache2/conf-enabled/fort-uploads-proxy.conf:ro
 
   wpcli:
     image: wordpress:cli-php8.2
