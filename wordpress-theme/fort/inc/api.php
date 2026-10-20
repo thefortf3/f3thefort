@@ -91,9 +91,9 @@ function fort_backblasts( $limit = 4 ) {
 	return fort_is_missing( $data ) ? array() : ( $data['items'] ?? array() );
 }
 
-/** Upcoming workouts from GloomSchedule (via the stats API): today and tomorrow. */
-function fort_schedule() {
-	$data = fort_remote_json( FORT_STATS_API, '/api/schedule?days=2', min( FORT_STATS_TTL, 900 ) );
+/** Upcoming workouts from GloomSchedule (via the stats API): $days days from today (2 = today and tomorrow, up to 14). */
+function fort_schedule( $days = 2 ) {
+	$data = fort_remote_json( FORT_STATS_API, '/api/schedule?days=' . max( 1, min( 14, (int) $days ) ), min( FORT_STATS_TTL, 900 ) );
 	if ( fort_is_missing( $data ) || empty( $data['configured'] ) ) {
 		return null;
 	}

@@ -146,3 +146,62 @@ function fort_render_every_week( $region ) {
 		<?php
 	}
 }
+
+/** GloomSchedule's event type → 1st / 2nd / 3rd F ('' if it isn't one of the three). */
+function fort_event_kind( $type ) {
+	$t = strtolower( (string) $type );
+	if ( 0 === strpos( $t, '1st' ) ) {
+		return '1st';
+	}
+	if ( 0 === strpos( $t, '2nd' ) ) {
+		return '2nd';
+	}
+	if ( 0 === strpos( $t, '3rd' ) ) {
+		return '3rd';
+	}
+	return '';
+}
+
+/** The full schedule: one block per day, each workout as time · AO (+ kind) · Q · site Q. */
+function fort_render_schedule_page( $schedule, $kind = '' ) {
+	$today    = $schedule['from'];
+	$tomorrow = gmdate( 'Y-m-d', strtotime( $today . ' +1 day' ) );
+	$site_qs  = $schedule['aos'] ?? array();
+	$labels   = array( '2nd' => __( '2nd F', 'fort' ), '3rd' => __( '3rd F', 'fort' ) );
+	echo '<div class="fort-sched">';
+	foreach ( $schedule['days'] ?? array() as $day ) {
+		$rows = array_values(
+			array_filter(
+				$day['workouts'],
+				function ( $w ) use ( $kind ) {
+					return '' === $kind || fort_event_kind( $w['event_type'] ?? '' ) === $kind;
+				}
+			)
+		);
+		$ts   = strtotime( $day['date'] . ' 00:00:00 UTC' );
+		$name = $day['date'] === $today ? __( 'Today', 'fort' ) : ( $day['date'] === $tomorrow ? __( 'Tomorrow', 'fort' ) : gmdate( 'l', $ts ) );
+		?>
+		<section class="fort-sched__day<?php echo $day['date'] === $today ? ' is-today' : ''; ?>" aria-label="<?php echo esc_attr( gmdate( 'l, F j', $ts ) ); ?>">
+			<h2 class="fort-sched__date"><span><?php echo esc_html( $name ); ?></span> <span class="fort-mono-dim"><?php echo esc_html( strtoupper( gmdate( 'D M j', $ts ) ) ); ?></span></h2>
+			<?php if ( ! $rows ) : ?>
+				<p class="fort-dim fort-sched__none"><?php esc_html_e( 'Nothing on the Q sheet yet.', 'fort' ); ?></p>
+			<?php else : ?>
+				<ul class="fort-sched__list">
+					<?php foreach ( $rows as $w ) : $k = fort_event_kind( $w['event_type'] ?? '' ); $ao_url = fort_ao_url( $w['ao'] ); $sq = $site_qs[ $w['ao'] ]['site_qs'] ?? array(); ?>
+						<li class="fort-sched__row<?php echo '1st' === $k ? '' : ' is-other'; ?>">
+							<span class="fort-sched__time"><?php echo esc_html( $w['start_time'] ); ?></span>
+							<span class="fort-sched__ao">
+								<?php echo $ao_url ? '<a href="' . esc_url( $ao_url ) . '">' . esc_html( $w['ao'] ) . '</a>' : esc_html( $w['ao'] ); ?>
+								<?php if ( isset( $labels[ $k ] ) ) : ?><span class="fort-tag fort-tag--muted"><?php echo esc_html( $labels[ $k ] ); ?></span><?php endif; ?>
+							</span>
+							<span class="fort-sched__q"><span class="fort-sched__lbl"><?php esc_html_e( 'Q', 'fort' ); ?></span> <?php echo esc_html( implode( ' & ', $w['qs'] ) ); ?></span>
+							<span class="fort-sched__site"><?php if ( $sq ) : ?><span class="fort-sched__lbl"><?php esc_html_e( 'Site Q', 'fort' ); ?></span> <?php echo esc_html( implode( ', ', $sq ) ); ?><?php endif; ?></span>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+			<?php endif; ?>
+		</section>
+		<?php
+	}
+	echo '</div>';
+}

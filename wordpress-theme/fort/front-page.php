@@ -120,7 +120,7 @@ $principles = array(
 			<section id="workouts" class="fort-section fort-band">
 				<header class="fort-section__head fort-section__head--accent2">
 					<h2 class="fort-h2"><span class="fort-kicker fort-accent2"><?php esc_html_e( 'In the gloom', 'fort' ); ?></span><?php esc_html_e( 'Upcoming workouts', 'fort' ); ?></h2>
-					<a class="fort-more fort-accent2" href="https://app.gloomschedule.com/"><?php esc_html_e( 'Q schedule ↗', 'fort' ); ?></a>
+					<a class="fort-more fort-accent2" href="<?php echo esc_url( fort_page_url( 'schedule', 'https://app.gloomschedule.com/' ) ); ?>"><?php esc_html_e( 'Full schedule →', 'fort' ); ?></a>
 				</header>
 				<?php fort_render_schedule( $schedule, $schedule['from'] ); ?>
 			</section>

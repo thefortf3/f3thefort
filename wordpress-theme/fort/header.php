@@ -35,6 +35,7 @@ defined( 'ABSPATH' ) || exit;
 				<ul class="fort-nav__list">
 					<li><a href="<?php echo esc_url( home_url( '/#this-week' ) ); ?>"><?php esc_html_e( 'This week', 'fort' ); ?></a></li>
 					<li><a href="<?php echo esc_url( home_url( '/#coming-up' ) ); ?>"><?php esc_html_e( 'Calendar', 'fort' ); ?></a></li>
+					<li><a href="<?php echo esc_url( fort_page_url( 'schedule', home_url( '/#workouts' ) ) ); ?>"><?php esc_html_e( 'Schedule', 'fort' ); ?></a></li>
 					<li><a href="<?php echo esc_url( home_url( '/#backblasts' ) ); ?>"><?php esc_html_e( 'Backblasts', 'fort' ); ?></a></li>
 					<li><a href="<?php echo esc_url( FORT_STATS_URL ); ?>"><?php esc_html_e( 'Stats ↗', 'fort' ); ?></a></li>
 				</ul>
