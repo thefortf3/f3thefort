@@ -13,9 +13,12 @@ if ( ! defined( 'FORT_STATS_API' ) ) {
 	define( 'FORT_STATS_API', 'https://stats.f3thefort.com' );
 }
 
-/** Descriptions and the Nan'tan note are filtered like post content. */
+/**
+ * Descriptions and the Nan'tan note: filtered like post content, with paragraphs added the way
+ * WordPress displays posts (the classic editor saves text without <p> tags).
+ */
 function fortw_sanitize_html( $html ) {
-	return wp_kses_post( $html );
+	return wpautop( wp_kses_post( (string) $html ) );
 }
 
 /** The stored region record, with defaults for anything missing. */

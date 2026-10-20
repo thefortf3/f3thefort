@@ -2,9 +2,11 @@
 /**
  * Importing the newsletter app's data (scripts/export-for-wordpress.mjs in that app).
  *
- * Re-runnable: events are matched on the app's id (_fort_legacy_id) and updated in place; tags on
- * their slug; images on their source URL, so nothing is downloaded or created twice. Region info
- * is replaced. A dry run reports what would happen without writing or downloading anything.
+ * Re-runnable: events are matched on the app's id (_fort_legacy_id); tags on their slug; images on
+ * their source URL, so nothing is downloaded or created twice. By default a re-run only adds what
+ * is new and leaves events (and region info) already here alone, so edits made in WordPress
+ * survive; update_existing overwrites them from the file. A dry run reports what would happen
+ * without writing or downloading anything.
  *
  * Images the app hosted (/uploads/...) are copied into the media library from $uploads_base
  * (the app's public address, https://submit.f3thefort.com by default), and image links inside
@@ -25,10 +27,11 @@ function fortw_importing() {
  * Returns a report: counts per kind plus a list of warnings.
  */
 function fortw_import( $data, $opts = array() ) {
-	$opts   = wp_parse_args( $opts, array( 'dry_run' => false, 'uploads_base' => 'https://submit.f3thefort.com' ) );
+	$opts   = wp_parse_args( $opts, array( 'dry_run' => false, 'update_existing' => false, 'uploads_base' => 'https://submit.f3thefort.com' ) );
 	$dry    = (bool) $opts['dry_run'];
+	$update = (bool) $opts['update_existing'];
 	$report = array(
-		'events_created' => 0, 'events_updated' => 0, 'tags_created' => 0, 'tags_updated' => 0,
+		'events_created' => 0, 'events_updated' => 0, 'events_skipped' => 0, 'tags_created' => 0, 'tags_updated' => 0,
 		'images_copied' => 0, 'images_reused' => 0, 'region' => false, 'warnings' => array(),
 	);
 	if ( ! is_array( $data ) || ( $data['format'] ?? '' ) !== 'fort-weekly-export' || (int) ( $data['version'] ?? 0 ) !== 1 ) {
@@ -39,11 +42,14 @@ function fortw_import( $data, $opts = array() ) {
 	$GLOBALS['fortw_importing'] = true;
 	$images = new FortW_Image_Copier( $opts['uploads_base'], $dry, $report );
 	try {
-		fortw_import_tags( $data['tags'] ?? array(), $dry, $report );
+		$first_import = ! get_option( 'fort_weekly_region' );
+		fortw_import_tags( $data['tags'] ?? array(), $dry, $update, $report );
 		foreach ( $data['entries'] ?? array() as $e ) {
-			fortw_import_entry( $e, $dry, $images, $report );
+			fortw_import_entry( $e, $dry, $update, $images, $report );
 		}
-		fortw_import_region( $data['region'] ?? array(), $dry, $images, $report );
+		if ( $update || $first_import ) {
+			fortw_import_region( $data['region'] ?? array(), $dry, $images, $report );
+		}
 	} finally {
 		$GLOBALS['fortw_importing'] = false;
 		$images->done();
@@ -54,13 +60,16 @@ function fortw_import( $data, $opts = array() ) {
 	return $report;
 }
 
-function fortw_import_tags( $tags, $dry, &$report ) {
+function fortw_import_tags( $tags, $dry, $update, &$report ) {
 	foreach ( $tags as $t ) {
 		$slug = sanitize_title( $t['slug'] ?? '' );
 		if ( ! $slug ) {
 			continue;
 		}
 		$term = get_term_by( 'slug', $slug, FORTW_TAX );
+		if ( $term && ! $update ) {
+			continue;
+		}
 		$report[ $term ? 'tags_updated' : 'tags_created' ]++;
 		if ( $dry ) {
 			continue;
@@ -110,7 +119,7 @@ function fortw_import_status( $e ) {
 	}
 }
 
-function fortw_import_entry( $e, $dry, $images, &$report ) {
+function fortw_import_entry( $e, $dry, $update, $images, &$report ) {
 	$legacy = (int) ( $e['legacy_id'] ?? 0 );
 	$title  = sanitize_text_field( $e['title'] ?? '' );
 	if ( ! $legacy || '' === $title ) {
@@ -118,6 +127,10 @@ function fortw_import_entry( $e, $dry, $images, &$report ) {
 		return;
 	}
 	$existing = fortw_find_by_legacy_id( $legacy );
+	if ( $existing && ! $update ) {
+		$report['events_skipped']++;
+		return;
+	}
 	$report[ $existing ? 'events_updated' : 'events_created' ]++;
 
 	$occ = array();
@@ -344,6 +357,10 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	 * [--dry-run]
 	 * : Report what would change without writing or downloading anything.
 	 *
+	 * [--update-existing]
+	 * : Overwrite events (and region info) imported before with the file's copy. Undoes changes
+	 * made in WordPress since.
+	 *
 	 * [--uploads-base=<url>]
 	 * : The app's address, for copying its hosted images. Default: https://submit.f3thefort.com
 	 */
@@ -357,7 +374,8 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			$report = fortw_import(
 				json_decode( $json, true ),
 				array(
-					'dry_run'      => isset( $assoc['dry-run'] ),
+					'dry_run'         => isset( $assoc['dry-run'] ),
+					'update_existing' => isset( $assoc['update-existing'] ),
 					'uploads_base' => $assoc['uploads-base'] ?? 'https://submit.f3thefort.com',
 				)
 			);

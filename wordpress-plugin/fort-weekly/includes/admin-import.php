@@ -42,7 +42,8 @@ function fortw_render_import_page() {
 			$report = fortw_import(
 				$data,
 				array(
-					'dry_run'      => ! empty( $_POST['fortw_dry_run'] ),
+					'dry_run'         => ! empty( $_POST['fortw_dry_run'] ),
+					'update_existing' => ! empty( $_POST['fortw_update_existing'] ),
 					'uploads_base' => $base ? $base : 'https://submit.f3thefort.com',
 				)
 			);
@@ -51,7 +52,7 @@ function fortw_render_import_page() {
 	?>
 	<div class="wrap">
 		<h1><?php esc_html_e( 'Import from the newsletter app', 'fort-weekly' ); ?></h1>
-		<p><?php esc_html_e( 'Imports events, tags, the Nan\'tan note and region info from the app\'s export file (scripts/export-for-wordpress.mjs). Safe to run again: events already imported are updated, not duplicated. Start with a dry run.', 'fort-weekly' ); ?></p>
+		<p><?php esc_html_e( 'Imports events, tags, the Nan\'tan note and region info from the app\'s export file (scripts/export-for-wordpress.mjs). Safe to run again: events already here are left alone unless you choose to overwrite them. Start with a dry run.', 'fort-weekly' ); ?></p>
 		<p><strong><?php esc_html_e( 'The export contains submitters\' emails and phone numbers. Delete it after importing.', 'fort-weekly' ); ?></strong></p>
 
 		<?php if ( $error ) : ?>
@@ -61,13 +62,13 @@ function fortw_render_import_page() {
 			<div class="notice <?php echo $report['warnings'] ? 'notice-warning' : 'notice-success'; ?>">
 				<p><strong><?php echo ! empty( $_POST['fortw_dry_run'] ) ? esc_html__( 'Dry run — nothing was changed.', 'fort-weekly' ) : esc_html__( 'Import finished.', 'fort-weekly' ); ?></strong></p>
 				<ul>
-					<?php /* translators: 1: created, 2: updated */ ?>
-					<li><?php echo esc_html( sprintf( __( 'Events: %1$d new, %2$d updated', 'fort-weekly' ), $report['events_created'], $report['events_updated'] ) ); ?></li>
+					<?php /* translators: 1: created, 2: updated, 3: skipped */ ?>
+					<li><?php echo esc_html( sprintf( __( 'Events: %1$d new, %2$d updated, %3$d already here (left alone)', 'fort-weekly' ), $report['events_created'], $report['events_updated'], $report['events_skipped'] ) ); ?></li>
 					<?php /* translators: 1: created, 2: updated */ ?>
 					<li><?php echo esc_html( sprintf( __( 'Tags: %1$d new, %2$d updated', 'fort-weekly' ), $report['tags_created'], $report['tags_updated'] ) ); ?></li>
 					<?php /* translators: 1: copied, 2: reused */ ?>
 					<li><?php echo esc_html( sprintf( __( 'Images: %1$d copied, %2$d already here', 'fort-weekly' ), $report['images_copied'], $report['images_reused'] ) ); ?></li>
-					<li><?php echo $report['region'] ? esc_html__( 'Region info: replaced', 'fort-weekly' ) : esc_html__( 'Region info: not in the file', 'fort-weekly' ); ?></li>
+					<li><?php echo $report['region'] ? esc_html__( 'Region info: replaced', 'fort-weekly' ) : esc_html__( 'Region info: left alone', 'fort-weekly' ); ?></li>
 				</ul>
 				<?php foreach ( $report['warnings'] as $w ) : ?>
 					<p><?php echo esc_html( $w ); ?></p>
@@ -86,6 +87,10 @@ function fortw_render_import_page() {
 					<th scope="row"><label for="fortw_uploads_base"><?php esc_html_e( 'App address (for images)', 'fort-weekly' ); ?></label></th>
 					<td><input type="url" class="regular-text" id="fortw_uploads_base" name="fortw_uploads_base" value="https://submit.f3thefort.com">
 						<p class="description"><?php esc_html_e( 'Flyers the app hosts are copied into the media library from here.', 'fort-weekly' ); ?></p></td>
+				</tr>
+				<tr>
+					<th scope="row"><?php esc_html_e( 'Already imported', 'fort-weekly' ); ?></th>
+					<td><label><input type="checkbox" name="fortw_update_existing" value="1"> <?php esc_html_e( 'Overwrite events and region info imported before (undoes changes made here since)', 'fort-weekly' ); ?></label></td>
 				</tr>
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Dry run', 'fort-weekly' ); ?></th>

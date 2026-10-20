@@ -19,6 +19,8 @@ function fortw_meta_keys() {
 	return array(
 		'_fort_occurrences'       => 'array',   // [{date, start_time, end_time}], normalized and sorted.
 		'_fort_next_date'         => 'string',  // Derived sort key; see fortw_next_date_key().
+		'_fort_last_date'         => 'string',  // The last date ('' if none): sorts the Past view.
+		'_fort_status_before_archive' => 'string', // Restoring an archived event puts it back here.
 		'_fort_leader'            => 'string',  // The Q.
 		'_fort_location'          => 'string',
 		'_fort_link'              => 'string',  // Sign-up / details link (http(s) only).
@@ -60,8 +62,10 @@ function fortw_caps() {
 
 function fortw_install_roles() {
 	// Fort editors run events, tags, region info and the newsletter; nothing else on the site.
+	// They archive events rather than delete them (only administrators can delete).
+	$editor_caps = array_filter( fortw_caps(), function ( $cap ) { return 0 !== strpos( $cap, 'delete_' ); } );
 	remove_role( 'fort_editor' );
-	add_role( 'fort_editor', __( 'Fort editor', 'fort-weekly' ), array_fill_keys( array_merge( array( 'read', 'upload_files' ), fortw_caps() ), true ) );
+	add_role( 'fort_editor', __( 'Fort editor', 'fort-weekly' ), array_fill_keys( array_merge( array( 'read', 'upload_files' ), $editor_caps ), true ) );
 	$admin = get_role( 'administrator' );
 	if ( $admin ) {
 		foreach ( fortw_caps() as $cap ) {
@@ -85,6 +89,10 @@ function fortw_register_model() {
 				'not_found_in_trash' => __( 'No events in the trash', 'fort-weekly' ),
 				'menu_name'          => __( 'Fort Weekly', 'fort-weekly' ),
 				'all_items'          => __( 'Events', 'fort-weekly' ),
+				'featured_image'     => __( 'Flyer or photo', 'fort-weekly' ),
+				'set_featured_image' => __( 'Set flyer or photo', 'fort-weekly' ),
+				'remove_featured_image' => __( 'Remove flyer or photo', 'fort-weekly' ),
+				'use_featured_image' => __( 'Use as flyer', 'fort-weekly' ),
 			),
 			'public'          => true,
 			'show_in_rest'    => false,     // Keeps submitter details and pending events off the REST API.

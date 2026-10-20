@@ -43,6 +43,7 @@ function fortw_set_occurrences( $post_id, $occurrences ) {
 	$occ = fortw_normalize_occurrences( $occurrences );
 	update_post_meta( $post_id, '_fort_occurrences', $occ );
 	update_post_meta( $post_id, '_fort_next_date', fortw_next_date_key( $occ, fortw_today() ) );
+	update_post_meta( $post_id, '_fort_last_date', $occ ? end( $occ )['date'] : '' );
 	return $occ;
 }
 

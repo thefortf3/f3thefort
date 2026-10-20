@@ -1,0 +1,38 @@
+/* Fort Weekly admin */
+
+/* Events list */
+.post-type-fort_event .column-fort_next { width: 9.5em; }
+.post-type-fort_event .column-fort_tags { width: 9em; }
+.post-type-fort_event .column-fort_q { width: 9em; }
+.post-type-fort_event .column-fort_flags { width: 8em; }
+.post-type-fort_event .column-fort_flyer { width: 56px; }
+.post-type-fort_event .column-fort_from { width: 13em; }
+.fortw-date b { font-weight: 600; letter-spacing: 0.02em; }
+.fortw-time { font-family: Menlo, Consolas, monospace; font-size: 12px; color: #50575e; }
+.fortw-dim { color: #646970; font-size: 12px; }
+.fortw-tag {
+	display: inline-block; margin: 0 4px 3px 0; padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 600;
+	color: #1d2327; background: color-mix(in srgb, var(--c) 28%, #fff); border: 1px solid var(--c);
+}
+.fortw-flag { display: inline-block; margin: 0 4px 3px 0; padding: 1px 6px; border-radius: 3px; font-size: 11px; }
+.fortw-flag--featured { background: #fcf0d4; color: #6b4b00; }
+.fortw-flag--held { background: #e7eef6; color: #23466b; }
+.fortw-thumb { display: block; width: 48px; height: auto; max-height: 64px; object-fit: contain; border: 1px solid #dcdcde; background: #f6f7f7; }
+.row-actions .fortw_approve a { color: #008a20; font-weight: 600; }
+.row-actions .fortw_reject a { color: #b32d2e; }
+
+/* Edit screen */
+.fortw-rows { max-width: 760px; }
+.fortw-rows td { vertical-align: middle; }
+.fortw-rows input[type=text], .fortw-rows input[type=url] { width: 100%; }
+.fortw-row-tools { white-space: nowrap; width: 5em; text-align: right; }
+.fortw-row-tools .button-link, .fortw-remove-row { font-size: 15px; padding: 2px 4px; text-decoration: none; }
+.fortw-status { display: inline-block; padding: 2px 8px; border-radius: 3px; background: #f0f0f1; font-weight: 600; }
+.fortw-status--ok { background: #edfaef; color: #00450c; }
+.fortw-status--wait { background: #fcf9e8; color: #614a00; }
+.fortw-status--bad { background: #fcf0f1; color: #8a2424; }
+
+/* Region */
+.fortw-region .fortw-rows { max-width: 1100px; }
+.fortw-image-preview { display: block; max-width: 240px; height: auto; margin-bottom: 8px; border: 1px solid #dcdcde; }
+.fortw-image-pick [hidden] { display: none; }
