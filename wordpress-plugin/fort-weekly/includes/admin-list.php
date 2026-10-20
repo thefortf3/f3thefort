@@ -202,16 +202,29 @@ add_action(
 add_filter(
 	'manage_' . FORTW_POST_TYPE . '_posts_columns',
 	function () {
+		// The event comes first: WordPress's phone layout shows the main column and folds the rest
+		// under a toggle, which only works when nothing sits before it.
+		if ( 'pending' === fortw_current_view() ) {
+			// The approval queue: what it is, when, where, the flyer, and who sent it.
+			return array(
+				'cb'         => '<input type="checkbox">',
+				'title'      => __( 'Event', 'fort-weekly' ),
+				'fort_about' => __( 'Details', 'fort-weekly' ),
+				'fort_next'  => __( 'When', 'fort-weekly' ),
+				'fort_flyer' => __( 'Flyer', 'fort-weekly' ),
+				'fort_from'  => __( 'Submitted by', 'fort-weekly' ),
+			);
+		}
 		return array(
 			'cb'            => '<input type="checkbox">',
-			'fort_next'     => __( 'Next date', 'fort-weekly' ),
 			'title'         => __( 'Event', 'fort-weekly' ),
+			'fort_next'     => __( 'Next date', 'fort-weekly' ),
 			'fort_tags'     => __( 'Tags', 'fort-weekly' ),
 			'fort_q'        => __( 'Q', 'fort-weekly' ),
 			'fort_location' => __( 'Where', 'fort-weekly' ),
 			'fort_flags'    => __( 'Newsletter', 'fort-weekly' ),
 			'fort_flyer'    => __( 'Flyer', 'fort-weekly' ),
-		) + ( 'pending' === fortw_current_view() ? array( 'fort_from' => __( 'Submitted by', 'fort-weekly' ) ) : array() );
+		);
 	}
 );
 
@@ -242,8 +255,13 @@ add_action(
 					}
 				} elseif ( $e['occurrences'] ) {
 					$last = fortw_date_parts( end( $e['occurrences'] )['date'] );
-					/* translators: 1: month, 2: day */
-					printf( '<span class="fortw-dim">%s</span>', esc_html( sprintf( __( 'Past · %1$s %2$d', 'fort-weekly' ), $last['mon'], $last['day'] ) ) );
+					if ( 'pending' === $e['status'] ) {
+						/* translators: 1: month, 2: day */
+						printf( '<span class="fortw-warn">%s</span>', esc_html( sprintf( __( 'Date passed (%1$s %2$d)', 'fort-weekly' ), $last['mon'], $last['day'] ) ) );
+					} else {
+						/* translators: 1: month, 2: day */
+						printf( '<span class="fortw-dim">%s</span>', esc_html( sprintf( __( 'Past · %1$s %2$d', 'fort-weekly' ), $last['mon'], $last['day'] ) ) );
+					}
 				} else {
 					echo '<span class="fortw-dim">' . esc_html__( 'Ongoing', 'fort-weekly' ) . '</span>';
 				}
@@ -267,16 +285,31 @@ add_action(
 					echo '<span class="fortw-flag fortw-flag--held">' . esc_html__( 'Held', 'fort-weekly' ) . '</span>';
 				}
 				break;
+			case 'fort_about':
+				$text = wp_trim_words( wp_strip_all_tags( $e['summary'] ? $e['summary'] : $e['description'] ), 30, '…' );
+				echo '<p class="fortw-excerpt">' . ( '' !== $text ? esc_html( $text ) : '<span class="fortw-dim">' . esc_html__( 'No description', 'fort-weekly' ) . '</span>' ) . '</p>';
+				$meta = array_filter( array( $e['location'] ? '📍 ' . $e['location'] : '', $e['leader'] ? 'Q: ' . $e['leader'] : '', $e['link'] ? __( 'has a sign-up link', 'fort-weekly' ) : '' ) );
+				if ( $meta ) {
+					echo '<p class="fortw-dim">' . esc_html( implode( ' · ', $meta ) ) . '</p>';
+				}
+				break;
 			case 'fort_from':
-				$who = fortw_entry_private( $post_id );
-				echo esc_html( (string) $who['name'] );
+				$who   = fortw_entry_private( $post_id );
+				$lines = array();
+				if ( $who['name'] ) {
+					$lines[] = esc_html( $who['name'] );
+				}
 				if ( $who['email'] ) {
-					printf( '<br><a href="mailto:%1$s">%2$s</a>', esc_attr( $who['email'] ), esc_html( $who['email'] ) );
+					$lines[] = sprintf( '<a href="mailto:%1$s">%2$s</a>', esc_attr( $who['email'] ), esc_html( $who['email'] ) );
 				}
 				if ( $who['phone'] ) {
-					echo '<br>' . esc_html( $who['phone'] );
+					$lines[] = esc_html( $who['phone'] );
 				}
-				echo '<br><span class="fortw-dim">' . esc_html( get_the_date( 'M j, g:ia', $post_id ) ) . '</span>';
+				if ( ! $lines ) {
+					$lines[] = '<span class="fortw-dim">' . esc_html__( 'No contact details', 'fort-weekly' ) . '</span>';
+				}
+				$lines[] = '<span class="fortw-dim">' . esc_html( get_the_date( 'M j, g:ia', $post_id ) ) . '</span>';
+				echo implode( '<br>', $lines ); // phpcs:ignore WordPress.Security.EscapeOutput -- each line escaped above
 				break;
 			case 'fort_flyer':
 				$thumb = get_the_post_thumbnail( $post_id, array( 48, 64 ), array( 'class' => 'fortw-thumb', 'loading' => 'lazy' ) );
@@ -295,6 +328,9 @@ add_filter(
 			return $states;
 		}
 		unset( $states['pending'] );
+		if ( 'pending' === fortw_current_view() ) {
+			return $states;
+		}
 		if ( 'pending' === $post->post_status ) {
 			$states['fortw'] = __( 'Needs approval', 'fort-weekly' );
 		} elseif ( 'fort_rejected' === $post->post_status ) {
@@ -509,3 +545,16 @@ add_action(
 		exit;
 	}
 );
+
+// The queue's layout hook: a body class for its CSS (always-visible Approve / Reject buttons).
+add_filter(
+	'admin_body_class',
+	function ( $classes ) {
+		$screen = get_current_screen();
+		if ( $screen && 'edit-' . FORTW_POST_TYPE === $screen->id && 'pending' === fortw_current_view() ) {
+			$classes .= ' fortw-queue';
+		}
+		return $classes;
+	}
+);
+

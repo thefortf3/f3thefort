@@ -1,12 +1,40 @@
 /* Fort Weekly admin */
 
 /* Events list */
+.post-type-fort_event .column-title { width: auto; }
+.post-type-fort_event .column-title .row-title { overflow-wrap: anywhere; }
 .post-type-fort_event .column-fort_next { width: 9.5em; }
 .post-type-fort_event .column-fort_tags { width: 9em; }
 .post-type-fort_event .column-fort_q { width: 9em; }
 .post-type-fort_event .column-fort_flags { width: 8em; }
 .post-type-fort_event .column-fort_flyer { width: 56px; }
-.post-type-fort_event .column-fort_from { width: 13em; }
+.post-type-fort_event .column-fort_from { width: 14em; overflow-wrap: anywhere; }
+.fortw-warn { color: #b32d2e; font-weight: 600; font-size: 12px; }
+
+/* The approval queue: what it is at a glance, and the decision buttons always showing. */
+.fortw-queue .column-title { width: 22%; }
+.fortw-queue .column-fort_about { width: auto; }
+.fortw-queue .column-fort_next { width: 10em; }
+.fortw-queue .column-fort_flyer { width: 64px; }
+.fortw-queue .fortw-excerpt { margin: 0 0 4px; color: #1d2327; }
+.fortw-queue .column-fort_about p { margin: 0 0 4px; }
+.fortw-queue .row-title { font-size: 14px; }
+.fortw-queue .row-actions { position: static; left: auto; padding-top: 6px; color: #a7aaad; }
+.fortw-queue .row-actions .fortw_approve a, .fortw-queue .row-actions .fortw_reject a {
+	display: inline-block; padding: 2px 10px; border: 1px solid; border-radius: 3px; text-decoration: none; line-height: 1.8;
+}
+.fortw-queue .row-actions .fortw_approve a { background: #00a32a; border-color: #00a32a; color: #fff; }
+.fortw-queue .row-actions .fortw_approve a:hover { background: #008a20; }
+.fortw-queue .row-actions .fortw_reject a { color: #b32d2e; border-color: #b32d2e; background: #fff; }
+.fortw-queue .fortw-thumb { width: 56px; max-height: 76px; }
+@media screen and (max-width: 782px) {
+	.fortw-queue .column-title { width: auto; }
+	/* On a phone, keep what's needed to decide (when, details) visible instead of folded away. */
+	/* (More specific than WordPress's rule that folds these away on phones.) */
+	.fortw-queue .wp-list-table tr:not(.inline-edit-row):not(.no-items) .column-primary ~ td.column-fort_next,
+	.fortw-queue .wp-list-table tr:not(.inline-edit-row):not(.no-items) .column-primary ~ td.column-fort_about { display: block; }
+	.fortw-queue .row-actions .fortw_approve a, .fortw-queue .row-actions .fortw_reject a { padding: 6px 14px; }
+}
 .fortw-date b { font-weight: 600; letter-spacing: 0.02em; }
 .fortw-time { font-family: Menlo, Consolas, monospace; font-size: 12px; color: #50575e; }
 .fortw-dim { color: #646970; font-size: 12px; }
