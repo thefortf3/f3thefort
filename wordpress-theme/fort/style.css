@@ -2,7 +2,7 @@
 Theme Name: Fort
 Theme URI: https://f3thefort.com
 Description: F3 The Fort — the site The Fort Weekly newsletter summarizes. Events and region info come from the Fort Weekly plugin; workouts and backblast stats come from the stats API; posts and pages work as usual.
-Version: 0.2.7
+Version: 0.3.1
 Requires at least: 6.0
 Requires PHP: 7.4
 Author: F3 The Fort
@@ -279,6 +279,25 @@ a.fort-bb:hover .fort-bb__title { color: var(--amber-bright); }
 @media (max-width: 720px) {
 	.fort-sched { grid-template-columns: minmax(0, 1fr); }
 	.fort-sched__q { max-width: 11em; font-size: 14px; }
+}
+
+/* Backblasts page and single backblast */
+.fort-bbs .fort-wrap { max-width: 1200px; }
+.fort-bbs__filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0 12px; }
+.fort-bbs__filters input[type=search] { flex: 1 1 260px; min-width: 0; }
+.fort-bbs__filters input, .fort-bbs__filters select { font: inherit; font-size: 15px; padding: 10px 12px; background: var(--bg-deep); border: 1px solid var(--line-2); color: var(--text-bright); border-radius: 0; }
+.fort-bbs__filters select { flex: 0 1 auto; max-width: 100%; }
+.fort-bbs__filters .fort-btn { padding: 11px 16px; }
+.fort-bbs__count { margin: 0 0 4px; font-size: 14px; }
+.fort-bb__excerpt { font-size: 14px; line-height: 1.5; color: var(--text-dim); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.fort-pager { display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 24px; }
+.fort-bb-pax { display: block; margin-top: 4px; font-size: 14px; line-height: 1.5; color: var(--text-dim); }
+.fort-bb-body p { white-space: normal; }
+@media (max-width: 720px) {
+	.fort-bbs .fort-bb-grid { gap: 10px; margin-top: 16px; }
+	.fort-bbs .fort-bb { padding: 14px 16px; gap: 6px; }
+	.fort-bbs .fort-bb__title { font-size: 19px; }
+	.fort-bbs .fort-bb__excerpt { -webkit-line-clamp: 2; }
 }
 
 /* Submit: edit mode and the private edit link */

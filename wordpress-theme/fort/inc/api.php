@@ -23,11 +23,15 @@ function fort_flush_cache() {
  * GET {$base}{$path} as decoded JSON (array), cached for $ttl seconds.
  * Returns null when the API can't be reached and nothing was cached before, and
  * array( '__missing' => true ) for a 404 (so callers can tell "not found" from "down").
+ *
+ * $keep_last: also keep the last good copy for outages. Off for URLs with endless variations
+ * (filters, pages), where it would leave a permanent row per URL. $ttl 0: no caching at all
+ * (free-text searches).
  */
-function fort_remote_json( $base, $path, $ttl ) {
-	$id    = md5( $base . $path );
-	$key   = 'fort_' . $id . '_' . fort_cache_version();
-	$cached = get_transient( $key );
+function fort_remote_json( $base, $path, $ttl, $keep_last = true ) {
+	$id     = md5( $base . $path );
+	$key    = 'fort_' . $id . '_' . fort_cache_version();
+	$cached = $ttl > 0 ? get_transient( $key ) : false;
 	if ( false !== $cached ) {
 		return $cached;
 	}
@@ -42,7 +46,7 @@ function fort_remote_json( $base, $path, $ttl ) {
 
 	if ( is_wp_error( $response ) ) {
 		error_log( 'Fort theme: ' . $path . ' failed: ' . $response->get_error_message() );
-		return get_option( 'fort_last_' . $id, null );
+		return $keep_last ? get_option( 'fort_last_' . $id, null ) : null;
 	}
 
 	$code = (int) wp_remote_retrieve_response_code( $response );
@@ -54,11 +58,15 @@ function fort_remote_json( $base, $path, $ttl ) {
 	$data = json_decode( wp_remote_retrieve_body( $response ), true );
 	if ( 200 !== $code || ! is_array( $data ) ) {
 		error_log( 'Fort theme: ' . $path . ' returned HTTP ' . $code );
-		return get_option( 'fort_last_' . $id, null );
+		return $keep_last ? get_option( 'fort_last_' . $id, null ) : null;
 	}
 
-	set_transient( $key, $data, $ttl );
-	update_option( 'fort_last_' . $id, $data, false );
+	if ( $ttl > 0 ) {
+		set_transient( $key, $data, $ttl );
+	}
+	if ( $keep_last ) {
+		update_option( 'fort_last_' . $id, $data, false );
+	}
 	return $data;
 }
 
@@ -105,3 +113,29 @@ function fort_backblast_summary() {
 	$data = fort_remote_json( FORT_STATS_API, '/api/backblasts/summary', FORT_STATS_TTL );
 	return fort_is_missing( $data ) ? null : $data;
 }
+
+/**
+ * A page of the Backblasts archive from the stats API. $args: page, ao, month (YYYY-MM), type, q.
+ * Text searches aren't cached; other combinations for 15 minutes (no permanent copy).
+ */
+function fort_backblast_archive( $args ) {
+	$query = array_filter(
+		array(
+			'page'     => max( 1, (int) ( $args['page'] ?? 1 ) ),
+			'per_page' => 24,
+			'ao'       => (string) ( $args['ao'] ?? '' ),
+			'month'    => (string) ( $args['month'] ?? '' ),
+			'type'     => (string) ( $args['type'] ?? '' ),
+			'q'        => (string) ( $args['q'] ?? '' ),
+		)
+	);
+	$data = fort_remote_json( FORT_STATS_API, '/api/backblasts/archive?' . http_build_query( $query ), empty( $query['q'] ) ? FORT_STATS_TTL : 0, false );
+	return fort_is_missing( $data ) ? null : $data;
+}
+
+/** One backblast (full write-up, Qs, PAX) from the stats API, or null. */
+function fort_backblast( $event_id ) {
+	$data = fort_remote_json( FORT_STATS_API, '/api/backblasts/' . (int) $event_id, FORT_STATS_TTL, false );
+	return fort_is_missing( $data ) || empty( $data['item'] ) ? null : $data['item'];
+}
+

@@ -57,22 +57,24 @@ function fort_render_coming_row( $e ) {
 	<?php
 }
 
-/** A backblast card from the stats API. */
+/** A backblast card from the stats API: AO · date, title, Q · PAX · FNGs, and an excerpt. Links to the full write-up. */
 function fort_render_backblast( $b ) {
 	$p     = fort_date_parts( $b['date'] ?? '' );
-	$url   = ! empty( $b['url'] ) ? $b['url'] : fort_ao_url( $b['ao'] ?? '' );
+	$url   = ! empty( $b['event_id'] ) ? fort_backblast_url( $b ) : fort_ao_url( $b['ao'] ?? '' );
 	$tag   = $url ? 'a' : 'div';
-	$title = ! empty( $b['title'] ) ? $b['title'] : sprintf( /* translators: %s: AO name */ __( '%s beatdown', 'fort' ), $b['ao'] ?? '' );
 	$qs    = ! empty( $b['qs'] ) ? implode( ', ', array_map( 'strval', (array) $b['qs'] ) ) : '';
 	?>
 	<<?php echo esc_html( $tag ); ?> class="fort-bb"<?php echo $url ? ' href="' . esc_url( $url ) . '"' : ''; ?>>
 		<span class="fort-bb__head"><span class="fort-accent2"><?php echo esc_html( strtoupper( $b['ao'] ?? '' ) ); ?></span> · <?php echo esc_html( trim( $p['dow'] . ' ' . $p['mon'] . ' ' . $p['day'] ) ); ?></span>
-		<span class="fort-bb__title"><?php echo esc_html( $title ); ?></span>
+		<span class="fort-bb__title"><?php echo esc_html( fort_backblast_title( $b ) ); ?></span>
 		<span class="fort-bb__meta">
 			<?php if ( $qs ) : ?><?php echo esc_html( sprintf( /* translators: %s: Q handle(s) */ __( 'Q: %s', 'fort' ), $qs ) ); ?> · <?php endif; ?>
 			<?php echo esc_html( sprintf( /* translators: %d: PAX count */ _n( '%d PAX', '%d PAX', (int) ( $b['pax_count'] ?? 0 ), 'fort' ), (int) ( $b['pax_count'] ?? 0 ) ) ); ?>
 			<?php if ( ! empty( $b['fng_count'] ) ) : ?> · <span class="fort-amber"><?php echo esc_html( sprintf( '+%d FNG', (int) $b['fng_count'] ) ); ?></span><?php endif; ?>
 		</span>
+		<?php if ( ! empty( $b['excerpt'] ) ) : ?>
+			<span class="fort-bb__excerpt"><?php echo esc_html( $b['excerpt'] ); ?></span>
+		<?php endif; ?>
 	</<?php echo esc_html( $tag ); ?>>
 	<?php
 }

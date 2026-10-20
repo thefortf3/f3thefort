@@ -11,7 +11,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FORT_THEME_VERSION', '0.2.7' );
+define( 'FORT_THEME_VERSION', '0.3.1' );
 
 require_once __DIR__ . '/inc/config.php';
 require_once __DIR__ . '/inc/api.php';
@@ -126,6 +126,8 @@ add_action(
 	'init',
 	function () {
 		add_rewrite_rule( '^submit/?$', 'index.php?fort_submit=1', 'top' );
+		// One backblast, from the stats API (the archive is the "backblasts" page: page-backblasts.php).
+		add_rewrite_rule( '^backblasts/([0-9]+)/?$', 'index.php?fort_bb=$matches[1]', 'top' );
 	}
 );
 
@@ -133,6 +135,7 @@ add_filter(
 	'query_vars',
 	function ( $vars ) {
 		$vars[] = 'fort_submit';
+		$vars[] = 'fort_bb';
 		return $vars;
 	}
 );
@@ -143,6 +146,17 @@ function fort_is_event_page() {
 }
 
 add_action( 'after_switch_theme', 'flush_rewrite_rules' );
+
+/** The backblast for a /backblasts/<id>/ request (loaded once). */
+function fort_current_backblast() {
+	static $loaded = false, $bb = null;
+	if ( ! $loaded ) {
+		$loaded = true;
+		$id     = (int) get_query_var( 'fort_bb' );
+		$bb     = $id ? fort_backblast( $id ) : null;
+	}
+	return $bb;
+}
 
 /** The current event page's data (loaded once). WordPress has already checked who may see it. */
 function fort_current_entry() {
@@ -165,6 +179,16 @@ add_filter(
 			nocache_headers();
 			return locate_template( 'submit.php' ) ?: $template;
 		}
+		if ( get_query_var( 'fort_bb' ) ) {
+			if ( ! fort_current_backblast() ) {
+				global $wp_query;
+				$wp_query->set_404();
+				status_header( 404 );
+				nocache_headers();
+				return get_404_template();
+			}
+			return locate_template( 'backblast.php' ) ?: $template;
+		}
 		if ( fort_is_event_page() ) {
 			if ( ! fort_current_entry() ) {
 				global $wp_query;
@@ -183,7 +207,7 @@ add_filter(
 add_action(
 	'parse_query',
 	function ( $q ) {
-		if ( $q->is_main_query() && $q->get( 'fort_submit' ) ) {
+		if ( $q->is_main_query() && ( $q->get( 'fort_submit' ) || $q->get( 'fort_bb' ) ) ) {
 			$q->is_home = false;
 			$q->is_page = true;
 		}
@@ -195,6 +219,10 @@ add_filter(
 	function ( $title ) {
 		if ( get_query_var( 'fort_submit' ) ) {
 			return __( 'Submit an event', 'fort' ) . ' — ' . get_bloginfo( 'name' );
+		}
+		$bb = get_query_var( 'fort_bb' ) ? fort_current_backblast() : null;
+		if ( $bb ) {
+			return fort_backblast_title( $bb ) . ' — ' . get_bloginfo( 'name' );
 		}
 		$data = fort_current_entry();
 		return $data ? $data['entry']['title'] . ' — ' . get_bloginfo( 'name' ) : $title;

@@ -151,3 +151,19 @@ function fort_about( $key ) {
 	$value    = trim( (string) get_theme_mod( $key, '' ) );
 	return '' !== $value ? $value : $defaults[ $key ];
 }
+
+function fort_backblast_url( $b ) {
+	return home_url( '/backblasts/' . (int) ( is_array( $b ) ? $b['event_id'] : $b ) . '/' );
+}
+
+/** The Backblasts archive page, with optional filters (ao, month, type, q, paged). */
+function fort_backblasts_url( $args = array() ) {
+	return add_query_arg( array_filter( $args ), fort_page_url( 'backblasts', home_url( '/backblasts/' ) ) );
+}
+
+/** A backblast's title, or "<AO> beatdown" when it has none. */
+function fort_backblast_title( $b ) {
+	/* translators: %s: AO name */
+	return ! empty( $b['title'] ) ? $b['title'] : sprintf( __( '%s beatdown', 'fort' ), $b['ao'] ?? '' );
+}
+
