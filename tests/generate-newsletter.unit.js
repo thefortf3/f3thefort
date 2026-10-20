@@ -55,7 +55,7 @@ function createTestDB(submissionsList, suffix) {
   db.exec(`
     CREATE TABLE submissions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT NOT NULL, leader TEXT, start_date TEXT NOT NULL, end_time TEXT,
+      title TEXT NOT NULL, leader TEXT, start_date TEXT NOT NULL, start_time TEXT, end_time TEXT,
       location TEXT, description TEXT NOT NULL, link TEXT, hero_image TEXT, video_url TEXT,
       preblast_url TEXT, preblast_content TEXT, section TEXT, position INTEGER DEFAULT 0, show_in_upcoming INTEGER DEFAULT 0,
       submitter_name TEXT, submitter_email TEXT, submitter_phone TEXT,
