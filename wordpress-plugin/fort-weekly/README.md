@@ -79,7 +79,8 @@ scripts/build-theme-zip.sh     # → dist/fort-theme.zip
 ```
 
 Upload both under Plugins → Add New → Upload, and Appearance → Themes → Add New → Upload. The
-plugin needs PHP 7.4 or newer.
+plugin needs PHP 7.4 or newer; f3thefort.com runs PHP 8.2 (confirmed 2026-10-20), the same as the
+local test site (`wordpress:6-php8.2-apache`).
 
 ## Tests
 
@@ -101,7 +102,7 @@ plugin needs PHP 7.4 or newer.
 
 ## Switching over (each step with the site owner's go-ahead)
 
-1. Check f3thefort.com's PHP version (Tools → Site Health) and that backups cover the database
+1. ~~Check f3thefort.com's PHP version~~ (8.2, confirmed). Check that backups cover the database
    and `wp-content/uploads`.
 2. Back up the old app's database and the WordPress site.
 3. Upload the theme and the plugin; activate the plugin.
