@@ -33,7 +33,7 @@ function fort_render_day( $day ) {
 	$p = fort_date_parts( $day['date'] );
 	?>
 	<div class="fort-day">
-		<div class="fort-day__date"><span class="fort-day__dow"><?php echo esc_html( $p['dow'] ); ?></span><span class="fort-day__num"><?php echo esc_html( $p['day'] ); ?></span></div>
+		<div class="fort-day__date"><span class="fort-day__dow"><?php echo esc_html( $p['dow'] ); ?></span><span class="fort-day__num"><?php echo esc_html( $p['day'] ); ?></span><span class="fort-day__mon"><?php echo esc_html( $p['mon'] ); ?></span></div>
 		<div class="fort-day__entries">
 			<?php foreach ( $day['entries'] as $e ) { fort_render_week_entry( $e ); } ?>
 		</div>

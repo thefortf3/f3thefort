@@ -89,7 +89,7 @@ $bbs     = fort_backblasts( 4 );
 		<?php if ( $home ) : ?>
 			<section id="this-week" class="fort-section">
 				<header class="fort-section__head fort-section__head--amber">
-					<h2 class="fort-h2"><?php esc_html_e( 'This week', 'fort' ); ?></h2>
+					<h2 class="fort-h2"><span class="fort-kicker"><?php esc_html_e( 'On the calendar', 'fort' ); ?></span><?php esc_html_e( 'This week', 'fort' ); ?></h2>
 					<?php $a = fort_date_parts( $home['range']['from'] ); $b = fort_date_parts( $home['range']['to'] ); ?>
 					<span class="fort-mono-dim"><?php echo esc_html( $a['mon'] . ' ' . $a['day'] . ' – ' . ( $a['mon'] === $b['mon'] ? '' : $b['mon'] . ' ' ) . $b['day'] ); ?></span>
 				</header>
@@ -107,9 +107,9 @@ $bbs     = fort_backblasts( 4 );
 		$schedule = fort_schedule();
 		if ( $schedule ) :
 			?>
-			<section id="workouts" class="fort-section">
+			<section id="workouts" class="fort-section fort-band">
 				<header class="fort-section__head fort-section__head--accent2">
-					<h2 class="fort-h2"><?php esc_html_e( 'Upcoming workouts', 'fort' ); ?></h2>
+					<h2 class="fort-h2"><span class="fort-kicker fort-accent2"><?php esc_html_e( 'In the gloom', 'fort' ); ?></span><?php esc_html_e( 'Upcoming workouts', 'fort' ); ?></h2>
 					<a class="fort-more fort-accent2" href="https://app.gloomschedule.com/"><?php esc_html_e( 'Q schedule ↗', 'fort' ); ?></a>
 				</header>
 				<?php fort_render_schedule( $schedule, $schedule['from'] ); ?>
@@ -118,8 +118,8 @@ $bbs     = fort_backblasts( 4 );
 
 		<?php if ( ! empty( $home['coming_up'] ) ) : ?>
 			<section id="coming-up" class="fort-section">
-				<header class="fort-section__head fort-section__head--accent2">
-					<h2 class="fort-h2"><?php esc_html_e( 'Coming up', 'fort' ); ?></h2>
+				<header class="fort-section__head fort-section__head--amber">
+					<h2 class="fort-h2"><span class="fort-kicker"><?php esc_html_e( 'Further out', 'fort' ); ?></span><?php esc_html_e( 'Coming up', 'fort' ); ?></h2>
 				</header>
 				<div class="fort-coming-grid">
 					<?php foreach ( $home['coming_up'] as $e ) { fort_render_coming_row( $e ); } ?>
@@ -128,9 +128,9 @@ $bbs     = fort_backblasts( 4 );
 		<?php endif; ?>
 
 
-		<section id="backblasts" class="fort-section">
+		<section id="backblasts" class="fort-section fort-band">
 			<header class="fort-section__head fort-section__head--accent2">
-				<h2 class="fort-h2"><?php esc_html_e( 'From the gloom', 'fort' ); ?></h2>
+				<h2 class="fort-h2"><span class="fort-kicker fort-accent2"><?php esc_html_e( 'Backblasts', 'fort' ); ?></span><?php esc_html_e( 'From the gloom', 'fort' ); ?></h2>
 				<?php $bb_page = get_page_by_path( 'backblasts' ); ?>
 				<a class="fort-more fort-accent2" href="<?php echo esc_url( $bb_page ? get_permalink( $bb_page ) : home_url( '/?post_type=post' ) ); ?>"><?php esc_html_e( 'All backblasts →', 'fort' ); ?></a>
 			</header>
@@ -162,7 +162,7 @@ $bbs     = fort_backblasts( 4 );
 
 		<?php if ( ! empty( $home['ongoing'] ) ) : ?>
 			<section class="fort-section">
-				<header class="fort-section__head"><h2 class="fort-h2"><?php esc_html_e( 'Ongoing', 'fort' ); ?></h2></header>
+				<header class="fort-section__head fort-section__head--amber"><h2 class="fort-h2"><span class="fort-kicker"><?php esc_html_e( 'Any time', 'fort' ); ?></span><?php esc_html_e( 'Ongoing', 'fort' ); ?></h2></header>
 				<div class="fort-ongoing-grid">
 					<?php foreach ( $home['ongoing'] as $e ) : ?>
 						<a class="fort-card" href="<?php echo esc_url( fort_event_url( $e ) ); ?>">
@@ -185,7 +185,7 @@ $bbs     = fort_backblasts( 4 );
 		<?php endif; ?>
 
 		<?php if ( $summary ) : ?>
-			<section class="fort-side-section">
+			<section class="fort-side-section fort-band--phone">
 				<h2 class="fort-h3 fort-side-section__head"><?php esc_html_e( 'Last week in the gloom', 'fort' ); ?></h2>
 				<div class="fort-stats-grid">
 					<div><span class="fort-stat__num"><?php echo esc_html( (int) $summary['workouts'] ); ?></span><span class="fort-label"><?php esc_html_e( 'workouts', 'fort' ); ?></span></div>

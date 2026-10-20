@@ -2,7 +2,7 @@
 Theme Name: Fort
 Theme URI: https://f3thefort.com
 Description: F3 The Fort — the site The Fort Weekly newsletter summarizes. Events and region info come from the newsletter app's public API; workouts and backblast stats come from the stats API; posts and pages work as usual.
-Version: 0.1.1
+Version: 0.1.2
 Requires at least: 6.0
 Requires PHP: 7.4
 Author: F3 The Fort
@@ -103,14 +103,24 @@ a:hover { color: #f3cf74; }
 .fort-columns__main { flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 80px; }
 .fort-columns__side { flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 56px; }
 
-.fort-section__head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 10px; padding-bottom: 14px; border-bottom: 2px solid var(--line-2); margin-bottom: 4px; }
+.fort-section__head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 10px; padding-bottom: 14px; border-bottom: 2px solid var(--line-2); margin-bottom: 4px; }
 .fort-section__head--amber { border-bottom-color: var(--amber); }
 .fort-section__head--accent2 { border-bottom-color: var(--accent2); }
+/* Small label above a section title; amber for events, steel blue for workouts and backblasts. */
+.fort-kicker { display: block; margin-bottom: 6px; font-family: var(--mono); font-size: 11px; font-weight: 400; letter-spacing: 0.16em; color: var(--amber); }
+.fort-kicker.fort-accent2 { color: var(--accent2); }
+
+/* Workout / backblast sections sit on a tinted band so the page alternates: events on the plain
+   background, gloom on the band. Boxed in the desktop column, full-bleed on phones. */
+.fort-band { --band: color-mix(in srgb, var(--accent2) 7%, var(--panel)); background: var(--band); padding: 32px 32px 36px; }
+.fort-band .fort-bb { background: var(--bg); }
+.fort-band .fort-lineup__row { border-top-color: var(--line-2); }
 
 .fort-day { display: grid; grid-template-columns: 72px minmax(0, 1fr); column-gap: 28px; padding: 32px 0; border-bottom: 1px solid var(--line); }
 .fort-day__date { display: flex; flex-direction: column; align-items: center; }
 .fort-day__dow { font-family: var(--mono); font-size: 11px; color: var(--text-mute); letter-spacing: 0.06em; }
 .fort-day__num { font-family: var(--display); font-size: 38px; font-weight: 700; line-height: 1; color: var(--amber-bright); }
+.fort-day__mon { display: none; font-family: var(--mono); font-size: 11px; color: var(--text-mute); letter-spacing: 0.06em; }
 .fort-day__entries { display: flex; flex-direction: column; gap: 36px; }
 .fort-week-entry { display: flex; flex-wrap: wrap; gap: 24px; }
 .fort-week-entry__body { flex: 999 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 8px; max-width: 64ch; }
@@ -125,7 +135,7 @@ a:hover { color: #f3cf74; }
 .fort-coming-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); column-gap: 48px; }
 .fort-coming { display: grid; grid-template-columns: 56px minmax(0, 1fr); column-gap: 16px; padding: 22px 0; border-bottom: 1px solid var(--line); color: var(--text-dim); }
 .fort-coming__date { display: flex; flex-direction: column; align-items: center; }
-.fort-coming__num { font-family: var(--display); font-size: 26px; font-weight: 700; line-height: 1; color: var(--accent2); }
+.fort-coming__num { font-family: var(--display); font-size: 26px; font-weight: 700; line-height: 1; color: var(--amber-bright); }
 .fort-coming__body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .fort-coming__title { font-family: var(--display); font-size: 19px; font-weight: 600; color: var(--text-bright); }
 .fort-coming:hover .fort-coming__title { color: var(--amber-bright); }
@@ -244,11 +254,26 @@ a.fort-bb:hover .fort-bb__title { color: var(--amber-bright); }
 	.fort-intro__side { padding-left: 0; border-left: 0; border-top: 1px solid var(--line-2); padding-top: 20px; }
 	.fort-columns, .fort-columns__main { gap: 48px; }
 	.fort-h2 { font-size: 26px; }
-	.fort-day { grid-template-columns: 48px minmax(0, 1fr); column-gap: 14px; padding: 22px 0; }
-	.fort-day__num { font-size: 28px; }
+
+	/* Bands run edge to edge; the stacked sidebar's stats get one too, so the page keeps alternating. */
+	.fort-band, .fort-band--phone { --band: color-mix(in srgb, var(--accent2) 7%, var(--panel)); background: var(--band); margin-left: -16px; margin-right: -16px; padding: 32px 16px 36px; }
+	.fort-columns__side { gap: 48px; }
+
+	/* "This week": each day gets a date strip across the top, then its entries full width. */
+	.fort-day { display: block; padding: 0 0 8px; border-bottom: 0; }
+	.fort-day__date { flex-direction: row; align-items: baseline; gap: 10px; margin: 24px 0 4px; padding: 8px 12px; background: var(--panel); border-left: 3px solid var(--amber); }
+	.fort-day__num { font-size: 26px; order: 2; }
+	.fort-day__dow { order: 1; font-size: 12px; color: var(--text-dim); }
+	.fort-day__mon { display: inline; order: 3; }
+	.fort-day__entries { gap: 0; }
+	.fort-week-entry { flex-wrap: nowrap; gap: 14px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+	.fort-day__entries .fort-week-entry:last-child { border-bottom: 0; }
+	.fort-week-entry__body { flex: 1 1 auto; gap: 6px; }
 	.fort-entry-title { font-size: 20px; }
-	.fort-thumb { flex-basis: 100%; }
-	.fort-thumb img { width: 96px; max-height: 150px; }
+	.fort-summary { font-size: 16px; line-height: 1.55; }
+	/* Flyer beside the text instead of alone underneath it. */
+	.fort-thumb { flex: 0 0 84px; padding-top: 22px; }
+	.fort-thumb img { width: 84px; max-height: 120px; }
 	.fort-entry__title { font-size: 32px; }
 	.fort-entry__dek { font-size: 18px; }
 	.fort-prose { font-size: 17px; }
