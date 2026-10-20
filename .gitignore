@@ -17,3 +17,6 @@ newsletter-preview.html
 session-*.md
 session-*.mreset
 variety-plan.json
+
+# Local preview stack (docker-compose.local.yml)
+.local/

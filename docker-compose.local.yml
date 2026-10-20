@@ -1,0 +1,75 @@
+# Local-only preview stack: the newsletter app + a throwaway WordPress running the Fort theme.
+# Nothing here talks to production. Slack stays in dry-run, pre-blast posting is off, and no
+# Mailchimp keys are set.
+#
+#   cp dev.db .local/data/dev.db          # a COPY — the app migrates it on start
+#   docker compose -f docker-compose.local.yml up -d --build
+#   bash scripts/local/seed-wordpress.sh  # first run only: install WP + import sample posts
+#
+#   newsletter admin  → http://localhost:3002/admin   (password: test123)
+#   site              → http://localhost:8088
+#
+# Tear down (keeps nothing):  docker compose -f docker-compose.local.yml down -v
+
+services:
+  newsletter:
+    build: .
+    environment:
+      PORT: "3002"
+      ADMIN_PASSWORD: test123
+      DB_PATH: /data/dev.db
+      BASE_URL: http://localhost:3002
+      SITE_BASE_URL: http://localhost:8088
+      FORT_SHARED_SECRET: local-only-secret
+      SITE_FLUSH_URL: http://wordpress/wp-json/fort/v1/flush
+      TZ: America/New_York
+    ports: ["3002:3002"]
+    volumes:
+      - ./.local/data:/data
+      - ./.local/uploads:/app/public/uploads
+
+  db:
+    image: mariadb:11
+    environment:
+      MARIADB_DATABASE: wordpress
+      MARIADB_USER: wordpress
+      MARIADB_PASSWORD: wordpress
+      MARIADB_RANDOM_ROOT_PASSWORD: "1"
+    volumes: [wpdb:/var/lib/mysql]
+
+  wordpress:
+    image: wordpress:6-php8.2-apache
+    depends_on: [db, newsletter]
+    ports: ["8088:80"]
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_CONFIG_EXTRA: |
+        define( 'FORT_NL_API', 'http://newsletter:3002' );
+        define( 'FORT_NL_SECRET', 'local-only-secret' );
+        define( 'FORT_STATS_API', getenv( 'FORT_STATS_API' ) ?: 'http://stats:5000' );
+        define( 'FORT_API_TTL', 15 );
+    volumes:
+      - wp:/var/www/html
+      - ./wordpress-theme/fort:/var/www/html/wp-content/themes/fort:ro
+
+  wpcli:
+    image: wordpress:cli-php8.2
+    profiles: [tools]
+    depends_on: [wordpress]
+    user: "33:33"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+    volumes:
+      - wp:/var/www/html
+      - ./wordpress-theme/fort:/var/www/html/wp-content/themes/fort:ro
+      - ./.local/seed:/seed:ro
+
+volumes:
+  wp:
+  wpdb:
