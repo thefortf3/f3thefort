@@ -141,6 +141,15 @@ a:hover { color: #f3cf74; }
 a.fort-bb:hover .fort-bb__title { color: var(--amber-bright); }
 .fort-bb__meta { font-family: var(--mono); font-size: 12px; }
 
+.fort-lineup-days { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); column-gap: 40px; }
+.fort-lineup__day { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 0; padding: 18px 0 10px; font-family: var(--display); font-size: 20px; font-weight: 600; letter-spacing: 0.03em; color: var(--text-bright); }
+.fort-lineup__list { list-style: none; margin: 0; padding: 0; }
+.fort-lineup__row { display: grid; grid-template-columns: 52px minmax(0, 1fr) minmax(0, 1fr); gap: 10px; align-items: baseline; padding: 9px 0; border-top: 1px solid var(--line); font-size: 15px; }
+.fort-lineup__time { font-family: var(--mono); font-size: 12px; color: var(--accent2); }
+.fort-lineup__ao, .fort-lineup__ao a { font-family: var(--display); font-weight: 600; color: var(--text-bright); }
+.fort-lineup__q { color: var(--text-dim); text-align: right; }
+.fort-lineup__row.is-other .fort-lineup__time { color: var(--text-mute); }
+
 .fort-ongoing-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 20px; }
 .fort-card { display: flex; flex-direction: column; gap: 8px; padding: 20px 22px; background: var(--panel); color: var(--text-dim); }
 .fort-card__title { font-family: var(--display); font-size: 19px; font-weight: 600; color: var(--text-bright); }

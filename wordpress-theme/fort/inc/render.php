@@ -95,6 +95,36 @@ function fort_render_post_card() {
 	<?php
 }
 
+/** Upcoming workouts: "Today" and "Tomorrow", each workout as time · AO · Q. */
+function fort_render_schedule( $schedule, $today ) {
+	$days = array_values( array_filter( $schedule['days'] ?? array(), fn( $d ) => ! empty( $d['workouts'] ) ) );
+	if ( ! $days ) {
+		echo '<p class="fort-dim fort-empty">' . esc_html__( 'No workouts on the schedule for today or tomorrow yet.', 'fort' ) . '</p>';
+		return;
+	}
+	$tomorrow = gmdate( 'Y-m-d', strtotime( $today . ' +1 day' ) );
+	echo '<div class="fort-lineup-days">';
+	foreach ( $days as $day ) {
+		$p     = fort_date_parts( $day['date'] );
+		$label = $day['date'] === $today ? __( 'Today', 'fort' ) : ( $day['date'] === $tomorrow ? __( 'Tomorrow', 'fort' ) : $p['long'] );
+		?>
+		<div class="fort-lineup">
+			<h3 class="fort-lineup__day"><span><?php echo esc_html( $label ); ?></span><span class="fort-mono-dim"><?php echo esc_html( $p['dow'] . ' ' . $p['mon'] . ' ' . $p['day'] ); ?></span></h3>
+			<ul class="fort-lineup__list">
+				<?php foreach ( $day['workouts'] as $w ) : $ao_url = fort_ao_url( $w['ao'] ); ?>
+					<li class="fort-lineup__row<?php echo empty( $w['is_workout'] ) ? ' is-other' : ''; ?>">
+						<span class="fort-lineup__time"><?php echo esc_html( $w['start_time'] ); ?></span>
+						<span class="fort-lineup__ao"><?php echo $ao_url ? '<a href="' . esc_url( $ao_url ) . '">' . esc_html( $w['ao'] ) . '</a>' : esc_html( $w['ao'] ); ?></span>
+						<span class="fort-lineup__q"><?php echo esc_html( implode( ' & ', $w['qs'] ) ); ?></span>
+					</li>
+				<?php endforeach; ?>
+			</ul>
+		</div>
+		<?php
+	}
+	echo '</div>';
+}
+
 /** "Every week" (the Three F's) list for the sidebar. */
 function fort_render_every_week( $region ) {
 	foreach ( $region['three_fs'] ?? array() as $col ) {

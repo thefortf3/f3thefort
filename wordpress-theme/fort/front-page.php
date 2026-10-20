@@ -99,18 +99,34 @@ $bbs     = fort_backblasts( 4 );
 					<p class="fort-dim fort-empty"><?php esc_html_e( 'Nothing on the calendar for the next seven days yet.', 'fort' ); ?> <a href="<?php echo esc_url( fort_submit_url() ); ?>"><?php esc_html_e( 'Add something →', 'fort' ); ?></a></p>
 				<?php endif; ?>
 			</section>
-
-			<?php if ( $home['coming_up'] ) : ?>
-				<section id="coming-up" class="fort-section">
-					<header class="fort-section__head fort-section__head--accent2">
-						<h2 class="fort-h2"><?php esc_html_e( 'Coming up', 'fort' ); ?></h2>
-					</header>
-					<div class="fort-coming-grid">
-						<?php foreach ( $home['coming_up'] as $e ) { fort_render_coming_row( $e ); } ?>
-					</div>
-				</section>
-			<?php endif; ?>
 		<?php endif; ?>
+
+		<?php
+		// Today's and tomorrow's workouts (GloomSchedule, via the stats API). Independent of the
+		// newsletter app, so it still shows if that API is down.
+		$schedule = fort_schedule();
+		if ( $schedule ) :
+			?>
+			<section id="workouts" class="fort-section">
+				<header class="fort-section__head fort-section__head--accent2">
+					<h2 class="fort-h2"><?php esc_html_e( 'Upcoming workouts', 'fort' ); ?></h2>
+					<a class="fort-more fort-accent2" href="https://app.gloomschedule.com/"><?php esc_html_e( 'Q schedule ↗', 'fort' ); ?></a>
+				</header>
+				<?php fort_render_schedule( $schedule, $schedule['from'] ); ?>
+			</section>
+		<?php endif; ?>
+
+		<?php if ( ! empty( $home['coming_up'] ) ) : ?>
+			<section id="coming-up" class="fort-section">
+				<header class="fort-section__head fort-section__head--accent2">
+					<h2 class="fort-h2"><?php esc_html_e( 'Coming up', 'fort' ); ?></h2>
+				</header>
+				<div class="fort-coming-grid">
+					<?php foreach ( $home['coming_up'] as $e ) { fort_render_coming_row( $e ); } ?>
+				</div>
+			</section>
+		<?php endif; ?>
+
 
 		<section id="backblasts" class="fort-section">
 			<header class="fort-section__head fort-section__head--accent2">

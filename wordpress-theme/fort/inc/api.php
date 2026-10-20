@@ -93,6 +93,15 @@ function fort_backblasts( $limit = 4 ) {
 	return fort_is_missing( $data ) ? array() : ( $data['items'] ?? array() );
 }
 
+/** Upcoming workouts from GloomSchedule (via the stats API): today and tomorrow. */
+function fort_schedule() {
+	$data = fort_remote_json( FORT_STATS_API, '/api/schedule?days=2', min( FORT_STATS_TTL, 900 ) );
+	if ( fort_is_missing( $data ) || empty( $data['configured'] ) ) {
+		return null;
+	}
+	return $data;
+}
+
 /** Last week's totals, the 8-week trend and the busiest AOs. */
 function fort_backblast_summary() {
 	$data = fort_remote_json( FORT_STATS_API, '/api/backblasts/summary', FORT_STATS_TTL );
