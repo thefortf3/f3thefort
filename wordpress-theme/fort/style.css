@@ -2,7 +2,7 @@
 Theme Name: Fort
 Theme URI: https://f3thefort.com
 Description: F3 The Fort — the site The Fort Weekly newsletter summarizes. Events and region info come from the Fort Weekly plugin; workouts and backblast stats come from the stats API; posts and pages work as usual.
-Version: 0.2.3
+Version: 0.2.4
 Requires at least: 6.0
 Requires PHP: 7.4
 Author: F3 The Fort
@@ -239,33 +239,39 @@ a.fort-bb:hover .fort-bb__title { color: var(--amber-bright); }
 .fort-alert--ok { border-color: var(--accent2); }
 .fort-alert--error { border-color: #d98a6a; color: #f0c1ad; }
 
-/* Schedule page */
-.fort-schedule .fort-wrap { max-width: 1040px; }
-.fort-schedule__notes { margin: 0 0 20px; max-width: 64ch; }
-.fort-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 28px; }
-.fort-chip { font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em; padding: 8px 12px; border: 1px solid var(--line-2); color: var(--text); }
+/* Schedule page: a week at a time, one line per workout */
+.fort-schedule .fort-wrap { max-width: 1200px; }
+.fort-schedule .fort-entry__head { margin-bottom: 12px; }
+.fort-schedule__notes { margin: 0 0 16px; max-width: 70ch; font-size: 16px; }
+.fort-sched-bar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 24px; margin: 4px 0 18px; }
+.fort-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+.fort-chip { font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em; padding: 7px 11px; border: 1px solid var(--line-2); color: var(--text); }
 .fort-chip:hover { border-color: var(--accent2); color: var(--text-bright); }
 .fort-chip.is-current { background: var(--accent2); border-color: var(--accent2); color: #0d0e10; }
-.fort-sched { display: grid; grid-template-columns: repeat(auto-fill, minmax(460px, 1fr)); gap: 8px 48px; }
-.fort-sched__day { padding-bottom: 12px; }
-.fort-sched__date { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 0; padding: 18px 0 10px; border-bottom: 2px solid var(--line-2); font-family: var(--display); font-size: 22px; font-weight: 600; letter-spacing: 0.03em; color: var(--text-bright); }
+.fort-chips--tabs .fort-chip.is-current { background: var(--amber); border-color: var(--amber); }
+.fort-sched { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 4px 36px; align-items: start; }
+.fort-sched__day { padding-bottom: 6px; }
+.fort-sched__date { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 0; padding: 12px 0 6px; border-bottom: 2px solid var(--line-2); font-family: var(--display); font-size: 19px; font-weight: 600; letter-spacing: 0.03em; color: var(--text-bright); }
 .fort-sched__day.is-today .fort-sched__date { border-bottom-color: var(--accent2); }
 .fort-sched__list { list-style: none; margin: 0; padding: 0; }
-.fort-sched__row { display: grid; grid-template-columns: 52px minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr); gap: 4px 12px; align-items: baseline; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+.fort-sched__row { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 15px; line-height: 1.35; }
 .fort-sched__time { font-family: var(--mono); font-size: 12px; color: var(--accent2); }
 .fort-sched__row.is-other .fort-sched__time { color: var(--text-mute); }
-.fort-sched__ao, .fort-sched__ao a { font-family: var(--display); font-weight: 600; font-size: 17px; color: var(--text-bright); }
+.fort-sched__ao, .fort-sched__ao a { font-family: var(--display); font-weight: 600; font-size: 16px; color: var(--text-bright); }
 .fort-sched__ao a:hover { color: var(--amber-bright); }
 .fort-sched__ao .fort-tag { margin-left: 6px; vertical-align: 2px; }
-.fort-sched__q { color: var(--text-bright); }
-.fort-sched__site { color: var(--text-mute); font-size: 13px; }
-.fort-sched__lbl { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-mute); }
-.fort-sched__none { margin: 12px 0; }
-.fort-schedule__foot { margin-top: 32px; font-size: 15px; }
+.fort-sched__q { color: var(--text-dim); text-align: right; max-width: 15em; }
+.fort-sched__none { margin: 6px 0; font-size: 14px; }
+.fort-siteqs { margin-top: 24px; border-top: 1px solid var(--line-2); padding-top: 12px; }
+.fort-siteqs summary { cursor: pointer; font-family: var(--display); font-size: 18px; font-weight: 600; letter-spacing: 0.03em; color: var(--text-bright); }
+.fort-siteqs summary .fort-dim { font-family: var(--body); font-size: 14px; font-weight: 400; letter-spacing: 0; }
+.fort-siteqs__list { list-style: none; margin: 12px 0 0; padding: 0; columns: 3 220px; column-gap: 32px; font-size: 14px; color: var(--text-dim); }
+.fort-siteqs__list li { break-inside: avoid; padding: 3px 0; }
+.fort-siteqs__ao { font-family: var(--display); font-weight: 600; color: var(--text-bright); margin-right: 4px; }
+.fort-schedule__foot { margin-top: 20px; font-size: 14px; }
 @media (max-width: 720px) {
 	.fort-sched { grid-template-columns: minmax(0, 1fr); }
-	.fort-sched__row { grid-template-columns: 52px minmax(0, 1fr); }
-	.fort-sched__q, .fort-sched__site { grid-column: 2; }
+	.fort-sched__q { max-width: 11em; font-size: 14px; }
 }
 
 /* Submit: preview before sending */

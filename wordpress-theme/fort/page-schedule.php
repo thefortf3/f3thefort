@@ -1,16 +1,19 @@
 <?php
 /**
- * The Schedule page (the page with slug "schedule"): every workout on the Q sheet for the next two
- * weeks, from GloomSchedule via the stats API: day, time, AO, kind, the Q(s) and the AO's site Qs.
- * Anything written on the page itself (notes, links) shows above it.
+ * The Schedule page (the page with slug "schedule"): every workout on the Q sheet, a week at a time
+ * (this week / next week), from GloomSchedule via the stats API: day, time, AO, kind and the Q(s),
+ * one line each, with the AOs' site Qs listed once at the bottom. Anything written on the page
+ * itself (notes, links) shows above it.
  *
  * @package Fort
  */
 
 defined( 'ABSPATH' ) || exit;
 
-// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter in the URL
+// phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only filters in the URL
 $kind     = isset( $_GET['f'] ) ? sanitize_key( wp_unslash( $_GET['f'] ) ) : '';
+$week     = isset( $_GET['week'] ) && 'next' === $_GET['week'] ? 'next' : 'this';
+// phpcs:enable
 $kinds    = array(
 	''     => __( 'Everything', 'fort' ),
 	'1st'  => __( '1st F · Fitness', 'fort' ),
@@ -28,23 +31,35 @@ get_header();
 			<header class="fort-entry__head fort-schedule__head">
 				<span class="fort-kicker fort-accent2"><?php esc_html_e( 'In the gloom', 'fort' ); ?></span>
 				<h1 class="fort-entry__title"><?php the_title(); ?></h1>
-				<p class="fort-entry__dek"><?php esc_html_e( 'Every workout on the Q sheet for the next two weeks. No sign-up and no cost — just show up a few minutes early.', 'fort' ); ?></p>
+				<p class="fort-entry__dek"><?php esc_html_e( 'Every workout on the Q sheet, a week at a time. No sign-up and no cost — just show up a few minutes early.', 'fort' ); ?></p>
 			</header>
 			<?php if ( '' !== trim( get_the_content() ) ) : ?>
 				<div class="fort-prose fort-schedule__notes"><?php the_content(); ?></div>
 			<?php endif; ?>
 		<?php endwhile; ?>
 
-		<nav class="fort-chips" aria-label="<?php esc_attr_e( 'Show', 'fort' ); ?>">
-			<?php foreach ( $kinds as $key => $label ) : ?>
-				<a class="fort-chip<?php echo $kind === $key ? ' is-current' : ''; ?>" href="<?php echo esc_url( $key ? add_query_arg( 'f', $key, get_permalink() ) : get_permalink() ); ?>"<?php echo $kind === $key ? ' aria-current="page"' : ''; ?>><?php echo esc_html( $label ); ?></a>
-			<?php endforeach; ?>
-		</nav>
+		<?php
+		$url = function ( $args ) use ( $kind, $week ) {
+			$args = array_merge( array( 'f' => $kind, 'week' => 'next' === $week ? 'next' : '' ), $args );
+			return add_query_arg( array_filter( $args ), get_permalink() );
+		};
+		?>
+		<div class="fort-sched-bar">
+			<nav class="fort-chips fort-chips--tabs" aria-label="<?php esc_attr_e( 'Week', 'fort' ); ?>">
+				<a class="fort-chip<?php echo 'this' === $week ? ' is-current' : ''; ?>" href="<?php echo esc_url( $url( array( 'week' => '' ) ) ); ?>"<?php echo 'this' === $week ? ' aria-current="page"' : ''; ?>><?php esc_html_e( 'This week', 'fort' ); ?></a>
+				<a class="fort-chip<?php echo 'next' === $week ? ' is-current' : ''; ?>" href="<?php echo esc_url( $url( array( 'week' => 'next' ) ) ); ?>"<?php echo 'next' === $week ? ' aria-current="page"' : ''; ?>><?php esc_html_e( 'Next week', 'fort' ); ?></a>
+			</nav>
+			<nav class="fort-chips" aria-label="<?php esc_attr_e( 'Show', 'fort' ); ?>">
+				<?php foreach ( $kinds as $key => $label ) : ?>
+					<a class="fort-chip<?php echo $kind === $key ? ' is-current' : ''; ?>" href="<?php echo esc_url( $url( array( 'f' => $key ) ) ); ?>"<?php echo $kind === $key ? ' aria-current="page"' : ''; ?>><?php echo esc_html( $label ); ?></a>
+				<?php endforeach; ?>
+			</nav>
+		</div>
 
 		<?php if ( ! $schedule ) : ?>
 			<p class="fort-notice"><?php esc_html_e( 'The Q sheet can’t be reached right now. Check back in a few minutes, or ask in Slack.', 'fort' ); ?></p>
 		<?php else : ?>
-			<?php fort_render_schedule_page( $schedule, $kind ); ?>
+			<?php fort_render_schedule_page( $schedule, $kind, 'next' === $week ? 7 : 0, 7 ); ?>
 		<?php endif; ?>
 
 		<p class="fort-dim fort-schedule__foot">
