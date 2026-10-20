@@ -20,3 +20,6 @@ variety-plan.json
 
 # Local preview stack (docker-compose.local.yml)
 .local/
+
+# Fort Weekly plugin: Composer installs the email CSS inliner here (built into the zip).
+wordpress-plugin/fort-weekly/vendor/

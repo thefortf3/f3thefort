@@ -1,0 +1,45 @@
+<?php
+// Newsletter rendering pieces — cases from the newsletter app's tests/newsletter-agenda.unit.js,
+// plus the campaign naming. Full-issue output is checked against the app's renderAgenda with the
+// parity script (see README).
+
+fortw_test(
+	'summary falls back to a word-boundary excerpt of the description; images come from hero or description',
+	function () {
+		assert_same( 'Short.', fortw_summary_of( array( 'summary' => 'Short.', 'description' => '' ) ) );
+		$long = fortw_summary_of( array( 'summary' => '', 'description' => '<p>' . str_repeat( 'word ', 100 ) . '</p>' ), 40 );
+		assert_true( '…' === mb_substr( $long, -1 ) && mb_strlen( $long ) <= 41, $long );
+		assert_same( '/uploads/a.png', fortw_image_of( array( 'hero_image' => null, 'description' => '<p><img src="/uploads/a.png"></p>' ) ) );
+		assert_same( '/uploads/h.png', fortw_image_of( array( 'hero_image' => '/uploads/h.png', 'description' => '<img src="/uploads/a.png">' ) ) );
+	}
+);
+
+fortw_test(
+	'render: escapes text, links entries to their site page, and fills the template',
+	function () {
+		$e    = fortw_t_entry( array( 'title' => 'Ruck <script>', 'slug' => 'ruck', 'summary' => 'A & B', 'occurrences' => array( array( 'date' => '2026-10-24', 'start_time' => '0915' ) ) ) );
+		$html = fortw_render_agenda(
+			'<title>{{TITLE}}</title><body>{{BODY}}</body>',
+			array( $e ),
+			array( 'three_fs' => array(), 'links' => array(), 'slt' => array() ),
+			FORTW_T_TODAY,
+			array( 'site_url' => 'https://s', 'submit_url' => 'https://s/submit/', 'year' => '2026', 'entry_url' => function ( $x ) { return 'https://s/events/' . $x['slug'] . '/'; } )
+		);
+		assert_true( false !== strpos( $html, '<title>The Fort Weekly — week of Oct 20</title>' ), 'title' );
+		assert_true( false !== strpos( $html, 'Ruck &lt;script&gt;' ) && false === strpos( $html, '<script>' ), 'escaped title' );
+		assert_true( false !== strpos( $html, 'href="https://s/events/ruck/"' ), 'entry link' );
+		assert_true( false !== strpos( $html, 'A &amp; B' ), 'escaped summary' );
+		assert_true( false !== strpos( $html, 'THIS WEEK' ) && false !== strpos( $html, 'OCT 20 – 26' ), 'this week section' );
+	}
+);
+
+fortw_test(
+	'campaign: the coming Sunday, named and subjected like the app did',
+	function () {
+		assert_same( '2026-10-25', fortw_next_sunday( '2026-10-20' ) );
+		assert_same( '2026-10-25', fortw_next_sunday( '2026-10-25' ) );
+		assert_same( '2026-11-01', fortw_next_sunday( '2026-10-26' ) );
+		assert_same( 'October 25, 2026', fortw_campaign_title( '2026-10-25' ) );
+		assert_same( 'F3 The Fort Weekly Newsletter - 10/25/2026', fortw_campaign_subject( '2026-10-25' ) );
+	}
+);

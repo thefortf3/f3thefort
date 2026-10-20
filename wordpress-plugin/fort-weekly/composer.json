@@ -1,0 +1,15 @@
+{
+  "name": "f3thefort/fort-weekly",
+  "description": "The Fort Weekly WordPress plugin. Composer only vendors the email CSS inliner; build the zip with scripts/build-plugin-zip.sh.",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+  "require": {
+    "php": ">=7.4",
+    "pelago/emogrifier": "^7.2"
+  },
+  "config": {
+    "platform": { "php": "7.4.33" },
+    "optimize-autoloader": true,
+    "sort-packages": true
+  }
+}
