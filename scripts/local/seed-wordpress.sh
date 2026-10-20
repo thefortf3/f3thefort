@@ -15,8 +15,14 @@ for _ in $(seq 1 30); do "${WP[@]}" core version >/dev/null 2>&1 && break; sleep
 
 if ! "${WP[@]}" core is-installed >/dev/null 2>&1; then
   echo "[2/4] Installing WordPress…"
-  "${WP[@]}" core install --url="http://${DEV_HOST}:8088" --title="F3 The Fort" \
-    --admin_user=admin --admin_password=admin --admin_email=admin@example.com --skip-email
+  # A random admin password, kept only in .local/ (gitignored, owner-readable): this site can end
+  # up reachable from outside (e.g. through a reverse proxy), so never a guessable default.
+  PW_FILE=.local/wp-admin-password
+  [ -s "$PW_FILE" ] || (umask 077 && python3 -c "import secrets; print(secrets.token_urlsafe(24))" > "$PW_FILE")
+  "${COMPOSE[@]}" run --rm -e WP_ADMIN_PW="$(cat "$PW_FILE")" wpcli sh -c \
+    'wp core install --url="http://${DEV_HOST}:8088" --title="F3 The Fort" --admin_user=admin \
+       --admin_password="$WP_ADMIN_PW" --admin_email=admin@example.com --skip-email'
+  echo "      WordPress admin: user 'admin', password in $PW_FILE"
 fi
 "${WP[@]}" rewrite structure '/%year%/%monthnum%/%day%/%postname%/' --hard >/dev/null
 "${WP[@]}" theme activate fort
