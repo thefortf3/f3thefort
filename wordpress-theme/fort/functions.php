@@ -128,6 +128,11 @@ add_filter(
 	'template_include',
 	function ( $template ) {
 		if ( get_query_var( 'fort_submit' ) ) {
+			// Never page-cache the form: it carries a nonce, and a cached copy would expire.
+			if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+				define( 'DONOTCACHEPAGE', true );
+			}
+			nocache_headers();
 			return locate_template( 'submit.php' ) ?: $template;
 		}
 		if ( get_query_var( 'fort_event' ) ) {
@@ -206,6 +211,11 @@ add_action(
 						return new WP_Error( 'fort_forbidden', 'Forbidden', array( 'status' => 401 ) );
 					}
 					fort_flush_cache();
+					// The live site runs WP Super Cache; drop its cached pages too so an approval
+					// shows up right away rather than when the page cache expires.
+					if ( function_exists( 'wp_cache_clear_cache' ) ) {
+						wp_cache_clear_cache();
+					}
 					return array( 'flushed' => true );
 				},
 			)

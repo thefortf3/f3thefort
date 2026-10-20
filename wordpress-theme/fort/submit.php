@@ -65,7 +65,7 @@ get_header();
 		</div>
 		<div class="fort-field<?php echo in_array( 'description', $fields, true ) ? ' is-invalid' : ''; ?>">
 			<label for="f-description"><?php esc_html_e( 'Tell the PAX about it', 'fort' ); ?> <span class="fort-req" aria-hidden="true">*</span></label>
-			<textarea id="f-description" name="description" rows="7" required></textarea>
+			<textarea id="f-description" name="description" rows="7" maxlength="8000" required></textarea>
 		</div>
 		<div class="fort-field"><label for="f-link"><?php esc_html_e( 'Sign-up or details link', 'fort' ); ?></label><input id="f-link" name="link" type="url" placeholder="https://…"></div>
 		<div class="fort-field"><label for="f-flyer"><?php esc_html_e( 'Flyer or photo (optional, under 5 MB)', 'fort' ); ?></label><input id="f-flyer" name="flyer" type="file" accept="image/*"></div>

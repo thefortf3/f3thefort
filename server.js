@@ -46,7 +46,18 @@ if (!ADMIN_PASSWORD) {
 // belong in /uploads (the editor inserts them as URLs), so 1mb is generous headroom for rich
 // text while still bounding what an unauthenticated endpoint can buffer.
 app.use(express.json({ limit: '1mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+// Uploaded files are untrusted: never let a browser sniff one into HTML, and sandbox anything
+// that is served as a document anyway (covers files uploaded before the extension fix below).
+// Set here because this handler, not the /uploads one further down, is what serves them.
+const UPLOADS_ROOT = path.join(__dirname, 'public', 'uploads') + path.sep;
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.startsWith(UPLOADS_ROOT)) {
+      res.set('X-Content-Type-Options', 'nosniff');
+      res.set('Content-Security-Policy', "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox");
+    }
+  },
+}));
 app.use((req, _res, next) => {
   req.cookies = Object.fromEntries(
     (req.headers.cookie || '').split(';').flatMap(part => {
@@ -312,11 +323,15 @@ function logAudit(submissionId, action, title, detail = null) {
 
 // Image upload
 const uploadDir = path.join(__dirname, 'public', 'uploads');
+// The extension comes from the (allow-listed) declared type, never from the uploaded filename:
+// otherwise "x.html" sent as image/png would be stored as .html and served as a page on this
+// origin — stored XSS against anyone logged in to the admin.
+const UPLOAD_EXT = { 'image/png': '.png', 'image/jpeg': '.jpg', 'image/jpg': '.jpg', 'image/gif': '.gif', 'image/webp': '.webp' };
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const name = Date.now() + '-' + Math.random().toString(36).slice(2, 8) + ext;
+    const ext = UPLOAD_EXT[String(file.mimetype).toLowerCase()] || '.bin';
+    const name = Date.now() + '-' + randomBytes(6).toString('hex') + ext;
     cb(null, name);
   },
 });
@@ -334,7 +349,7 @@ const upload = multer({
   },
 });
 
-app.use('/uploads', express.static(uploadDir));
+app.use('/uploads', express.static(uploadDir));  // see the setHeaders hardening on the public static handler above
 
 // Rate limiters for the public, unauthenticated endpoints. Windows are generous enough
 // for a person composing a submission (a few uploads + snippet generations) but cap
@@ -835,7 +850,15 @@ app.post('/api/generate-snippet', snippetLimiter, requireSameOrigin, async (req,
  * theme's, via /api/public/submissions). Returns { status, body } for the HTTP response.
  */
 async function createSubmission(reqBody, origin = 'submission') {
-  const { title, leader, start_date, start_time, end_time, location, link, hero_image, video_url, submitter_name, submitter_email, submitter_phone, preblast } = reqBody || {};
+  // Anonymous input: cap every plain-text field so one request can't stuff the queue, the
+  // Slack message or the admin with megabytes of text (the JSON body limit is 1mb).
+  const cap = (v, max) => (v === undefined || v === null ? v : String(v).slice(0, max));
+  const b = reqBody || {};
+  const title = cap(b.title, 200), leader = cap(b.leader, 120), start_date = cap(b.start_date, 25);
+  const start_time = cap(b.start_time, 40), end_time = cap(b.end_time, 25), location = cap(b.location, 200);
+  const link = cap(b.link, 1000), hero_image = cap(b.hero_image, 1000), video_url = cap(b.video_url, 1000);
+  const submitter_name = cap(b.submitter_name, 120), submitter_email = cap(b.submitter_email, 200), submitter_phone = cap(b.submitter_phone, 40);
+  const preblast = b.preblast;
   // description and preblast_content are rich HTML from an unauthenticated endpoint —
   // sanitize before storage so neither the admin editor nor the newsletter renders attacker markup.
   const description = sanitizeHtml(reqBody?.description);

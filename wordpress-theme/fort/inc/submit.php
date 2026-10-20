@@ -47,7 +47,7 @@ function fort_handle_submit() {
 	};
 	$title       = $field( 'title', 160 );
 	$date        = $field( 'start_date', 10 );
-	$description = isset( $_POST['description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['description'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+	$description = isset( $_POST['description'] ) ? mb_substr( sanitize_textarea_field( wp_unslash( $_POST['description'] ) ), 0, 8000 ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
 	$errors = array();
 	if ( '' === $title ) {

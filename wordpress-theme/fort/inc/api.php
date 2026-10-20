@@ -48,9 +48,8 @@ function fort_remote_json( $base, $path, $ttl ) {
 
 	$code = (int) wp_remote_retrieve_response_code( $response );
 	if ( 404 === $code ) {
-		$missing = array( '__missing' => true );
-		set_transient( $key, $missing, $ttl );
-		return $missing;
+		// Not cached: otherwise every made-up /events/<slug>/ URL would write a transient row.
+		return array( '__missing' => true );
 	}
 
 	$data = json_decode( wp_remote_retrieve_body( $response ), true );

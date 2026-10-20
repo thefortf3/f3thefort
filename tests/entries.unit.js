@@ -157,6 +157,15 @@ test('slugs are readable and unique', () => {
   assert.equal(uniqueSlug(db, 'Ruck and Roll'), 'ruck-and-roll-2');
 });
 
+test('Slack: submitter text cannot ping the channel, inject links or restyle the message', () => {
+  const msg = buildSubmissionMessage({ id: 3, title: '<!channel> *FREE* <https://evil.example|click>', occurrences: [],
+    location: '<@U123>', submitter_name: 'x & y' }, 'http://localhost');
+  const json = JSON.stringify(msg);
+  assert.doesNotMatch(json, /<!channel>|<@U123>|<https:/);
+  assert.match(json, /&lt;!channel&gt; FREE &lt;https:\/\/evil.example\|click&gt;/);
+  assert.match(json, /x &amp; y/);
+});
+
 test('Slack: dry-run without config; failures never throw', async () => {
   const entry = { id: 7, title: 'Beers for Beetus', occurrences: [{ date: '2026-10-24', start_time: '1100' }], location: 'Print Shop', submitter_name: 'Slash' };
   const msg = buildSubmissionMessage(entry, 'http://localhost:3000');
