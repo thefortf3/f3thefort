@@ -2,7 +2,7 @@
 Theme Name: Fort
 Theme URI: https://f3thefort.com
 Description: F3 The Fort — the site The Fort Weekly newsletter summarizes. Events and region info come from the Fort Weekly plugin; workouts and backblast stats come from the stats API; posts and pages work as usual.
-Version: 0.2.1
+Version: 0.2.2
 Requires at least: 6.0
 Requires PHP: 7.4
 Author: F3 The Fort
@@ -227,6 +227,7 @@ a.fort-bb:hover .fort-bb__title { color: var(--amber-bright); }
 .search-submit { font-family: var(--mono); font-size: 12px; padding: 12px 16px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line-2); cursor: pointer; }
 .fort-form { display: flex; flex-direction: column; gap: 18px; }
 .fort-field { display: flex; flex-direction: column; gap: 6px; flex: 1 1 140px; min-width: 0; }
+.fort-form > .fort-field { flex: none; } /* The 140px basis is a width for fields side by side in a row, not a height. */
 .fort-field--grow { flex: 3 1 240px; }
 .fort-field-row { display: flex; flex-wrap: wrap; gap: 14px; }
 .fort-field label, .fort-fieldset legend { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-mute); }
@@ -247,6 +248,23 @@ a.fort-bb:hover .fort-bb__title { color: var(--amber-bright); }
 .fort-preview__actions { margin-top: 24px; }
 /* The theme gives buttons and the form a display value, which would override the hidden attribute. */
 .fort-submit [hidden] { display: none !important; }
+
+/* Submit: the description editor (WordPress's TinyMCE), in the site's colours */
+.fort-submit .wp-editor-wrap { border: 1px solid var(--line-2); }
+.fort-submit .wp-editor-wrap:focus-within { border-color: var(--amber); }
+.fort-submit .wp-editor-container { border: 0; }
+.fort-submit .wp-editor-area { background: var(--bg-deep); color: var(--text-bright); border: 0; font: inherit; font-size: 16px; padding: 12px 14px; }
+.fort-submit .mce-container, .fort-submit .mce-panel, .fort-submit .mce-toolbar-grp { background: var(--panel) !important; border-color: var(--line-2) !important; }
+.fort-submit .mce-top-part::before { box-shadow: none !important; }
+.fort-submit .mce-toolbar .mce-btn-group { padding: 4px 2px; }
+.fort-submit .mce-toolbar .mce-btn { background: transparent; border-color: transparent; box-shadow: none; }
+.fort-submit .mce-toolbar .mce-btn .mce-ico { color: var(--text); }
+.fort-submit .mce-toolbar .mce-btn:hover, .fort-submit .mce-toolbar .mce-btn:focus,
+.fort-submit .mce-toolbar .mce-btn.mce-active { background: var(--panel-2); border-color: var(--line-2); }
+.fort-submit .mce-toolbar .mce-btn.mce-active .mce-ico, .fort-submit .mce-toolbar .mce-btn:hover .mce-ico { color: var(--amber-bright); }
+.fort-submit .mce-toolbar .mce-btn.mce-disabled .mce-ico { color: var(--text-mute); }
+.fort-submit .mce-edit-area { border: 0 !important; }
+.fort-field.is-invalid .wp-editor-wrap { border-color: #d98a6a; }
 
 /* Footer */
 .fort-footer { background: var(--bg-deep); border-top: 1px solid var(--line); }

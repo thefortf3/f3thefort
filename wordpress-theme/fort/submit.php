@@ -25,6 +25,7 @@ $messages = array(
 	'busy'     => __( 'Too many submissions from here — please try again in a bit.', 'fort' ),
 	'disabled' => __( 'Submissions are not switched on for this site yet.', 'fort' ),
 	'failed'   => __( 'Something went wrong sending your event. Please try again.', 'fort' ),
+	'long'     => __( 'That description is too long — please keep it under about 8,000 characters.', 'fort' ),
 );
 
 get_header();
@@ -68,8 +69,35 @@ get_header();
 			<div class="fort-field"><label for="f-leader"><?php esc_html_e( 'Q (who’s leading)', 'fort' ); ?></label><input id="f-leader" name="leader" maxlength="120"></div>
 		</div>
 		<div class="fort-field<?php echo in_array( 'description', $fields, true ) ? ' is-invalid' : ''; ?>">
-			<label for="f-description"><?php esc_html_e( 'Tell the PAX about it', 'fort' ); ?> <span class="fort-req" aria-hidden="true">*</span></label>
-			<textarea id="f-description" name="description" rows="7" maxlength="8000" required></textarea>
+			<label for="fort_description"><?php esc_html_e( 'Tell the PAX about it', 'fort' ); ?> <span class="fort-req" aria-hidden="true">*</span></label>
+			<?php
+			// WordPress's classic editor with just bold, italic, lists and links. The site keeps only
+			// those (fortw_submission_html in the Fort Weekly plugin). Without JavaScript it's a plain
+			// text box.
+			wp_editor(
+				'',
+				'fort_description',
+				array(
+					'textarea_name'    => 'description',
+					'textarea_rows'    => 8,
+					'media_buttons'    => false,
+					'teeny'            => true,
+					'quicktags'        => false,
+					'drag_drop_upload' => false,
+					'tinymce'          => array(
+						'toolbar1'       => 'bold,italic,bullist,numlist,link,unlink,undo,redo',
+						'toolbar2'       => '',
+						'menubar'        => false,
+						'statusbar'      => false,
+						'branding'       => false,
+						'valid_elements' => 'p,br,strong/b,em/i,ul,ol,li,a[href]',
+						// One URL only: TinyMCE splits this setting on commas (the font loads from inside it).
+						'content_css'    => get_template_directory_uri() . '/assets/editor-content.css?ver=' . FORT_THEME_VERSION,
+						'body_class'     => 'fort-editor-body',
+					),
+				)
+			);
+			?>
 		</div>
 		<div class="fort-field"><label for="f-link"><?php esc_html_e( 'Sign-up or details link', 'fort' ); ?></label><input id="f-link" name="link" type="url" placeholder="https://…"></div>
 		<div class="fort-field"><label for="f-flyer"><?php esc_html_e( 'Flyer or photo (optional, under 5 MB)', 'fort' ); ?></label><input id="f-flyer" name="flyer" type="file" accept="image/*"></div>

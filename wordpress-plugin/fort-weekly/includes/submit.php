@@ -60,12 +60,15 @@ function fortw_handle_submission() {
 	};
 	$title       = $field( 'title', 160 );
 	$date        = $field( 'start_date', 10 );
-	$description = isset( $_POST['description'] ) ? mb_substr( sanitize_textarea_field( wp_unslash( $_POST['description'] ) ), 0, 8000 ) : '';
+	$description = fortw_submission_html( isset( $_POST['description'] ) ? (string) wp_unslash( $_POST['description'] ) : '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- cleaned by fortw_submission_html
 	$errors      = array();
 	if ( '' === $title ) {
 		$errors[] = 'title';
 	}
-	if ( '' === trim( $description ) ) {
+	if ( null === $description ) {
+		fortw_submit_redirect( array( 'fort_error' => 'long' ) );
+	}
+	if ( fortw_html_is_empty( $description ) ) {
 		$errors[] = 'description';
 	}
 	if ( '' !== $date && ! fortw_is_iso_date( $date ) ) {
@@ -90,7 +93,7 @@ function fortw_handle_submission() {
 			'post_type'    => FORTW_POST_TYPE,
 			'post_status'  => 'pending',
 			'post_title'   => $title,
-			'post_content' => wpautop( esc_html( $description ) ), // Plain text from the form → paragraphs.
+			'post_content' => $description,
 			'post_author'  => 0,
 		),
 		true
@@ -166,3 +169,51 @@ function fortw_store_flyer( $post_id ) {
 		array( 'test_form' => false, 'mimes' => fortw_flyer_mimes() )
 	);
 }
+
+/** What a submitted description may contain: the editor's bold, italic, lists and links. */
+function fortw_submission_tags() {
+	return array(
+		'p'      => array(),
+		'br'     => array(),
+		'strong' => array(),
+		'b'      => array(),
+		'em'     => array(),
+		'i'      => array(),
+		'ul'     => array(),
+		'ol'     => array(),
+		'li'     => array(),
+		'a'      => array( 'href' => true ),
+	);
+}
+
+/**
+ * A submitted description, cleaned for storing: from the form's editor (a little HTML) or, without
+ * JavaScript, plain text. Anything beyond fortw_submission_tags() is removed, links may only be
+ * http(s) or mailto and get rel="nofollow", and paragraphs are added the way WordPress displays
+ * posts. Returns null when it is too long (over 8,000 characters of text).
+ */
+function fortw_submission_html( $raw ) {
+	$raw = str_replace( "\r\n", "\n", (string) $raw );
+	if ( mb_strlen( $raw ) > 40000 ) {
+		return null;
+	}
+	if ( preg_match( '/<[a-z\/!]/i', $raw ) ) {
+		$html = preg_replace( '#<(script|style|iframe|object|noscript)\b[^>]*>.*?</\1\s*>#is', '', $raw ); // Drop their contents too.
+		$html = wp_kses( $html, fortw_submission_tags(), array( 'http', 'https', 'mailto' ) );
+		// A link whose address isn't http(s) or mailto (kses leaves e.g. "alert(1)") keeps only its text.
+		$html = preg_replace( '#<a\s+href="(?!https?://|mailto:)[^"]*"[^>]*>(.*?)</a>#is', '$1', $html );
+		$html = wp_unslash( wp_rel_nofollow( wp_slash( $html ) ) );
+	} else {
+		$html = esc_html( sanitize_textarea_field( $raw ) );
+	}
+	if ( mb_strlen( trim( html_entity_decode( wp_strip_all_tags( $html ) ) ) ) > 8000 ) {
+		return null;
+	}
+	return trim( wpautop( $html ) );
+}
+
+/** True when HTML has no visible text (tags, spaces and non-breaking spaces only). */
+function fortw_html_is_empty( $html ) {
+	return '' === trim( str_replace( "\xC2\xA0", ' ', html_entity_decode( wp_strip_all_tags( (string) $html ), ENT_QUOTES, 'UTF-8' ) ) );
+}
+

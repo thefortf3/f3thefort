@@ -1,9 +1,10 @@
 /*
  * "Submit an event": a Preview step before sending. It shows the event as its page will look
  * once approved, built here in the browser from what was typed (nothing is sent until "Looks
- * good"). Text is cleaned the way the site will store it: tags removed, single-line fields
- * tidied, blank lines → paragraphs, single line breaks kept. Without JavaScript the form keeps
- * its plain "Send for approval" button.
+ * good"). Text is cleaned the way the site will store it: single-line fields tidied, and the
+ * description keeps only the editor's bold, italic, lists and http(s)/mailto links (as the Fort
+ * Weekly plugin's fortw_submission_html does). Without JavaScript the form keeps its plain
+ * "Send for approval" button and plain text box.
  */
 (function () {
   'use strict';
@@ -77,18 +78,14 @@
     showRow('q', !!q);
     part('link-row').hidden = !/^https?:\/\/\S+/i.test(val('f-link').trim());
 
-    // Description: blank lines start a new paragraph; single line breaks stay.
     var body = part('description');
     body.textContent = '';
-    stripTags(val('f-description')).replace(/\r\n?/g, '\n').trim().split(/\n\s*\n/).forEach(function (para) {
-      if (!para.trim()) return;
-      var p = document.createElement('p');
-      para.trim().split('\n').forEach(function (bit, i) {
-        if (i) p.appendChild(document.createElement('br'));
-        p.appendChild(document.createTextNode(bit));
-      });
-      body.appendChild(p);
-    });
+    var ed = editor();
+    if (ed) {
+      cleanInto(body, new DOMParser().parseFromString(ed.getContent(), 'text/html').body);
+    } else {
+      plainInto(body, val('fort_description'));
+    }
 
     // Flyer: shown from the file itself; flagged if the site would refuse it.
     var file = (document.getElementById('f-flyer') || {}).files;
@@ -114,6 +111,55 @@
     return problem.hidden; // True when it can be sent (no flyer problem).
   }
 
+  // The description editor (WordPress's TinyMCE), once it has started.
+  function editor() {
+    return window.tinymce && window.tinymce.get('fort_description') && !window.tinymce.get('fort_description').isHidden()
+      ? window.tinymce.get('fort_description') : null;
+  }
+  function descriptionText() {
+    var ed = editor();
+    var text = ed ? ed.getContent({ format: 'text' }) : val('fort_description');
+    return text.replace(/\u00a0/g, ' ').trim();
+  }
+
+  // Copies only what the site keeps: p, br, strong/b, em/i, ul/ol/li, and http(s)/mailto links.
+  var KEEP = { P: 'p', BR: 'br', STRONG: 'strong', B: 'strong', EM: 'em', I: 'em', UL: 'ul', OL: 'ol', LI: 'li', A: 'a' };
+  function cleanInto(target, source) {
+    source.childNodes.forEach(function (n) {
+      if (n.nodeType === 3) {
+        target.appendChild(document.createTextNode(n.nodeValue));
+        return;
+      }
+      if (n.nodeType !== 1 || /^(SCRIPT|STYLE|IFRAME|OBJECT|NOSCRIPT)$/.test(n.tagName)) return;
+      var tag = KEEP[n.tagName];
+      if (tag === 'a' && !/^(https?:\/\/|mailto:)/i.test(n.getAttribute('href') || '')) tag = null;
+      if (!tag) {
+        cleanInto(target, n); // Not kept: its text still is.
+        return;
+      }
+      var el = document.createElement(tag);
+      if (tag === 'a') {
+        el.href = n.getAttribute('href');
+        el.rel = 'nofollow';
+      }
+      target.appendChild(el);
+      cleanInto(el, n);
+    });
+  }
+
+  // Plain text (no editor): blank lines start a new paragraph; single line breaks stay.
+  function plainInto(target, text) {
+    stripTags(text).replace(/\r\n?/g, '\n').trim().split(/\n\s*\n/).forEach(function (para) {
+      if (!para.trim()) return;
+      var p = document.createElement('p');
+      para.trim().split('\n').forEach(function (bit, i) {
+        if (i) p.appendChild(document.createElement('br'));
+        p.appendChild(document.createTextNode(bit));
+      });
+      target.appendChild(p);
+    });
+  }
+
   function show(which) {
     var previewing = which === 'preview';
     form.hidden = previewing;
@@ -124,8 +170,20 @@
     target.focus({ preventScroll: true });
   }
 
+  // The editor hides the real text box, so the browser can't check "required" on it; this does.
+  var descField = document.getElementById('fort_description');
+  if (descField) descField.removeAttribute('required');
+  var descWrap = descField && descField.closest('.fort-field');
+
   open.addEventListener('click', function () {
     if (!form.reportValidity()) return; // Required fields, link format: the browser points at the problem.
+    if (!descriptionText()) {
+      if (descWrap) descWrap.classList.add('is-invalid');
+      var ed = editor();
+      if (ed) ed.focus(); else if (descField) descField.focus();
+      return;
+    }
+    if (descWrap) descWrap.classList.remove('is-invalid');
     render.ok = render();
     show('preview');
   });
