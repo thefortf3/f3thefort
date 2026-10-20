@@ -2,7 +2,7 @@
 Theme Name: Fort
 Theme URI: https://f3thefort.com
 Description: F3 The Fort — the site The Fort Weekly newsletter summarizes. Events and region info come from the newsletter app's public API; workouts and backblast stats come from the stats API; posts and pages work as usual.
-Version: 0.1.0
+Version: 0.1.1
 Requires at least: 6.0
 Requires PHP: 7.4
 Author: F3 The Fort
@@ -120,7 +120,7 @@ a:hover { color: #f3cf74; }
 .fort-entry-title a:hover { color: var(--amber-bright); }
 .fort-summary { margin: 0; font-size: 17px; line-height: 1.65; }
 .fort-thumb { flex: 0 0 140px; }
-.fort-thumb img { width: 140px; height: 186px; object-fit: cover; background: var(--panel-2); }
+.fort-thumb img { width: 140px; height: auto; max-height: 220px; object-fit: contain; object-position: left top; }
 
 .fort-coming-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); column-gap: 48px; }
 .fort-coming { display: grid; grid-template-columns: 56px minmax(0, 1fr); column-gap: 16px; padding: 22px 0; border-bottom: 1px solid var(--line); color: var(--text-dim); }
@@ -248,7 +248,7 @@ a.fort-bb:hover .fort-bb__title { color: var(--amber-bright); }
 	.fort-day__num { font-size: 28px; }
 	.fort-entry-title { font-size: 20px; }
 	.fort-thumb { flex-basis: 100%; }
-	.fort-thumb img { width: 96px; height: 128px; }
+	.fort-thumb img { width: 96px; max-height: 150px; }
 	.fort-entry__title { font-size: 32px; }
 	.fort-entry__dek { font-size: 18px; }
 	.fort-prose { font-size: 17px; }
