@@ -11,12 +11,13 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FORT_THEME_VERSION', '0.3.3' );
+define( 'FORT_THEME_VERSION', '0.4.0' );
 
 require_once __DIR__ . '/inc/config.php';
 require_once __DIR__ . '/inc/api.php';
 require_once __DIR__ . '/inc/helpers.php';
 require_once __DIR__ . '/inc/render.php';
+require_once __DIR__ . '/inc/style-preview.php';
 
 // ── Setup ─────────────────────────────────────────────────────────────
 

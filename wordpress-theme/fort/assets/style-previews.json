@@ -1,0 +1,94 @@
+{
+  "styles": [
+    {
+      "key": "1",
+      "name": "Mist & prints",
+      "summary": "A low-contrast twilight dark that warms to a peach glow at the top; calm capitals, hairline rules, flyers framed like prints.",
+      "ingredients": [
+        "Dawn mist palette",
+        "Slightly softened corners",
+        "Light, spaced capitals",
+        "Tracked mono labels",
+        "Hairline rules",
+        "Matted flyers",
+        "Accent buttons",
+        "Plain header"
+      ]
+    },
+    {
+      "key": "2",
+      "name": "Dusk editorial",
+      "summary": "Warm brown-charcoal with amber, square corners, serif headings and italic labels; a quiet, magazine-like dark.",
+      "ingredients": [
+        "Warm dusk palette",
+        "Square corners",
+        "Serif headings",
+        "Italic labels",
+        "Hairline rules",
+        "Matted flyers",
+        "Accent buttons",
+        "Plain header"
+      ]
+    },
+    {
+      "key": "3",
+      "name": "Forest notes",
+      "summary": "Deep green-grey with sand and sage, dashed notebook rules and lower-case labels; outdoorsy and calm.",
+      "ingredients": [
+        "Forest palette",
+        "Slightly softened corners",
+        "Sentence-case headings",
+        "Lower-case mono labels",
+        "Dashed notebook rules",
+        "Matte flyers",
+        "Solid ink buttons",
+        "Plain header"
+      ]
+    },
+    {
+      "key": "4",
+      "name": "Paper cards",
+      "summary": "Cream paper with a muted rust accent, serif type, floating light cards and a pill-shaped header.",
+      "ingredients": [
+        "Paper palette",
+        "Round corners",
+        "Serif headings",
+        "Italic labels",
+        "Floating cards",
+        "Matted flyers",
+        "Solid ink buttons",
+        "Floating pill header"
+      ]
+    },
+    {
+      "key": "5",
+      "name": "Mist float",
+      "summary": "The dawn-mist dark with big rounded floating cards, friendly sentence-case type and a pill header.",
+      "ingredients": [
+        "Dawn mist palette",
+        "Round corners",
+        "Sentence-case headings",
+        "Plain labels",
+        "Floating cards",
+        "Matte flyers",
+        "Accent buttons",
+        "Floating pill header"
+      ]
+    },
+    {
+      "key": "6",
+      "name": "Sage soft",
+      "summary": "Pale sage with a faint paper grain, serif headings, dashed rules and matted flyers; a light, earthy look.",
+      "ingredients": [
+        "Sage palette",
+        "Slightly softened corners",
+        "Serif headings",
+        "Lower-case mono labels",
+        "Dashed notebook rules",
+        "Matted flyers",
+        "Solid ink buttons",
+        "Plain header"
+      ]
+    }
+  ]
+}

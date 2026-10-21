@@ -72,6 +72,8 @@ services:
         define( 'WP_SITEURL', WP_HOME );
         // The reverse proxy in front of this test site passes the visitor's address here.
         define( 'FORT_CLIENT_IP_HEADER', 'HTTP_X_REAL_IP' );
+        // Style preview frame at /style-preview/ (try the alternative homepage styles). Local only.
+        define( 'FORT_STYLE_PREVIEW', true );
         define( 'FORT_STATS_API', getenv( 'FORT_STATS_API' ) ?: 'http://stats:8080' );
         define( 'FORT_STATS_URL', 'https://stats.f3thefort.com' );
     volumes:
