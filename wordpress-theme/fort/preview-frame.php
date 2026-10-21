@@ -108,9 +108,10 @@ main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 10px; }
   var WIDTHS = { desktop: 1280, tablet: 820, phone: 390 };
   var $ = function (id) { return document.getElementById(id); };
   var q = new URLSearchParams(location.search);
+  function isStyle(k) { return k === '0' || CFG.styles.some(function (x) { return x.key === k; }); }
   var state = {
-    style: /^[0-6]$/.test(q.get('style') || '') ? q.get('style') : '0',
-    styleB: /^[0-6]$/.test(q.get('b') || '') ? q.get('b') : '0',
+    style: isStyle(q.get('style')) ? q.get('style') : '0',
+    styleB: isStyle(q.get('b')) ? q.get('b') : '0',
     page: CFG.pages[q.get('page')] ? q.get('page') : 'home',
     w: WIDTHS[q.get('w')] ? q.get('w') : (window.innerWidth <= 600 ? 'phone' : 'desktop'),
     compare: q.get('compare') === '1'
@@ -123,7 +124,7 @@ main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 10px; }
   // Controls
   var stylesBar = $('styles');
   ['0'].concat(CFG.styles.map(function (s) { return s.key; })).forEach(function (k) {
-    var b = el('button', { type: 'button', 'data-s': k, 'aria-pressed': 'false', title: k === '0' ? 'The site as it is now (key 0)' : 'Key ' + k }, styleName(k));
+    var b = el('button', { type: 'button', 'data-s': k, 'aria-pressed': 'false', title: k === '0' ? 'The site as it is now (key 0)' : (k.length === 1 ? 'Key ' + k : 'Use [ and ] to step through styles') }, styleName(k));
     stylesBar.appendChild(b);
   });
   Object.keys(CFG.pages).forEach(function (k) { $('page').appendChild(el('option', { value: k }, CFG.pages[k].label)); });
@@ -249,7 +250,9 @@ main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 10px; }
   $('styleB').addEventListener('change', function () { state.styleB = this.value; this.blur(); render(); });
   document.addEventListener('keydown', function (e) {
     if (e.metaKey || e.ctrlKey || e.altKey || /^(SELECT|INPUT|TEXTAREA)$/.test((e.target.tagName || ''))) return;
-    if (/^[0-6]$/.test(e.key)) { state.style = e.key; if (state.compare && state.styleB === state.style) state.styleB = state.style === '0' ? '1' : '0'; render(); }
+    var order = ['0'].concat(CFG.styles.map(function (x) { return x.key; }));
+    if (/^[0-9]$/.test(e.key) && isStyle(e.key)) { state.style = e.key; if (state.compare && state.styleB === state.style) state.styleB = state.style === '0' ? '1' : '0'; render(); }
+    else if (e.key === '[' || e.key === ']') { var i = order.indexOf(state.style) + (e.key === ']' ? 1 : -1); state.style = order[(i + order.length) % order.length]; if (state.compare && state.styleB === state.style) state.styleB = state.style === '0' ? '1' : '0'; render(); }
     else if (e.key === 'c' || e.key === 'C') { state.compare = !state.compare; if (state.compare) { loadedPage.B = null; if (state.styleB === state.style) state.styleB = state.style === '0' ? '1' : '0'; } render(); }
   });
   window.addEventListener('resize', layout);

@@ -1,6 +1,6 @@
 <?php
 /**
- * Style preview: a frame around the site for trying the six alternative homepage styles live.
+ * Style preview: a frame around the site for trying the alternative homepage styles live.
  *
  * Off unless wp-config.php says so, so production never shows it:
  *
@@ -10,7 +10,7 @@
  *   - /style-preview/ is a page with a toolbar (style, page, width, side-by-side compare) around
  *     the real site in a frame (preview-frame.php);
  *   - the site loads assets/style-previews.css, whose rules apply only under
- *     html[data-fort-style="1".."6"];
+ *     html[data-fort-style="1".."14"];
  *   - an early script sets that attribute from the frame's name, ?fort_style=N, or the last choice
  *     (this browser only). Nothing is stored on the server.
  *
@@ -93,7 +93,7 @@ if ( fort_style_preview_on() ) {
 	add_action(
 		'wp_head',
 		function () {
-			echo "<script>(function(){try{var d=document.documentElement,s=null,m=/^fortstyle:(\\d)\$/.exec(window.name||'');if(m){s=m[1];}else{var q=/[?&]fort_style=(\\d)/.exec(location.search);if(q){s=q[1];try{localStorage.setItem('fortStyle',s);}catch(e){}}else{try{s=localStorage.getItem('fortStyle');}catch(e){}}}if(s&&/^[1-6]\$/.test(s)){d.setAttribute('data-fort-style',s);}}catch(e){}})();</script>\n";
+			echo "<script>(function(){try{var d=document.documentElement,s=null,m=/^fortstyle:(\\d{1,2})\$/.exec(window.name||'');if(m){s=m[1];}else{var q=/[?&]fort_style=(\\d{1,2})/.exec(location.search);if(q){s=q[1];try{localStorage.setItem('fortStyle',s);}catch(e){}}else{try{s=localStorage.getItem('fortStyle');}catch(e){}}}if(s&&/^([1-9]|1[0-9])\$/.test(s)){d.setAttribute('data-fort-style',s);}}catch(e){}})();</script>\n";
 		},
 		0
 	);

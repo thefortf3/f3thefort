@@ -89,6 +89,126 @@
         "Solid ink buttons",
         "Plain header"
       ]
+    },
+    {
+      "key": "7",
+      "name": "Cobalt night",
+      "summary": "Deep navy with a clear cobalt-blue accent and an aqua second colour; soft corners, floating cards, matte flyers.",
+      "ingredients": [
+        "Cobalt night palette",
+        "Slightly softened corners",
+        "Sentence-case headings",
+        "Plain labels",
+        "Floating cards",
+        "Matte flyers",
+        "Accent buttons",
+        "Plain header"
+      ]
+    },
+    {
+      "key": "8",
+      "name": "Ember",
+      "summary": "Near-black warm charcoal with a hot vermilion accent; keeps the bold capitals and square corners, so it still feels like a workout group.",
+      "ingredients": [
+        "Ember palette",
+        "Square corners",
+        "Original bold capitals",
+        "Tracked mono labels",
+        "Hairline rules",
+        "Matted flyers",
+        "Accent buttons",
+        "Plain header"
+      ]
+    },
+    {
+      "key": "9",
+      "name": "Daylight teal",
+      "summary": "Bright white and pale aqua with a deep teal accent and coral highlights; round cards and a floating pill header. Clean and modern.",
+      "ingredients": [
+        "Daylight teal palette",
+        "Round corners",
+        "Sentence-case headings",
+        "Plain labels",
+        "Floating cards",
+        "Matted flyers",
+        "Accent buttons",
+        "Floating pill header"
+      ]
+    },
+    {
+      "key": "10",
+      "name": "Plum & rose",
+      "summary": "Dark aubergine with a rose-pink accent and lavender second colour; serif headings, italic labels, hairline rules.",
+      "ingredients": [
+        "Plum & rose palette",
+        "Slightly softened corners",
+        "Serif headings",
+        "Italic labels",
+        "Hairline rules",
+        "Matted flyers",
+        "Accent buttons",
+        "Plain header"
+      ]
+    },
+    {
+      "key": "11",
+      "name": "Volt",
+      "summary": "Graphite with an electric lime accent: sporty and high-energy. Bold capitals, square corners, dashed rules.",
+      "ingredients": [
+        "Volt palette",
+        "Square corners",
+        "Original bold capitals",
+        "Tracked mono labels",
+        "Dashed notebook rules",
+        "Matte flyers",
+        "Accent buttons",
+        "Plain header"
+      ]
+    },
+    {
+      "key": "12",
+      "name": "Blueprint",
+      "summary": "Pale drafting-paper blue with a faint grid, royal-blue accent and safety-orange highlights; lower-case mono labels, dashed rules.",
+      "ingredients": [
+        "Blueprint palette",
+        "Square corners",
+        "Sentence-case headings",
+        "Lower-case mono labels",
+        "Dashed notebook rules",
+        "Matted flyers",
+        "Solid ink buttons",
+        "Plain header"
+      ]
+    },
+    {
+      "key": "13",
+      "name": "Deep sea",
+      "summary": "Dark teal with an aqua accent and sand highlights; serif headings, floating cards, pill header. Calm and a bit nautical.",
+      "ingredients": [
+        "Deep sea palette",
+        "Slightly softened corners",
+        "Serif headings",
+        "Plain labels",
+        "Floating cards",
+        "Matte flyers",
+        "Accent buttons",
+        "Floating pill header"
+      ]
+    },
+    {
+      "key": "14",
+      "name": "Sunrise",
+      "summary": "Warm cream fading from peach, with a violet accent and tangerine highlights; rounded cards, serif headings, italic labels.",
+      "ingredients": [
+        "Sunrise palette",
+        "Round corners",
+        "Serif headings",
+        "Italic labels",
+        "Floating cards",
+        "Matted flyers",
+        "Solid ink buttons",
+        "Plain header"
+      ]
     }
   ]
 }
