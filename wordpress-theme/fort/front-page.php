@@ -60,7 +60,13 @@ $principles = array(
 	__( 'Ends with a Circle of Trust', 'fort' ),
 );
 ?>
+<?php // Veterans can hide this; a slim bar takes its place to bring it back (assets/home.js). ?>
+<p class="fort-about-bar">
+	<span><?php esc_html_e( 'New to F3?', 'fort' ); ?></span>
+	<button type="button" class="fort-about-bar__show" aria-controls="who-we-are" aria-expanded="false"><?php esc_html_e( 'Who we are', 'fort' ); ?> <span aria-hidden="true">▾</span></button>
+</p>
 <section id="who-we-are" class="fort-about" aria-labelledby="fort-about-title">
+	<button type="button" class="fort-about__hide" aria-controls="who-we-are"><?php esc_html_e( 'Hide this on future visits', 'fort' ); ?> <span aria-hidden="true">✕</span></button>
 	<div class="fort-about__intro">
 		<span class="fort-kicker"><?php esc_html_e( 'Who we are', 'fort' ); ?></span>
 		<h2 id="fort-about-title" class="fort-about__title"><?php echo esc_html( fort_about( 'fort_about_heading' ) ); ?></h2>

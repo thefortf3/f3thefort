@@ -11,7 +11,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FORT_THEME_VERSION', '0.3.1' );
+define( 'FORT_THEME_VERSION', '0.3.2' );
 
 require_once __DIR__ . '/inc/config.php';
 require_once __DIR__ . '/inc/api.php';
@@ -45,7 +45,22 @@ add_action(
 		if ( get_query_var( 'fort_submit' ) ) {
 			wp_enqueue_script( 'fort-submit-preview', get_template_directory_uri() . '/assets/submit-preview.js', array(), FORT_THEME_VERSION, true );
 		}
+		if ( is_front_page() ) {
+			wp_enqueue_script( 'fort-home', get_template_directory_uri() . '/assets/home.js', array(), FORT_THEME_VERSION, true );
+		}
 	}
+);
+
+// Before the page draws: mark that JavaScript runs, and hide "Who we are" for visitors who asked
+// (remembered in this browser; works behind the page cache). Without this it would flash in first.
+add_action(
+	'wp_head',
+	function () {
+		if ( is_front_page() ) {
+			echo "<script>document.documentElement.classList.add('fort-js');try{if(localStorage.getItem('fortHideAbout')==='1'){document.documentElement.classList.add('fort-about-hidden');}}catch(e){}</script>\n";
+		}
+	},
+	1
 );
 
 add_action(

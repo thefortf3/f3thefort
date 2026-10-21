@@ -2,7 +2,7 @@
 Theme Name: Fort
 Theme URI: https://f3thefort.com
 Description: F3 The Fort — the site The Fort Weekly newsletter summarizes. Events and region info come from the Fort Weekly plugin; workouts and backblast stats come from the stats API; posts and pages work as usual.
-Version: 0.3.1
+Version: 0.3.2
 Requires at least: 6.0
 Requires PHP: 7.4
 Author: F3 The Fort
@@ -95,7 +95,19 @@ a:hover { color: #f3cf74; }
 }
 
 /* Who we are */
-.fort-about { display: flex; flex-wrap: wrap; gap: 40px 64px; padding-top: 8px; }
+.fort-about { position: relative; display: flex; flex-wrap: wrap; gap: 40px 64px; padding-top: 8px; }
+/* "Hide this on future visits" (needs JavaScript): a gold outline marks what it hides, brighter
+   while the button is hovered or focused; once hidden, a slim bar can bring it back. */
+.fort-about__hide, .fort-about-bar { display: none; }
+.fort-js .fort-about { padding: 52px 32px 32px; border: 1px solid color-mix(in srgb, var(--amber) 45%, transparent); transition: border-color 0.15s, box-shadow 0.15s; }
+.fort-js .fort-about:has(.fort-about__hide:hover, .fort-about__hide:focus-visible),
+.fort-js .fort-about.is-armed { border-color: var(--amber); box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 25%, transparent); }
+.fort-js .fort-about__hide { display: inline-flex; gap: 8px; align-items: center; position: absolute; top: 12px; right: 12px; padding: 7px 12px; background: transparent; border: 1px solid var(--amber); color: var(--amber-bright); font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
+.fort-js .fort-about__hide:hover, .fort-js .fort-about__hide:focus-visible { background: color-mix(in srgb, var(--amber) 14%, transparent); }
+.fort-about-hidden .fort-about { display: none; }
+.fort-about-hidden .fort-about-bar { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; margin: 0; padding: 12px 16px; border: 1px solid var(--line-2); font-size: 15px; color: var(--text-dim); }
+.fort-about-bar__show { background: none; border: 0; padding: 0; color: var(--amber-bright); font: inherit; font-family: var(--mono); font-size: 13px; letter-spacing: 0.06em; cursor: pointer; }
+.fort-about-bar__show:hover { color: #f3cf74; }
 .fort-about__intro { flex: 1 1 420px; display: flex; flex-direction: column; gap: 16px; }
 .fort-about__intro p { margin: 0; font-size: 18px; line-height: 1.65; }
 .fort-about__title { margin: 0; font-family: var(--display); font-size: 40px; font-weight: 700; line-height: 1.08; letter-spacing: 0.02em; text-transform: uppercase; color: var(--text-bright); }
@@ -363,6 +375,7 @@ a.fort-bb:hover .fort-bb__title { color: var(--amber-bright); }
 	.fort-featured__body { padding: 22px 20px 24px; }
 	.fort-featured__title { font-size: 30px; }
 	.fort-about { gap: 28px; }
+	.fort-js .fort-about { padding: 56px 16px 20px; }
 	.fort-about__title { font-size: 30px; }
 	.fort-about__intro p { font-size: 16px; }
 	.fort-fs__tile { grid-template-columns: 52px minmax(0, 1fr); padding: 14px 16px; column-gap: 12px; }
