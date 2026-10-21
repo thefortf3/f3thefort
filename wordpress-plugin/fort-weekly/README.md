@@ -124,6 +124,15 @@ local test site (`wordpress:6-php8.2-apache`).
   - the PHP newsletter renderer produces byte-identical HTML to the app's `renderAgenda` from the
     same export.
 
+## Open questions (decide before switching over)
+
+- **Old backblast URLs.** The site's ~11,800 backblast posts keep their WordPress addresses (e.g.
+  `/2026/10/19/50-caliber-workout/`) and still display. The new Backblasts page links to
+  `/backblasts/<id>/` pages built from the stats data, so each backblast now has two pages. Options:
+  - keep both;
+  - redirect the old posts to the new pages (needs each post's workout id);
+  - point the new cards at the existing posts instead.
+
 ## Switching over (each step with the site owner's go-ahead)
 
 1. ~~Check f3thefort.com's PHP version~~ (8.2, confirmed). Check that backups cover the database
