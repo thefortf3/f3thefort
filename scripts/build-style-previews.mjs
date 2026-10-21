@@ -2,7 +2,7 @@
 /**
  * build-style-previews.mjs — builds the theme's style-preview stylesheet.
  *
- * The homepage style options (palette incl. accent colour · corner shape · heading and label type · section styling
+ * The six homepage style options (palette incl. accent colour · corner shape · heading and label type · section styling
  * · flyer treatment · header) are assembled here from interchangeable ingredients, then every rule
  * is scoped to html[data-fort-style="N"] so the site can switch between them live. Output:
  *   wordpress-theme/fort/assets/style-previews.css    (loaded only when FORT_STYLE_PREVIEW is on)
@@ -19,26 +19,22 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // ── Palettes ───────────────────────────────────────────────────────────────
-const GRAIN = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .18  0 0 0 0 .22  0 0 0 0 .12  0 0 0 .09 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>")`;
+// In every palette: amber = the accent fill (buttons, badges), amberB = the accent for text and
+// hover, accent2 = the second accent. (The names date from the first, amber-only palettes.)
 const P = {
-  dusk: { bg: '#17130f', bgDeep: '#120f0c', panel: '#211b15', panel2: '#2a231b', line: '#2b241c', line2: '#3a3126', text: '#e1d9cb', dim: '#b8ae9d', mute: '#968c7b', bright: '#f6eee0', amber: '#d8a259', amberB: '#e8b972', accent2: '#9fbac8', btnText: '#2a1f12', ink: '#e8b972', inkText: '#2a1f12', card: 'rgba(255,255,255,0.035)', mat: '#eadfc9', dark: true },
-  mist: { bg: '#1a1f2d', bgDeep: '#151925', panel: 'rgba(255,255,255,0.04)', panel2: 'rgba(255,255,255,0.07)', line: 'rgba(255,255,255,0.07)', line2: 'rgba(255,255,255,0.13)', text: '#c7cddb', dim: '#a0a8ba', mute: '#858ea3', bright: '#e8e5df', amber: '#e3b595', amberB: '#efc7aa', accent2: '#a9b4d6', btnText: '#2b2433', ink: '#e3b595', inkText: '#2b2433', card: 'rgba(255,255,255,0.045)', mat: '#e6e1d6', dark: true,
-    html: 'background-image: radial-gradient(1200px 560px at 50% -120px, rgba(238,176,140,0.22), transparent 70%), linear-gradient(#232b40 0, #1a1f2d 700px); background-repeat: no-repeat;' },
-  forest: { bg: '#1b221d', bgDeep: '#151b17', panel: '#232c25', panel2: '#2b362d', line: '#2a342c', line2: '#38453b', text: '#d5dccd', dim: '#aab4a0', mute: '#8a9580', bright: '#eef1e4', amber: '#d6b46a', amberB: '#e3c585', accent2: '#9bc2a4', btnText: '#1b221d', ink: '#9bc2a4', inkText: '#14201a', card: 'rgba(255,255,255,0.035)', mat: '#e9e8d8', dark: true },
-  paper: { bg: '#f5f1e8', bgDeep: '#ece6d9', panel: '#ebe5d8', panel2: '#e2dac9', line: '#ddd6c6', line2: '#cbc2ae', text: '#3b3935', dim: '#66615a', mute: '#857f73', bright: '#211f1c', amber: '#b4684a', amberB: '#a04a2e', accent2: '#4d6c85', btnText: '#ffffff', ink: '#211f1c', inkText: '#f5f1e8', card: '#faf7f0', mat: '#fbf9f3', dark: false },
-  sage: { bg: '#e6e9dd', bgDeep: '#dce0d0', panel: '#dde2d1', panel2: '#d2d8c4', line: '#cdd3bd', line2: '#b3bc9f', text: '#333a2f', dim: '#5b6453', mute: '#7b8570', bright: '#1f271c', amber: '#a97a2f', amberB: '#86601f', accent2: '#3f7258', btnText: '#ffffff', ink: '#34503f', inkText: '#eef1e4', card: '#eef0e6', mat: '#f8f8f1', dark: false, html: `background-image: ${GRAIN};` },
-  // Accent-led palettes. In every palette: amber = the accent fill, amberB = the accent used for text
-  // and hover (the field names date from the first, amber-only palettes), accent2 = the second accent.
-  cobalt: { bg: '#0d1426', bgDeep: '#0a101e', panel: '#141d36', panel2: '#1b2745', line: '#1c2644', line2: '#2b3a64', text: '#c9d3ea', dim: '#9aa8c8', mute: '#7d8bad', bright: '#f0f4ff', amber: '#4f86f7', amberB: '#7fa8ff', accent2: '#5ee0d0', btnText: '#06112b', ink: '#7fa8ff', inkText: '#06112b', card: 'rgba(255,255,255,0.04)', mat: '#e8edf8', dark: true },
-  ember: { bg: '#141212', bgDeep: '#0f0d0d', panel: '#1e1a19', panel2: '#272120', line: '#2a2423', line2: '#3d3432', text: '#ddd5d1', dim: '#b0a6a1', mute: '#8f8480', bright: '#fbf3ee', amber: '#f0583a', amberB: '#ff7a5c', accent2: '#f2d29b', btnText: '#1a0a06', ink: '#f0583a', inkText: '#1a0a06', card: 'rgba(255,255,255,0.035)', mat: '#efe6e0', dark: true },
-  daylight: { bg: '#fbfcfc', bgDeep: '#eef3f3', panel: '#eef4f4', panel2: '#e1ecec', line: '#dde6e6', line2: '#c3d3d3', text: '#29383a', dim: '#52666a', mute: '#718487', bright: '#0e1c1e', amber: '#0b7a7a', amberB: '#0b6a6a', accent2: '#e0523d', btnText: '#ffffff', ink: '#0b6a6a', inkText: '#ffffff', card: '#ffffff', mat: '#ffffff', dark: false },
-  plum: { bg: '#1c1124', bgDeep: '#150c1c', panel: '#271734', panel2: '#301d40', line: '#33203f', line2: '#4a2f5d', text: '#dccfe5', dim: '#b3a2c1', mute: '#9482a4', bright: '#fbf1ff', amber: '#ee6fa8', amberB: '#ff93c4', accent2: '#b9a2ff', btnText: '#2a0c1c', ink: '#ff93c4', inkText: '#2a0c1c', card: 'rgba(255,255,255,0.04)', mat: '#efe3ee', dark: true },
-  volt: { bg: '#14171a', bgDeep: '#0f1214', panel: '#1c2024', panel2: '#242a2f', line: '#262c31', line2: '#38414a', text: '#d3d9de', dim: '#a4adb5', mute: '#838d96', bright: '#f6f9fb', amber: '#c6f432', amberB: '#d8ff55', accent2: '#9fe8ff', btnText: '#12160a', ink: '#c6f432', inkText: '#12160a', card: 'rgba(255,255,255,0.035)', mat: '#eef1ea', dark: true },
-  blueprint: { bg: '#f2f6fc', bgDeep: '#e6edf8', panel: '#e9f0fa', panel2: '#dce6f5', line: '#d5e0f0', line2: '#b8c9e3', text: '#25324a', dim: '#4d5d7a', mute: '#6d7c98', bright: '#0f1a33', amber: '#2458d8', amberB: '#1a47b8', accent2: '#e8590c', btnText: '#ffffff', ink: '#1a3a8f', inkText: '#ffffff', card: '#ffffff', mat: '#ffffff', dark: false,
-    html: 'background-image: linear-gradient(rgba(36,88,216,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(36,88,216,0.06) 1px, transparent 1px); background-size: 32px 32px;' },
-  deepsea: { bg: '#0b1f22', bgDeep: '#081719', panel: '#10292d', panel2: '#153338', line: '#16343a', line2: '#22494f', text: '#cbe0e0', dim: '#9bb8b9', mute: '#7a9a9c', bright: '#effcfb', amber: '#3fd0c0', amberB: '#6ae6d8', accent2: '#f2d8a7', btnText: '#062320', ink: '#6ae6d8', inkText: '#062320', card: 'rgba(255,255,255,0.04)', mat: '#e6efe9', dark: true },
-  sunrise: { bg: '#fff6ee', bgDeep: '#fbeadb', panel: '#fbebdd', panel2: '#f6dcc8', line: '#f0dccb', line2: '#e3c6ae', text: '#45332f', dim: '#6e5a54', mute: '#8f7a72', bright: '#2a1814', amber: '#7a3fd1', amberB: '#6228b8', accent2: '#e56a0c', btnText: '#ffffff', ink: '#4a2491', inkText: '#ffffff', card: '#fffaf5', mat: '#fffdfa', dark: false,
-    html: 'background-image: linear-gradient(180deg, #ffe6d0 0, #fff6ee 560px); background-repeat: no-repeat;' },
+  // The gloom: pre-dawn indigo with a faint sunrise at the top; periwinkle accent, dawn-peach second.
+  gloom: { bg: '#10172b', bgDeep: '#0c1222', panel: 'rgba(255,255,255,0.045)', panel2: 'rgba(255,255,255,0.075)', line: 'rgba(255,255,255,0.08)', line2: 'rgba(255,255,255,0.15)', text: '#d0d6e8', dim: '#aeb7cf', mute: '#939db8', bright: '#f5f2ee', amber: '#9488ff', amberB: '#b3aaff', accent2: '#ffb48a', btnText: '#0f0b2e', ink: '#b3aaff', inkText: '#0f0b2e', card: 'rgba(255,255,255,0.05)', mat: '#ece8e4', dark: true,
+    html: 'background-image: radial-gradient(1100px 480px at 50% -140px, rgba(255,170,130,0.20), transparent 70%), linear-gradient(#19213b 0, #10172b 720px); background-repeat: no-repeat;' },
+  // Carolina: clean daylight, Carolina blue with navy ink and a brick-red second colour.
+  carolina: { bg: '#f7fafd', bgDeep: '#e8f0f8', panel: '#edf3fa', panel2: '#dfe9f5', line: '#dbe5f0', line2: '#bccde0', text: '#1f2c40', dim: '#43566f', mute: '#56697f', bright: '#0b1a33', amber: '#4b9cd3', amberB: '#1d6aa3', accent2: '#a8352a', btnText: '#06203a', ink: '#13294b', inkText: '#ffffff', card: '#ffffff', mat: '#ffffff', dark: false },
+  // Brick & stone: limestone paper, brick-red accent, charcoal ink, slate-blue second.
+  brick: { bg: '#f4efe8', bgDeep: '#e9e2d7', panel: '#ebe4d9', panel2: '#e0d8ca', line: '#dcd3c4', line2: '#c6bba8', text: '#34302b', dim: '#5a534a', mute: '#6b6359', bright: '#1d1a17', amber: '#a63a2b', amberB: '#8f2e21', accent2: '#3f5873', btnText: '#ffffff', ink: '#26231f', inkText: '#f4efe8', card: '#faf6ef', mat: '#fbf8f2', dark: false },
+  // Trailhead: dark olive with terracotta and a pale olive second.
+  trail: { bg: '#1a1d14', bgDeep: '#14160f', panel: '#22261b', panel2: '#2a2f21', line: '#2b3022', line2: '#3d442f', text: '#dcdfcf', dim: '#b4b9a1', mute: '#979d82', bright: '#f4f3e4', amber: '#d8764a', amberB: '#eb9168', accent2: '#bccb84', btnText: '#1d0d05', ink: '#eb9168', inkText: '#1d0d05', card: 'rgba(255,255,255,0.035)', mat: '#ebe6d6', dark: true },
+  // Volt: graphite with an electric lime accent and an ice-blue second.
+  volt: { bg: '#14171a', bgDeep: '#0f1214', panel: '#1c2024', panel2: '#242a2f', line: '#262c31', line2: '#38414a', text: '#d3d9de', dim: '#aab3bb', mute: '#8f99a2', bright: '#f6f9fb', amber: '#c6f432', amberB: '#d8ff55', accent2: '#9fe8ff', btnText: '#12160a', ink: '#c6f432', inkText: '#12160a', card: 'rgba(255,255,255,0.035)', mat: '#eef1ea', dark: true },
+  // Fellowship: bright white and pale aqua, deep teal accent, coral second.
+  daylight: { bg: '#fbfcfc', bgDeep: '#eef3f3', panel: '#eef4f4', panel2: '#e1ecec', line: '#dde6e6', line2: '#c3d3d3', text: '#29383a', dim: '#4c5f63', mute: '#5c6f72', bright: '#0e1c1e', amber: '#0b7a7a', amberB: '#0b6a6a', accent2: '#c2412e', btnText: '#ffffff', ink: '#0b6a6a', inkText: '#ffffff', card: '#ffffff', mat: '#ffffff', dark: false },
 };
 
 const HEADS = '.fort-h2,.fort-h3,.fort-about__title,.fort-featured__title,.fort-entry-title,.fort-coming__title,.fort-bb__title,.fort-fs__name,.fort-card__title,.fort-stat__line,.fort-lineup__ao,.fort-lineup__ao a,.fort-lineup__day';
@@ -61,6 +57,11 @@ html{background-color:${p.bg};${p.html || ''}} body{background:transparent;}
   if (o.headings === 'sentence') out.push(`${HEADS}{text-transform:none;letter-spacing:0.01em;font-weight:500;color:${p.bright};} .fort-about__title{font-size:40px;line-height:1.1;} .fort-h2{font-size:30px;}`);
   if (o.headings === 'calm') out.push(`${HEADS}{font-weight:400;letter-spacing:0.06em;color:${p.bright};} .fort-featured__title{font-weight:400;letter-spacing:0.04em;} .fort-brand{font-weight:500;} .fort-day__num,.fort-coming__num,.fort-stat__num{font-weight:400;}`);
 
+  // Readable sizes for every style: members are mostly men in their 30s to 50s, reading on phones, so
+  // the base theme's 10-12px mono labels go up (body 18px, labels 13px, buttons and nav 14px).
+  out.push(`body{font-size:18px;} .fort-label,.fort-meta,.fort-mono-dim,.fort-when,.fort-day__dow,.fort-kicker{font-size:13px;}
+.fort-more,.fort-nav__list a,.fort-btn{font-size:14px;} .fort-tag,.fort-badge,.fort-js .fort-about__hide{font-size:12px;}`);
+
   // Labels, nav, buttons' type
   if (o.labels === 'italic') out.push(`${LABELS}{font-family:var(--body);font-style:italic;text-transform:none;letter-spacing:0;font-size:14px;color:${p.mute};} .fort-kicker{color:${p.amberB};font-size:15px;}
 .fort-nav__list a{font-family:var(--body);text-transform:none;letter-spacing:0;font-size:16px;} .fort-btn{font-family:var(--body);text-transform:none;letter-spacing:0.01em;font-size:15px;font-weight:600;padding:12px 22px;} .fort-more{font-family:var(--body);font-style:italic;letter-spacing:0;font-size:15px;}
@@ -69,7 +70,7 @@ html{background-color:${p.bg};${p.html || ''}} body{background:transparent;}
 .fort-nav__list a{font-family:var(--body);text-transform:none;letter-spacing:0.02em;font-size:14px;} .fort-btn{font-family:var(--body);text-transform:none;letter-spacing:0.02em;font-size:15px;font-weight:600;padding:12px 22px;} .fort-more{font-family:var(--body);letter-spacing:0.01em;font-size:14px;}
 .fort-tag,.fort-badge{font-family:var(--body);text-transform:none;letter-spacing:0.02em;font-size:12px;} .fort-js .fort-about__hide{font-family:var(--body);text-transform:none;letter-spacing:0.01em;font-size:13px;} .fort-about-bar__show{font-family:var(--body);letter-spacing:0.01em;font-size:15px;}`);
   if (o.labels === 'monoLower') out.push(`${LABELS}{text-transform:lowercase;letter-spacing:0.04em;color:${p.mute};} .fort-kicker{color:${p.accent2};}
-.fort-nav__list a,.fort-btn,.fort-tag,.fort-badge,.fort-more,.fort-js .fort-about__hide{text-transform:lowercase;letter-spacing:0.04em;} .fort-nav__list a{font-size:13px;} .fort-btn{font-size:13px;padding:13px 20px;}`);
+.fort-nav__list a,.fort-btn,.fort-tag,.fort-badge,.fort-more,.fort-js .fort-about__hide{text-transform:lowercase;letter-spacing:0.04em;} .fort-nav__list a{font-size:14px;} .fort-btn{font-size:14px;padding:13px 20px;}`);
   if (o.labels === 'tracked') out.push(`${LABELS}{color:${p.mute};} .fort-kicker{color:${p.amber};} .fort-nav__list a{letter-spacing:0.08em;} .fort-btn{letter-spacing:0.12em;font-weight:500;}`);
 
   // Buttons, tags, badges
@@ -79,6 +80,7 @@ html{background-color:${p.bg};${p.html || ''}} body{background:transparent;}
 .fort-btn--outline:hover,.fort-nav .fort-btn:hover{background:${p.dark ? 'rgba(255,255,255,0.08)' : p.ink};color:${p.dark ? p.amberB : p.inkText};}
 .fort-tag{color:${p.dim} !important;border-color:${p.line2} !important;} .fort-badge{background:${p.dark ? p.amber : p.amberB};color:${p.dark ? p.btnText : '#fff'};}
 .fort-brand .fort-amber{color:${p.amberB};} .fort-more,a.fort-more{color:${p.amberB};} .fort-day__num{color:${p.amberB};} .fort-coming__num{color:${p.dark ? p.accent2 : p.amberB};}
+.fort-chip.is-current{color:${onFill(p.accent2)};} .fort-pagination .current,.fort-skip{color:${onFill(p.amber)};}
 .fort-principles__head{color:${p.accent2};} .fort-principles__list li::before{color:${p.dark ? p.accent2 : p.amberB};}`);
 
   // Shape
@@ -112,7 +114,7 @@ html{background-color:${p.bg};${p.html || ''}} body{background:transparent;}
 }
 
 const NAMES = {
-  palette: { mist: 'Dawn mist', dusk: 'Warm dusk', forest: 'Forest', paper: 'Paper', sage: 'Sage', cobalt: 'Cobalt night', ember: 'Ember', daylight: 'Daylight teal', plum: 'Plum & rose', volt: 'Volt', blueprint: 'Blueprint', deepsea: 'Deep sea', sunrise: 'Sunrise' },
+  palette: { gloom: 'Gloom indigo', carolina: 'Carolina blue', brick: 'Brick & stone', trail: 'Olive & terracotta', volt: 'Graphite & lime', daylight: 'White & teal' },
   shape: { square: 'Square corners', soft: 'Slightly softened corners', round: 'Round corners' },
   headings: { bold: 'Original bold capitals', calm: 'Light, spaced capitals', serif: 'Serif headings', sentence: 'Sentence-case headings' },
   labels: { tracked: 'Tracked mono labels', italic: 'Italic labels', monoLower: 'Lower-case mono labels', plain: 'Plain labels' },
@@ -122,35 +124,35 @@ const NAMES = {
   header: { bar: 'Plain header', pill: 'Floating pill header' },
 };
 
+// What the six are built from (shown in the preview frame under "Why these six").
+const BASIS = [
+  'Who reads it: F3 members are mostly men in their 30s to 50s (local reports put the typical man in his early 40s, with a range from late 20s to 70), professionals with families. So every style uses bigger type (18px body, 13px+ labels instead of 10-12px) and the build checks contrast (WCAG AA, 4.5:1) for every text colour.',
+  'How they read it: mostly on phones, and early (workouts start before dawn, in "the gloom"). So there are dark options for 5am scrolling and light options for daytime, and the phone layout is checked for each.',
+  'Where: The Fort is Fort Mill / the Carolinas. Two styles lean on that: Carolina blue, and brick and stone for "The Fort".',
+  'What is popular in 2026: earth tones (olive and terracotta especially), one saturated accent on a calm neutral base, large expressive headings, and accessibility-first colour. The six cover each of those.',
+  'What you have liked so far: dark, condensed capitals, quieter rather than rounded-everything, and no fixed accent colour. So only two of the six are rounded, and the six use six different accent hues.',
+  'Limits: there is no official F3 Nation colour palette to follow, and no survey of members; the audience notes come from local news coverage of F3 groups.',
+];
+
 const VARIANTS = [
-  { key: '1', name: 'Mist & prints', summary: 'A low-contrast twilight dark that warms to a peach glow at the top; calm capitals, hairline rules, flyers framed like prints.',
-    o: { palette: 'mist', shape: 'soft', headings: 'calm', labels: 'tracked', sections: 'rules', flyers: 'mat', buttons: 'accent', header: 'bar' } },
-  { key: '2', name: 'Dusk editorial', summary: 'Warm brown-charcoal with amber, square corners, serif headings and italic labels; a quiet, magazine-like dark.',
-    o: { palette: 'dusk', shape: 'square', headings: 'serif', labels: 'italic', sections: 'rules', flyers: 'mat', buttons: 'accent', header: 'bar' } },
-  { key: '3', name: 'Forest notes', summary: 'Deep green-grey with sand and sage, dashed notebook rules and lower-case labels; outdoorsy and calm.',
-    o: { palette: 'forest', shape: 'soft', headings: 'sentence', labels: 'monoLower', sections: 'dashed', flyers: 'matte', buttons: 'ink', header: 'bar' } },
-  { key: '4', name: 'Paper cards', summary: 'Cream paper with a muted rust accent, serif type, floating light cards and a pill-shaped header.',
-    o: { palette: 'paper', shape: 'round', headings: 'serif', labels: 'italic', sections: 'cards', flyers: 'mat', buttons: 'ink', header: 'pill' } },
-  { key: '5', name: 'Mist float', summary: 'The dawn-mist dark with big rounded floating cards, friendly sentence-case type and a pill header.',
-    o: { palette: 'mist', shape: 'round', headings: 'sentence', labels: 'plain', sections: 'cards', flyers: 'matte', buttons: 'accent', header: 'pill' } },
-  { key: '6', name: 'Sage soft', summary: 'Pale sage with a faint paper grain, serif headings, dashed rules and matted flyers; a light, earthy look.',
-    o: { palette: 'sage', shape: 'soft', headings: 'serif', labels: 'monoLower', sections: 'dashed', flyers: 'mat', buttons: 'ink', header: 'bar' } },
-  { key: '7', name: 'Cobalt night', summary: 'Deep navy with a clear cobalt-blue accent and an aqua second colour; soft corners, floating cards, matte flyers.',
-    o: { palette: 'cobalt', shape: 'soft', headings: 'sentence', labels: 'plain', sections: 'cards', flyers: 'matte', buttons: 'accent', header: 'bar' } },
-  { key: '8', name: 'Ember', summary: 'Near-black warm charcoal with a hot vermilion accent; keeps the bold capitals and square corners, so it still feels like a workout group.',
-    o: { palette: 'ember', shape: 'square', headings: 'bold', labels: 'tracked', sections: 'rules', flyers: 'mat', buttons: 'accent', header: 'bar' } },
-  { key: '9', name: 'Daylight teal', summary: 'Bright white and pale aqua with a deep teal accent and coral highlights; round cards and a floating pill header. Clean and modern.',
+  { key: '1', name: 'Gloom', summary: 'Pre-dawn indigo with a faint sunrise glow, a periwinkle accent and dawn-peach highlights; soft floating cards.',
+    why: 'Named for F3’s own word for the pre-dawn workout. A calm dark for reading at 5am that is softer than the current near-black, with an accent nobody else in local fitness uses.',
+    o: { palette: 'gloom', shape: 'soft', headings: 'sentence', labels: 'plain', sections: 'cards', flyers: 'matte', buttons: 'accent', header: 'bar' } },
+  { key: '2', name: 'Carolina', summary: 'Clean daylight white with Carolina blue, navy ink and brick-red highlights; big plain type and hairline rules.',
+    why: 'Local pride, and the most readable of the six: dark text on white at large sizes, the safest choice for men in their 40s and 50s reading in daylight.',
+    o: { palette: 'carolina', shape: 'soft', headings: 'sentence', labels: 'plain', sections: 'rules', flyers: 'mat', buttons: 'accent', header: 'bar' } },
+  { key: '3', name: 'Brick & stone', summary: 'Limestone paper, brick-red accent and charcoal ink; serif headings, italic labels, matted flyers, square corners.',
+    why: 'Takes "The Fort" literally, with a heritage men’s-club feel like the editorial run-club brands. Grown-up and warm, and it reads like a newsletter.',
+    o: { palette: 'brick', shape: 'square', headings: 'serif', labels: 'italic', sections: 'rules', flyers: 'mat', buttons: 'ink', header: 'bar' } },
+  { key: '4', name: 'Trailhead', summary: 'Dark olive with a terracotta accent and pale-olive highlights; dashed notebook rules and lower-case labels.',
+    why: 'The 2026 earth-tone trend (olive and terracotta) applied to an outdoor group that works out in parking lots and parks in all weather. Earthy without being beige.',
+    o: { palette: 'trail', shape: 'soft', headings: 'sentence', labels: 'monoLower', sections: 'dashed', flyers: 'matte', buttons: 'accent', header: 'bar' } },
+  { key: '5', name: 'Volt', summary: 'Graphite with an electric lime accent; keeps the bold condensed capitals and square corners.',
+    why: 'The closest to what you have now, re-coloured: the sporty, high-energy look of current training brands, one saturated accent on a dark neutral. Best for pulling in younger guys.',
+    o: { palette: 'volt', shape: 'square', headings: 'bold', labels: 'tracked', sections: 'rules', flyers: 'matte', buttons: 'accent', header: 'bar' } },
+  { key: '6', name: 'Fellowship', summary: 'Bright white and pale aqua with a deep teal accent and coral highlights; round cards and a floating pill header.',
+    why: 'The friendliest first impression, for the FNG who finds the site before his first post: open, modern, welcoming, and calm rather than hardcore.',
     o: { palette: 'daylight', shape: 'round', headings: 'sentence', labels: 'plain', sections: 'cards', flyers: 'mat', buttons: 'accent', header: 'pill' } },
-  { key: '10', name: 'Plum & rose', summary: 'Dark aubergine with a rose-pink accent and lavender second colour; serif headings, italic labels, hairline rules.',
-    o: { palette: 'plum', shape: 'soft', headings: 'serif', labels: 'italic', sections: 'rules', flyers: 'mat', buttons: 'accent', header: 'bar' } },
-  { key: '11', name: 'Volt', summary: 'Graphite with an electric lime accent: sporty and high-energy. Bold capitals, square corners, dashed rules.',
-    o: { palette: 'volt', shape: 'square', headings: 'bold', labels: 'tracked', sections: 'dashed', flyers: 'matte', buttons: 'accent', header: 'bar' } },
-  { key: '12', name: 'Blueprint', summary: 'Pale drafting-paper blue with a faint grid, royal-blue accent and safety-orange highlights; lower-case mono labels, dashed rules.',
-    o: { palette: 'blueprint', shape: 'square', headings: 'sentence', labels: 'monoLower', sections: 'dashed', flyers: 'mat', buttons: 'ink', header: 'bar' } },
-  { key: '13', name: 'Deep sea', summary: 'Dark teal with an aqua accent and sand highlights; serif headings, floating cards, pill header. Calm and a bit nautical.',
-    o: { palette: 'deepsea', shape: 'soft', headings: 'serif', labels: 'plain', sections: 'cards', flyers: 'matte', buttons: 'accent', header: 'pill' } },
-  { key: '14', name: 'Sunrise', summary: 'Warm cream fading from peach, with a violet accent and tangerine highlights; rounded cards, serif headings, italic labels.',
-    o: { palette: 'sunrise', shape: 'round', headings: 'serif', labels: 'italic', sections: 'cards', flyers: 'mat', buttons: 'ink', header: 'bar' } },
 ];
 
 // Scope every rule to html[data-fort-style="N"]. (.fort-js is a class on <html> itself, and :root
@@ -194,6 +196,26 @@ function scopeCss(css, key) {
   return out;
 }
 
+// Contrast check (WCAG AA, 4.5:1) for each palette's text colours. Translucent panels are judged
+// against the page background. Fails the build, so a style can't ship hard-to-read text.
+function lum(hex) {
+  const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+}
+function ratio(a, b) { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); }
+// Near-black or white, whichever reads better on a filled accent.
+function onFill(c) { return ratio('#0d0e10', c) >= ratio('#ffffff', c) ? '#0d0e10' : '#ffffff'; }
+const problems = [];
+for (const v of VARIANTS) {
+  const p = P[v.o.palette];
+  const grounds = [p.bg, ...[p.panel, p.card].filter(c => c.startsWith('#'))];
+  const pairs = [['text', p.text], ['dim', p.dim], ['mute', p.mute], ['accent text', p.amberB], ['accent2', p.accent2]].flatMap(([n, c]) => grounds.map(g => [n, c, g]));
+  pairs.push(['selected chip', onFill(p.accent2), p.accent2], ['selected page', onFill(p.amber), p.amber]);
+  pairs.push(['button', v.o.buttons === 'ink' ? p.inkText : p.btnText, v.o.buttons === 'ink' ? p.ink : p.amber]);
+  for (const [n, c, g] of pairs) { const r = ratio(c, g); if (r < 4.5) problems.push(`${v.key} ${v.name}: ${n} ${c} on ${g} is ${r.toFixed(2)}:1`); }
+}
+if (problems.length) { console.error('Contrast below 4.5:1:\n  ' + problems.join('\n  ')); process.exit(1); }
+
 const here = dirname(fileURLToPath(import.meta.url));
 const assets = resolve(here, '..', 'wordpress-theme', 'fort', 'assets');
 let css = `/* Style previews: generated by scripts/build-style-previews.mjs. Applies only while a style is
@@ -205,9 +227,10 @@ for (const v of VARIANTS) {
     key: v.key,
     name: v.name,
     summary: v.summary,
+    why: v.why,
     ingredients: [NAMES.palette[v.o.palette] + ' palette', NAMES.shape[v.o.shape], NAMES.headings[v.o.headings], NAMES.labels[v.o.labels], NAMES.sections[v.o.sections], NAMES.flyers[v.o.flyers], NAMES.buttons[v.o.buttons], NAMES.header[v.o.header]],
   });
 }
 writeFileSync(resolve(assets, 'style-previews.css'), css);
-writeFileSync(resolve(assets, 'style-previews.json'), JSON.stringify({ styles: meta }, null, 2) + '\n');
+writeFileSync(resolve(assets, 'style-previews.json'), JSON.stringify({ basis: BASIS, styles: meta }, null, 2) + '\n');
 console.log(`Wrote ${VARIANTS.length} styles → wordpress-theme/fort/assets/style-previews.css (${(css.length / 1024).toFixed(1)} KB)`);

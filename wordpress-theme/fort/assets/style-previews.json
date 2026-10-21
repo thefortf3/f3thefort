@@ -1,29 +1,39 @@
 {
+  "basis": [
+    "Who reads it: F3 members are mostly men in their 30s to 50s (local reports put the typical man in his early 40s, with a range from late 20s to 70), professionals with families. So every style uses bigger type (18px body, 13px+ labels instead of 10-12px) and the build checks contrast (WCAG AA, 4.5:1) for every text colour.",
+    "How they read it: mostly on phones, and early (workouts start before dawn, in \"the gloom\"). So there are dark options for 5am scrolling and light options for daytime, and the phone layout is checked for each.",
+    "Where: The Fort is Fort Mill / the Carolinas. Two styles lean on that: Carolina blue, and brick and stone for \"The Fort\".",
+    "What is popular in 2026: earth tones (olive and terracotta especially), one saturated accent on a calm neutral base, large expressive headings, and accessibility-first colour. The six cover each of those.",
+    "What you have liked so far: dark, condensed capitals, quieter rather than rounded-everything, and no fixed accent colour. So only two of the six are rounded, and the six use six different accent hues.",
+    "Limits: there is no official F3 Nation colour palette to follow, and no survey of members; the audience notes come from local news coverage of F3 groups."
+  ],
   "styles": [
     {
       "key": "1",
-      "name": "Mist & prints",
-      "summary": "A low-contrast twilight dark that warms to a peach glow at the top; calm capitals, hairline rules, flyers framed like prints.",
+      "name": "Gloom",
+      "summary": "Pre-dawn indigo with a faint sunrise glow, a periwinkle accent and dawn-peach highlights; soft floating cards.",
+      "why": "Named for F3’s own word for the pre-dawn workout. A calm dark for reading at 5am that is softer than the current near-black, with an accent nobody else in local fitness uses.",
       "ingredients": [
-        "Dawn mist palette",
+        "Gloom indigo palette",
         "Slightly softened corners",
-        "Light, spaced capitals",
-        "Tracked mono labels",
-        "Hairline rules",
-        "Matted flyers",
+        "Sentence-case headings",
+        "Plain labels",
+        "Floating cards",
+        "Matte flyers",
         "Accent buttons",
         "Plain header"
       ]
     },
     {
       "key": "2",
-      "name": "Dusk editorial",
-      "summary": "Warm brown-charcoal with amber, square corners, serif headings and italic labels; a quiet, magazine-like dark.",
+      "name": "Carolina",
+      "summary": "Clean daylight white with Carolina blue, navy ink and brick-red highlights; big plain type and hairline rules.",
+      "why": "Local pride, and the most readable of the six: dark text on white at large sizes, the safest choice for men in their 40s and 50s reading in daylight.",
       "ingredients": [
-        "Warm dusk palette",
-        "Square corners",
-        "Serif headings",
-        "Italic labels",
+        "Carolina blue palette",
+        "Slightly softened corners",
+        "Sentence-case headings",
+        "Plain labels",
         "Hairline rules",
         "Matted flyers",
         "Accent buttons",
@@ -32,100 +42,59 @@
     },
     {
       "key": "3",
-      "name": "Forest notes",
-      "summary": "Deep green-grey with sand and sage, dashed notebook rules and lower-case labels; outdoorsy and calm.",
+      "name": "Brick & stone",
+      "summary": "Limestone paper, brick-red accent and charcoal ink; serif headings, italic labels, matted flyers, square corners.",
+      "why": "Takes \"The Fort\" literally, with a heritage men’s-club feel like the editorial run-club brands. Grown-up and warm, and it reads like a newsletter.",
       "ingredients": [
-        "Forest palette",
-        "Slightly softened corners",
-        "Sentence-case headings",
-        "Lower-case mono labels",
-        "Dashed notebook rules",
-        "Matte flyers",
+        "Brick & stone palette",
+        "Square corners",
+        "Serif headings",
+        "Italic labels",
+        "Hairline rules",
+        "Matted flyers",
         "Solid ink buttons",
         "Plain header"
       ]
     },
     {
       "key": "4",
-      "name": "Paper cards",
-      "summary": "Cream paper with a muted rust accent, serif type, floating light cards and a pill-shaped header.",
+      "name": "Trailhead",
+      "summary": "Dark olive with a terracotta accent and pale-olive highlights; dashed notebook rules and lower-case labels.",
+      "why": "The 2026 earth-tone trend (olive and terracotta) applied to an outdoor group that works out in parking lots and parks in all weather. Earthy without being beige.",
       "ingredients": [
-        "Paper palette",
-        "Round corners",
-        "Serif headings",
-        "Italic labels",
-        "Floating cards",
-        "Matted flyers",
-        "Solid ink buttons",
-        "Floating pill header"
+        "Olive & terracotta palette",
+        "Slightly softened corners",
+        "Sentence-case headings",
+        "Lower-case mono labels",
+        "Dashed notebook rules",
+        "Matte flyers",
+        "Accent buttons",
+        "Plain header"
       ]
     },
     {
       "key": "5",
-      "name": "Mist float",
-      "summary": "The dawn-mist dark with big rounded floating cards, friendly sentence-case type and a pill header.",
+      "name": "Volt",
+      "summary": "Graphite with an electric lime accent; keeps the bold condensed capitals and square corners.",
+      "why": "The closest to what you have now, re-coloured: the sporty, high-energy look of current training brands, one saturated accent on a dark neutral. Best for pulling in younger guys.",
       "ingredients": [
-        "Dawn mist palette",
-        "Round corners",
-        "Sentence-case headings",
-        "Plain labels",
-        "Floating cards",
+        "Graphite & lime palette",
+        "Square corners",
+        "Original bold capitals",
+        "Tracked mono labels",
+        "Hairline rules",
         "Matte flyers",
         "Accent buttons",
-        "Floating pill header"
+        "Plain header"
       ]
     },
     {
       "key": "6",
-      "name": "Sage soft",
-      "summary": "Pale sage with a faint paper grain, serif headings, dashed rules and matted flyers; a light, earthy look.",
+      "name": "Fellowship",
+      "summary": "Bright white and pale aqua with a deep teal accent and coral highlights; round cards and a floating pill header.",
+      "why": "The friendliest first impression, for the FNG who finds the site before his first post: open, modern, welcoming, and calm rather than hardcore.",
       "ingredients": [
-        "Sage palette",
-        "Slightly softened corners",
-        "Serif headings",
-        "Lower-case mono labels",
-        "Dashed notebook rules",
-        "Matted flyers",
-        "Solid ink buttons",
-        "Plain header"
-      ]
-    },
-    {
-      "key": "7",
-      "name": "Cobalt night",
-      "summary": "Deep navy with a clear cobalt-blue accent and an aqua second colour; soft corners, floating cards, matte flyers.",
-      "ingredients": [
-        "Cobalt night palette",
-        "Slightly softened corners",
-        "Sentence-case headings",
-        "Plain labels",
-        "Floating cards",
-        "Matte flyers",
-        "Accent buttons",
-        "Plain header"
-      ]
-    },
-    {
-      "key": "8",
-      "name": "Ember",
-      "summary": "Near-black warm charcoal with a hot vermilion accent; keeps the bold capitals and square corners, so it still feels like a workout group.",
-      "ingredients": [
-        "Ember palette",
-        "Square corners",
-        "Original bold capitals",
-        "Tracked mono labels",
-        "Hairline rules",
-        "Matted flyers",
-        "Accent buttons",
-        "Plain header"
-      ]
-    },
-    {
-      "key": "9",
-      "name": "Daylight teal",
-      "summary": "Bright white and pale aqua with a deep teal accent and coral highlights; round cards and a floating pill header. Clean and modern.",
-      "ingredients": [
-        "Daylight teal palette",
+        "White & teal palette",
         "Round corners",
         "Sentence-case headings",
         "Plain labels",
@@ -133,81 +102,6 @@
         "Matted flyers",
         "Accent buttons",
         "Floating pill header"
-      ]
-    },
-    {
-      "key": "10",
-      "name": "Plum & rose",
-      "summary": "Dark aubergine with a rose-pink accent and lavender second colour; serif headings, italic labels, hairline rules.",
-      "ingredients": [
-        "Plum & rose palette",
-        "Slightly softened corners",
-        "Serif headings",
-        "Italic labels",
-        "Hairline rules",
-        "Matted flyers",
-        "Accent buttons",
-        "Plain header"
-      ]
-    },
-    {
-      "key": "11",
-      "name": "Volt",
-      "summary": "Graphite with an electric lime accent: sporty and high-energy. Bold capitals, square corners, dashed rules.",
-      "ingredients": [
-        "Volt palette",
-        "Square corners",
-        "Original bold capitals",
-        "Tracked mono labels",
-        "Dashed notebook rules",
-        "Matte flyers",
-        "Accent buttons",
-        "Plain header"
-      ]
-    },
-    {
-      "key": "12",
-      "name": "Blueprint",
-      "summary": "Pale drafting-paper blue with a faint grid, royal-blue accent and safety-orange highlights; lower-case mono labels, dashed rules.",
-      "ingredients": [
-        "Blueprint palette",
-        "Square corners",
-        "Sentence-case headings",
-        "Lower-case mono labels",
-        "Dashed notebook rules",
-        "Matted flyers",
-        "Solid ink buttons",
-        "Plain header"
-      ]
-    },
-    {
-      "key": "13",
-      "name": "Deep sea",
-      "summary": "Dark teal with an aqua accent and sand highlights; serif headings, floating cards, pill header. Calm and a bit nautical.",
-      "ingredients": [
-        "Deep sea palette",
-        "Slightly softened corners",
-        "Serif headings",
-        "Plain labels",
-        "Floating cards",
-        "Matte flyers",
-        "Accent buttons",
-        "Floating pill header"
-      ]
-    },
-    {
-      "key": "14",
-      "name": "Sunrise",
-      "summary": "Warm cream fading from peach, with a violet accent and tangerine highlights; rounded cards, serif headings, italic labels.",
-      "ingredients": [
-        "Sunrise palette",
-        "Round corners",
-        "Serif headings",
-        "Italic labels",
-        "Floating cards",
-        "Matted flyers",
-        "Solid ink buttons",
-        "Plain header"
       ]
     }
   ]

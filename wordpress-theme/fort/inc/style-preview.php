@@ -1,6 +1,6 @@
 <?php
 /**
- * Style preview: a frame around the site for trying the alternative homepage styles live.
+ * Style preview: a frame around the site for trying the six alternative homepage styles live.
  *
  * Off unless wp-config.php says so, so production never shows it:
  *
@@ -10,7 +10,7 @@
  *   - /style-preview/ is a page with a toolbar (style, page, width, side-by-side compare) around
  *     the real site in a frame (preview-frame.php);
  *   - the site loads assets/style-previews.css, whose rules apply only under
- *     html[data-fort-style="1".."14"];
+ *     html[data-fort-style="1".."6"];
  *   - an early script sets that attribute from the frame's name, ?fort_style=N, or the last choice
  *     (this browser only). Nothing is stored on the server.
  *
@@ -25,11 +25,18 @@ function fort_style_preview_on() {
 	return defined( 'FORT_STYLE_PREVIEW' ) && FORT_STYLE_PREVIEW;
 }
 
-/** The styles' names and summaries (assets/style-previews.json). */
-function fort_style_preview_styles() {
+/** assets/style-previews.json: the styles' names and summaries, and what they were built from. */
+function fort_style_preview_data() {
 	$file = get_template_directory() . '/assets/style-previews.json';
 	$data = is_readable( $file ) ? json_decode( (string) file_get_contents( $file ), true ) : null; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-	return is_array( $data['styles'] ?? null ) ? $data['styles'] : array();
+	return array(
+		'styles' => is_array( $data['styles'] ?? null ) ? $data['styles'] : array(),
+		'basis'  => is_array( $data['basis'] ?? null ) ? $data['basis'] : array(),
+	);
+}
+
+function fort_style_preview_styles() {
+	return fort_style_preview_data()['styles'];
 }
 
 if ( fort_style_preview_on() ) {
