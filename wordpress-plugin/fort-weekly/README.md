@@ -95,6 +95,23 @@ WP Mail SMTP with a real mailbox) first, or WordPress's mail may land in spam.
    - **Running it again** only adds events that aren't here yet, so edits made in WordPress
      survive. Tick "Overwrite events…" (`--update-existing`) to replace them from the file.
 
+## The site's old posts (backblasts and pre-blasts)
+
+The ~11,800 posts from 2013 on are shown in one tidy format, the same as the backblasts from the
+stats API: when, AO, Q, PAX (with FNGs), then the write-up with Slackblast's sections
+(Warm-up, The Thang, Mary, COT…) as headings, without the old inline colours.
+
+- The plugin reads each post's `qic` / `workout_date` / `the_pax` fields, tags (PAX) and
+  categories (AOs in any spelling, topics, region-wide posts) and stores the result beside the
+  post (`_fort_bb`). **The posts themselves are never changed.** Records are made on first view
+  and rebuilt when a post is edited; to make them all at once, with a report:
+  `wp fort-weekly convert-posts` (add `--dry-run` to only count).
+- Slackblast keeps working: the `qic` and `workout_date` REST fields it posts with (registered
+  by the previous theme) are registered by the plugin.
+- Rehearse the switch on a local copy of the live site with
+  `bash scripts/local/rehearse-live-copy.sh f3thefort.WordPress.<date>.xml` (an export from
+  Tools → Export; it holds members' emails, so it stays out of git).
+
 ## Building
 
 ```

@@ -32,9 +32,6 @@ get_header();
 				<h1 class="fort-entry__title"><?php the_title(); ?></h1>
 				<p class="fort-entry__dek"><?php esc_html_e( 'Every workout’s write-up, newest first — straight from the Q’s backblast.', 'fort' ); ?></p>
 			</header>
-			<?php if ( '' !== trim( get_the_content() ) ) : ?>
-				<div class="fort-prose fort-schedule__notes"><?php the_content(); ?></div>
-			<?php endif; ?>
 		<?php endwhile; ?>
 
 		<form class="fort-bbs__filters" method="get" action="<?php echo esc_url( get_permalink() ); ?>" role="search">

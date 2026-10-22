@@ -33,9 +33,8 @@ get_header();
 				<h1 class="fort-entry__title"><?php the_title(); ?></h1>
 				<p class="fort-entry__dek"><?php esc_html_e( 'Every workout on the Q sheet, a week at a time. No sign-up and no cost — just show up a few minutes early.', 'fort' ); ?></p>
 			</header>
-			<?php if ( '' !== trim( get_the_content() ) ) : ?>
-				<div class="fort-prose fort-schedule__notes"><?php the_content(); ?></div>
-			<?php endif; ?>
+			<?php // The page's own content isn't shown: on the live site it holds the previous theme's map and tables. ?>
+			<p class="fort-schedule__notes"><?php esc_html_e( 'Our workout schedule is right most of the time, but weather, holidays and special events can change things. Check the Fort’s Slack for updates (requires invite).', 'fort' ); ?></p>
 		<?php endwhile; ?>
 
 		<?php

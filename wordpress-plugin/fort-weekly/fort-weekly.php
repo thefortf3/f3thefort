@@ -32,6 +32,7 @@ require_once __DIR__ . '/includes/submit.php';
 require_once __DIR__ . '/includes/edits.php';
 require_once __DIR__ . '/includes/mailchimp.php';
 require_once __DIR__ . '/includes/newsletter.php';
+require_once __DIR__ . '/includes/legacy-posts.php';
 if ( is_admin() ) {
 	require_once __DIR__ . '/includes/admin-list.php';
 	require_once __DIR__ . '/includes/admin-edit.php';

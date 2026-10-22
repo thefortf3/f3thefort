@@ -7,17 +7,24 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/** array( 'dow' => 'TUE', 'mon' => 'OCT', 'day' => 20, 'long' => 'Tuesday, October 20' ) for a YYYY-MM-DD date. */
+/**
+ * array( 'dow' => 'TUE', 'mon' => 'OCT', 'day' => 20, 'year' => 2026, 'long' => 'Tuesday, October 20',
+ * 'short' => 'TUE OCT 20' ) for a YYYY-MM-DD date. Dates in other years carry the year
+ * ('Thursday, January 1, 2015', 'JAN 1, 2015').
+ */
 function fort_date_parts( $iso ) {
 	$ts = strtotime( $iso . ' 00:00:00 UTC' );
 	if ( ! $ts ) {
-		return array( 'dow' => '', 'mon' => '', 'day' => '', 'long' => $iso );
+		return array( 'dow' => '', 'mon' => '', 'day' => '', 'year' => '', 'long' => (string) $iso, 'short' => '' );
 	}
+	$this_year = gmdate( 'Y', $ts ) === wp_date( 'Y' );
 	return array(
-		'dow'  => strtoupper( gmdate( 'D', $ts ) ),
-		'mon'  => strtoupper( gmdate( 'M', $ts ) ),
-		'day'  => (int) gmdate( 'j', $ts ),
-		'long' => gmdate( 'l, F j', $ts ),
+		'dow'   => strtoupper( gmdate( 'D', $ts ) ),
+		'mon'   => strtoupper( gmdate( 'M', $ts ) ),
+		'day'   => (int) gmdate( 'j', $ts ),
+		'year'  => (int) gmdate( 'Y', $ts ),
+		'long'  => gmdate( $this_year ? 'l, F j' : 'l, F j, Y', $ts ),
+		'short' => strtoupper( gmdate( $this_year ? 'D M j' : 'M j, Y', $ts ) ),
 	);
 }
 
@@ -103,22 +110,23 @@ function fort_ao_url( $ao ) {
 	return $term && ! is_wp_error( $term ) ? get_term_link( $term ) : '';
 }
 
-/** Parses the "QIC: / When: / Pax:" lines at the top of a backblast post's content. */
-function fort_backblast_fields( $content ) {
-	// Flatten to one line; each value runs until the next known label.
-	$text   = trim( preg_replace( '/\s+/', ' ', html_entity_decode( wp_strip_all_tags( preg_replace( '/<[^>]+>/', ' $0 ', $content ) ) ) ) );
-	$labels = 'QIC|When|Pax|Posted In|FNGs?|WARMUP|THE THANG|MARY|ANNOUNCEMENTS|COT';
-	$fields = array();
-	foreach ( array( 'qic' => 'QIC', 'when' => 'When', 'pax' => 'Pax', 'ao' => 'Posted In' ) as $key => $label ) {
-		if ( preg_match( '/\b' . preg_quote( $label, '/' ) . ':\s*(.*?)\s*(?=\b(?:' . $labels . '):|$)/i', $text, $m ) && '' !== $m[1] ) {
-			$fields[ $key ] = trim( preg_replace( '/\s*,\s*/', ', ', $m[1] ), ' ,' );
-		}
-	}
-	return $fields;
+/**
+ * A post's tidy backblast record from the Fort Weekly plugin (kind backblast / preblast / post,
+ * date, ao, qs, pax, body_html…), or null without the plugin.
+ */
+function fort_post_bb( $post = null ) {
+	return function_exists( 'fortw_post_record' ) ? fortw_post_record( $post ?: get_post() ) : null;
 }
 
-/** The post's AO: its first category other than Uncategorized / Pre-Blast. */
+/** The post's AO category: the record's AO when the site has that category, else its first real one. */
 function fort_post_ao() {
+	$r = fort_post_bb();
+	if ( ! empty( $r['ao'] ) ) {
+		$term = get_term_by( 'name', $r['ao'], 'category' );
+		if ( $term && ! is_wp_error( $term ) ) {
+			return $term;
+		}
+	}
 	foreach ( get_the_category() as $c ) {
 		if ( ! in_array( strtolower( $c->slug ), array( 'uncategorized', 'pre-blast' ), true ) ) {
 			return $c;

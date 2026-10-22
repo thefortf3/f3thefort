@@ -57,21 +57,31 @@ function fort_render_coming_row( $e ) {
 	<?php
 }
 
-/** A backblast card from the stats API: AO · date, title, Q · PAX · FNGs, and an excerpt. Links to the full write-up. */
+/**
+ * A backblast in a list: one from the stats API, or one of the site's own posts as its tidy record
+ * (fort_post_bb(): pre-blasts show their event date and Q, announcements just their date).
+ */
 function fort_render_backblast( $b ) {
+	$kind  = $b['kind'] ?? 'backblast';
 	$p     = fort_date_parts( $b['date'] ?? '' );
-	$url   = ! empty( $b['event_id'] ) ? fort_backblast_url( $b ) : fort_ao_url( $b['ao'] ?? '' );
+	$url   = $b['url'] ?? ( ! empty( $b['event_id'] ) ? fort_backblast_url( $b ) : fort_ao_url( $b['ao'] ?? '' ) );
 	$tag   = $url ? 'a' : 'div';
 	$qs    = ! empty( $b['qs'] ) ? implode( ', ', array_map( 'strval', (array) $b['qs'] ) ) : '';
+	$where = $b['ao'] ?? ( $b['topics'][0] ?? '' );
+	$head  = array_filter( array( 'preblast' === $kind ? __( 'Pre-blast', 'fort' ) : '', $where ) );
 	?>
-	<<?php echo esc_html( $tag ); ?> class="fort-bb"<?php echo $url ? ' href="' . esc_url( $url ) . '"' : ''; ?>>
-		<span class="fort-bb__head"><span class="fort-accent2"><?php echo esc_html( strtoupper( $b['ao'] ?? '' ) ); ?></span> · <?php echo esc_html( trim( $p['dow'] . ' ' . $p['mon'] . ' ' . $p['day'] ) ); ?></span>
+	<<?php echo esc_html( $tag ); ?> class="fort-bb<?php echo 'backblast' !== $kind ? ' fort-bb--' . esc_attr( $kind ) : ''; ?>"<?php echo $url ? ' href="' . esc_url( $url ) . '"' : ''; ?>>
+		<span class="fort-bb__head"><span class="fort-accent2"><?php echo esc_html( strtoupper( implode( ' · ', $head ) ) ); ?></span><?php echo $head && $p['short'] ? ' · ' : ''; ?><?php echo esc_html( $p['short'] ); ?></span>
 		<span class="fort-bb__title"><?php echo esc_html( fort_backblast_title( $b ) ); ?></span>
-		<span class="fort-bb__meta">
-			<?php if ( $qs ) : ?><?php echo esc_html( sprintf( /* translators: %s: Q handle(s) */ __( 'Q: %s', 'fort' ), $qs ) ); ?> · <?php endif; ?>
-			<?php echo esc_html( sprintf( /* translators: %d: PAX count */ _n( '%d PAX', '%d PAX', (int) ( $b['pax_count'] ?? 0 ), 'fort' ), (int) ( $b['pax_count'] ?? 0 ) ) ); ?>
-			<?php if ( ! empty( $b['fng_count'] ) ) : ?> · <span class="fort-amber"><?php echo esc_html( sprintf( '+%d FNG', (int) $b['fng_count'] ) ); ?></span><?php endif; ?>
-		</span>
+		<?php if ( 'post' !== $kind ) : ?>
+			<span class="fort-bb__meta">
+				<?php if ( $qs ) : ?><?php echo esc_html( sprintf( /* translators: %s: Q handle(s) */ __( 'Q: %s', 'fort' ), $qs ) ); ?><?php endif; ?>
+				<?php if ( 'backblast' === $kind ) : ?>
+					<?php echo $qs ? ' · ' : ''; ?><?php echo esc_html( sprintf( /* translators: %d: PAX count */ _n( '%d PAX', '%d PAX', (int) ( $b['pax_count'] ?? 0 ), 'fort' ), (int) ( $b['pax_count'] ?? 0 ) ) ); ?>
+					<?php if ( ! empty( $b['fng_count'] ) ) : ?> · <span class="fort-amber"><?php echo esc_html( sprintf( '+%d FNG', (int) $b['fng_count'] ) ); ?></span><?php endif; ?>
+				<?php endif; ?>
+			</span>
+		<?php endif; ?>
 		<?php if ( ! empty( $b['excerpt'] ) ) : ?>
 			<span class="fort-bb__excerpt"><?php echo esc_html( $b['excerpt'] ); ?></span>
 		<?php endif; ?>
@@ -79,21 +89,88 @@ function fort_render_backblast( $b ) {
 	<?php
 }
 
-/** A WordPress post (backblast / pre-blast) in a list. */
+/** A WordPress post (backblast / pre-blast / announcement) in a list. */
 function fort_render_post_card() {
-	$cat = fort_post_ao();
-	$ao  = $cat ? $cat->name : '';
+	$r = fort_post_bb();
+	if ( ! $r ) {
+		$r = array( 'kind' => 'post', 'title' => get_the_title(), 'date' => get_the_date( 'Y-m-d' ) );
+	}
+	fort_render_backblast( array( 'url' => get_permalink() ) + $r );
+}
+
+/**
+ * One backblast's page: the stats API's (backblast.php) or a post's tidy record (single.php).
+ * When, where, the Q(s) and PAX, then the write-up.
+ */
+function fort_render_backblast_entry( $b ) {
+	$kind = $b['kind'] ?? 'backblast';
+	$p    = fort_date_parts( $b['date'] ?? '' );
+	$ao   = $b['ao'] ?? '';
+	// Stats backblasts link to the Backblasts page for their AO; posts to the AO's category.
+	$ao_url = empty( $b['post_id'] ) ? fort_backblasts_url( array( 'ao' => $ao ) ) : fort_ao_url( $ao );
+	$kick   = array_filter( array( 'preblast' === $kind ? __( 'Pre-blast', 'fort' ) : '', $ao, trim( $p['dow'] . ' ' . $p['mon'] . ' ' . $p['day'] ) ) );
 	?>
-	<a class="fort-bb" href="<?php the_permalink(); ?>">
-		<span class="fort-bb__head"><span class="fort-accent2"><?php echo esc_html( strtoupper( $ao ) ); ?></span> · <?php echo esc_html( strtoupper( get_the_date( 'D M j' ) ) ); ?></span>
-		<span class="fort-bb__title"><?php the_title(); ?></span>
-		<?php
-		$f = fort_backblast_fields( get_the_content() );
-		if ( ! empty( $f['qic'] ) ) :
-			?>
-			<span class="fort-bb__meta"><?php echo esc_html( sprintf( /* translators: %s: QIC */ __( 'Q: %s', 'fort' ), $f['qic'] ) ); ?></span>
+	<a class="fort-more fort-back" href="<?php echo esc_url( fort_backblasts_url() ); ?>"><?php esc_html_e( '← All backblasts', 'fort' ); ?></a>
+	<header class="fort-entry__head">
+		<span class="fort-kicker fort-accent2"><?php echo esc_html( strtoupper( implode( ' · ', $kick ) ) ); ?></span>
+		<h1 class="fort-entry__title"><?php echo esc_html( fort_backblast_title( $b ) ); ?></h1>
+		<?php if ( ! empty( $b['topics'] ) ) : ?>
+			<div class="fort-entry__tags"><?php foreach ( $b['topics'] as $t ) : ?><span class="fort-tag fort-accent2"><?php echo esc_html( strtoupper( $t ) ); ?></span><?php endforeach; ?></div>
 		<?php endif; ?>
-	</a>
+	</header>
+
+	<?php if ( 'post' !== $kind ) : ?>
+		<dl class="fort-facts">
+			<?php if ( $p['long'] ) : ?>
+				<dt><?php esc_html_e( 'When', 'fort' ); ?></dt>
+				<dd><?php echo esc_html( $p['long'] ); ?><?php echo ! empty( $b['start_time'] ) ? ' <span class="fort-mono-dim">' . esc_html( $b['start_time'] ) . '</span>' : ''; ?></dd>
+			<?php endif; ?>
+			<?php if ( $ao ) : ?>
+				<dt><?php esc_html_e( 'AO', 'fort' ); ?></dt>
+				<dd>
+					<?php echo $ao_url ? '<a href="' . esc_url( $ao_url ) . '">' . esc_html( $ao ) . '</a>' : esc_html( $ao ); ?>
+					<?php if ( ! empty( $b['location'] ) && $b['location'] !== $ao ) : ?><span class="fort-mono-dim">· <?php echo esc_html( $b['location'] ); ?></span><?php endif; ?>
+				</dd>
+			<?php endif; ?>
+			<?php if ( ! empty( $b['qs'] ) ) : ?>
+				<dt><?php esc_html_e( 'Q', 'fort' ); ?></dt>
+				<dd><?php echo esc_html( implode( ' & ', $b['qs'] ) ); ?><?php echo ! empty( $b['coqs'] ) ? ' <span class="fort-mono-dim">· ' . esc_html( sprintf( /* translators: %s: names */ __( 'Co-Q: %s', 'fort' ), implode( ', ', $b['coqs'] ) ) ) . '</span>' : ''; ?></dd>
+			<?php endif; ?>
+			<?php if ( 'backblast' === $kind ) : ?>
+				<dt><?php esc_html_e( 'PAX', 'fort' ); ?></dt>
+				<dd>
+					<?php echo esc_html( (int) ( $b['pax_count'] ?? 0 ) ); ?><?php echo ! empty( $b['fng_count'] ) ? ' <span class="fort-amber">' . esc_html( sprintf( '+%d FNG', (int) $b['fng_count'] ) ) . '</span>' : ''; ?>
+					<?php if ( ! empty( $b['pax'] ) ) : ?><span class="fort-bb-pax"><?php echo esc_html( implode( ', ', $b['pax'] ) ); ?></span><?php endif; ?>
+				</dd>
+			<?php endif; ?>
+		</dl>
+	<?php endif; ?>
+
+	<?php if ( ! empty( $b['hero_html'] ) ) : ?>
+		<figure class="fort-entry__hero"><?php echo $b['hero_html']; // phpcs:ignore WordPress.Security.EscapeOutput -- get_the_post_thumbnail() markup. ?></figure>
+	<?php endif; ?>
+	<div class="fort-prose fort-bb-body">
+		<?php if ( isset( $b['body_html'] ) && '' !== $b['body_html'] ) : ?>
+			<?php echo apply_filters( 'fort_backblast_body', $b['body_html'] ); // phpcs:ignore WordPress.Security.EscapeOutput -- filtered with wp_kses_post when the record was made. ?>
+		<?php elseif ( ! empty( $b['paragraphs'] ) ) : ?>
+			<?php foreach ( $b['paragraphs'] as $para ) : ?>
+				<p><?php echo nl2br( esc_html( $para ) ); ?></p>
+			<?php endforeach; ?>
+		<?php else : ?>
+			<p class="fort-dim"><?php esc_html_e( 'No write-up for this one.', 'fort' ); ?></p>
+		<?php endif; ?>
+	</div>
+	<?php if ( ! empty( $b['posted'] ) && $b['posted'] !== ( $b['date'] ?? '' ) ) : ?>
+		<?php /* translators: %s: date the post went up */ ?>
+		<p class="fort-mono-dim"><?php echo esc_html( sprintf( __( 'Posted %s', 'fort' ), fort_date_parts( $b['posted'] )['long'] ) ); ?></p>
+	<?php endif; ?>
+
+	<?php if ( $ao && $ao_url ) : ?>
+		<p class="fort-actions">
+			<?php /* translators: %s: AO name */ ?>
+			<a class="fort-btn fort-btn--outline" href="<?php echo esc_url( $ao_url ); ?>"><?php echo esc_html( sprintf( __( 'More from %s', 'fort' ), $ao ) ); ?></a>
+		</p>
+	<?php endif; ?>
 	<?php
 }
 

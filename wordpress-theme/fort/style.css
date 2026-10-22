@@ -224,6 +224,9 @@ a.fort-bb:hover .fort-bb__title { color: var(--amber-bright); }
 .fort-prose { margin-top: 28px; font-size: 18px; line-height: 1.7; }
 .fort-prose h2, .fort-prose h3 { font-family: var(--display); letter-spacing: 0.03em; color: var(--text-bright); line-height: 1.2; }
 .fort-prose img { margin: 16px 0; }
+/* Embeds in old posts and pages often have fixed widths (e.g. a 640px video). */
+.fort-prose iframe, .fort-prose video, .fort-prose embed, .fort-prose object, .fort-prose table { max-width: 100%; }
+.fort-prose img, .fort-prose video { height: auto; }
 .fort-prose ul, .fort-prose ol { padding-left: 1.5rem; }
 .fort-prose blockquote { margin: 16px 0; padding-left: 16px; border-left: 2px solid var(--line-2); color: var(--text-dim); }
 .fort-prose a { text-decoration: underline; text-underline-offset: 3px; }

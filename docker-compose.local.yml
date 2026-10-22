@@ -54,13 +54,14 @@ services:
   wordpress:
     image: wordpress:7-php8.3-apache
     depends_on: [db]
-    ports: ["8088:80"]
+    ports: ["${WP_PORT:-8088}:80"]
     environment:
       WORDPRESS_DB_HOST: db
       WORDPRESS_DB_USER: wordpress
       WORDPRESS_DB_PASSWORD: wordpress
       WORDPRESS_DB_NAME: wordpress
       DEV_HOST: ${DEV_HOST:-develop.lan}
+      WP_PORT: ${WP_PORT:-8088}
       # The live stats API. For the local stats container instead: FORT_STATS_API=http://stats:8080
       FORT_STATS_API: ${FORT_STATS_API:-https://stats.f3thefort.com}
       WORDPRESS_CONFIG_EXTRA: |
@@ -68,7 +69,7 @@ services:
         // (Doubled dollar signs are compose's escape for PHP's $.)
         $$fort_https = ( $$_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '' ) === 'https';
         if ( $$fort_https ) { $$_SERVER['HTTPS'] = 'on'; }
-        $$fort_host = $$_SERVER['HTTP_X_FORWARDED_HOST'] ?? $$_SERVER['HTTP_HOST'] ?? ( getenv( 'DEV_HOST' ) . ':8088' );
+        $$fort_host = $$_SERVER['HTTP_X_FORWARDED_HOST'] ?? $$_SERVER['HTTP_HOST'] ?? ( getenv( 'DEV_HOST' ) . ':' . getenv( 'WP_PORT' ) );
         $$fort_host = preg_replace( '/[^A-Za-z0-9.:-]/', '', explode( ',', $$fort_host )[0] );
         define( 'WP_HOME', ( $$fort_https ? 'https://' : 'http://' ) . $$fort_host );
         define( 'WP_SITEURL', WP_HOME );

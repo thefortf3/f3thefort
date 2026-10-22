@@ -14,8 +14,16 @@ get_header();
 		<?php
 		while ( have_posts() ) :
 			the_post();
-			$cats = get_the_category();
-			?>
+			$bb = fort_post_bb();
+			if ( $bb ) :
+				?>
+				<article <?php post_class(); ?>>
+					<?php fort_render_backblast_entry( $bb + array( 'hero_html' => has_post_thumbnail() ? get_the_post_thumbnail( null, 'large' ) : '' ) ); ?>
+				</article>
+				<?php
+			else :
+				$cats = get_the_category();
+				?>
 			<article <?php post_class(); ?>>
 				<header class="fort-entry__head">
 					<div class="fort-entry__tags">
@@ -33,6 +41,7 @@ get_header();
 					<?php the_content(); ?>
 				</div>
 			</article>
+			<?php endif; ?>
 
 			<nav class="fort-post-nav" aria-label="<?php esc_attr_e( 'More posts', 'fort' ); ?>">
 				<span><?php previous_post_link( '%link', '← %title', true ); ?></span>
