@@ -31,7 +31,17 @@ f3thefort.com's host refuses outbound Postgres connections (ports 5432 and 6543)
 - **The page logic:** `includes/pure/` is a line-for-line port of the stats repo's `web/payload.py` and `web/fng_sheet.py`. For the same data it gives the same JSON as the Flask API.
 - **GloomSchedule** (the Q schedule) and the **FNG sign-up sheet** are fetched over HTTPS, as before.
 
-**Caching:** results are cached in WordPress for an hour (the data changes once a day). The backblast feed, archive and single backblasts are cached for 15 minutes, and the schedule for 10. Text searches and archive pages past 20 aren't cached. When Supabase can't be reached, the last good copy is served.
+**Background refresh, so pages never wait.** Everything the homepage and the stats pages show is fetched by a background job (`includes/refresh.php`), never while a page is being built. That covers the Q schedule, the backblast feed and last week's summary, the dashboard, streaks, the FNG sheet and the FNG challenge. Pages read the stored copy (the homepage answers in under 0.1 s), and a copy that's due for a refresh asks for one in the background.
+
+The job runs every 10 minutes:
+- today's and tomorrow's schedule refresh every 10 minutes;
+- everything else, including the full 14-day schedule, refreshes every hour;
+- the 14 schedule days are fetched in parallel, so a full refresh takes about 9 s and a 10-minute run about 2 s;
+- it stops starting new jobs after 40 s, to stay inside the host's 60-second limit.
+
+Only what's opened on request is fetched live, and cached: archive pages and searches, single backblasts, single months. Each takes about 0.3 s. When a source can't be reached, the last good copy stays.
+
+**FNG numbers** come only from the FNG sign-up sheet.
 
 ## Setting it up
 
@@ -47,11 +57,18 @@ f3thefort.com's host refuses outbound Postgres connections (ports 5432 and 6543)
    // Optional: define( 'FORT_STATS_CACHE_TTL', 3600 );                // seconds
    ```
 3. **Install the plugin:** upload `dist/fort-stats.zip` (`scripts/build-plugin-zip.sh`) under Plugins → Add New → Upload, then activate it.
-4. **Settings → Fort Stats:**
+4. **A real cron job for WordPress's scheduled jobs.** WordPress normally starts them from visitors' page loads, which is unreliable on quiet sites and behind proxies.
+   - In `wp-config.php`: `define( 'DISABLE_WP_CRON', true );`
+   - In cPanel → Cron Jobs, every 5 minutes:
+     ```
+     */5 * * * * wget -q -O /dev/null https://f3thefort.com/wp-cron.php
+     ```
+   Fort Weekly's daily job uses the same mechanism. Locally, the `wpcron` service in `docker-compose.local.yml` plays this part.
+5. **Settings → Fort Stats:**
    - enter the FNG sheet's published CSV link and the FNG challenge's dates;
    - check that the three "set up" lines show ✓.
 
-   "Refresh now" clears the cache.
+   "Refresh now" fetches everything straight away.
 
 With the plugin active, the theme reads stats from it directly, and the nav's Stats link goes to /stats/. Deactivating the plugin switches the theme back to the remote stats API (`FORT_STATS_API`).
 

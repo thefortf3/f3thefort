@@ -37,7 +37,9 @@ add_action(
 			wp_die( esc_html__( 'Sorry, you are not allowed to do that.', 'fort-stats' ), 403 );
 		}
 		fstats_flush_cache();
-		wp_safe_redirect( admin_url( 'options-general.php?page=fort-stats&refreshed=1' ) );
+		$result = fstats_refresh( true );
+		$failed = array_filter( $result, fn( $r ) => 'ok' !== $r && 'kept' !== $r );
+		wp_safe_redirect( admin_url( 'options-general.php?page=fort-stats&refreshed=' . ( $failed ? 'partly' : '1' ) ) );
 		exit;
 	}
 );
@@ -55,7 +57,11 @@ function fstats_settings_page() {
 	<div class="wrap">
 		<h1><?php esc_html_e( 'Fort Stats', 'fort-stats' ); ?></h1>
 		<?php if ( isset( $_GET['refreshed'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
-			<div class="notice notice-success"><p><?php esc_html_e( 'Cached stats cleared; the next visit loads fresh ones.', 'fort-stats' ); ?></p></div>
+			<?php if ( 'partly' === $_GET['refreshed'] ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
+				<div class="notice notice-warning"><p><?php esc_html_e( 'Refreshed, but some sources couldn’t be reached; their last copies are still shown. Details are in the PHP error log.', 'fort-stats' ); ?></p></div>
+			<?php else : ?>
+				<div class="notice notice-success"><p><?php esc_html_e( 'Stats refreshed.', 'fort-stats' ); ?></p></div>
+			<?php endif; ?>
 		<?php endif; ?>
 		<p><?php echo wp_kses_post( sprintf( /* translators: %s: link */ __( 'The stats pages are at %s.', 'fort-stats' ), '<a href="' . esc_url( home_url( '/stats/' ) ) . '">' . esc_html( home_url( '/stats/' ) ) . '</a>' ) ); ?></p>
 		<table class="widefat striped" style="max-width:720px"><tbody>
@@ -81,9 +87,29 @@ function fstats_settings_page() {
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<input type="hidden" name="action" value="fstats_refresh">
 			<?php wp_nonce_field( 'fstats_refresh' ); ?>
-			<p><?php esc_html_e( 'Stats are kept for an hour (the data updates once a day).', 'fort-stats' ); ?>
+			<p>
+				<?php
+				$at = fstats_kept_at( 'core' );
+				/* translators: %s: time ago */
+				echo esc_html( $at ? sprintf( __( 'Stats last fetched %s ago; the schedule every 10 minutes, the rest hourly, in the background.', 'fort-stats' ), human_time_diff( $at ) ) : __( 'Stats haven’t been fetched yet.', 'fort-stats' ) );
+				?>
 				<?php submit_button( __( 'Refresh now', 'fort-stats' ), 'secondary', 'submit', false ); ?></p>
 		</form>
 	</div>
 	<?php
+}
+
+// New FNG sheet or challenge dates: drop the copies built from the old ones and fetch again.
+foreach ( array( 'fstats_fng_sheet_url', 'fstats_fng_start', 'fstats_fng_end' ) as $fstats_opt ) {
+	add_action(
+		'update_option_' . $fstats_opt,
+		function () {
+			delete_option( 'fstats_kept_fng_challenge' );
+			if ( doing_action( 'update_option_fstats_fng_sheet_url' ) ) {
+				delete_option( 'fstats_kept_fng_sheet' );
+				delete_option( 'fstats_kept_fng' );
+			}
+			fstats_request_refresh();
+		}
+	);
 }

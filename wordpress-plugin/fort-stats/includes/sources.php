@@ -64,8 +64,30 @@ class FStats_GloomSchedule implements FStats_Schedule {
 		return $this->get( 'api-get-ao', array( 'activeOnly' => $active_only ? 'true' : 'false' ) );
 	}
 
+	/** @var array<string, array> Days fetched ahead by prefetch(). */
+	private $days = array();
+
 	public function get_scheduled_qs( string $date ): array {
-		return $this->get( 'api-get-scheduled-qs', array( 'date' => $date ) );
+		return $this->days[ $date ] ?? $this->get( 'api-get-scheduled-qs', array( 'date' => $date ) );
+	}
+
+	/** Fetches several days' schedules at once (in parallel), for get_scheduled_qs(). */
+	public function prefetch( array $dates ) {
+		$token    = $this->token();
+		$requests = array();
+		foreach ( $dates as $d ) {
+			$requests[ $d ] = array(
+				'url'     => add_query_arg( array( 'token' => rawurlencode( $token ), 'date' => rawurlencode( $d ) ), $this->base . '/api-get-scheduled-qs' ),
+				'headers' => array( 'Accept' => 'application/json' ),
+			);
+		}
+		$responses = WpOrg\Requests\Requests::request_multiple( $requests, array( 'timeout' => 30, 'connect_timeout' => 10, 'verify' => ABSPATH . WPINC . '/certificates/ca-bundle.crt' ) );
+		foreach ( $responses as $d => $res ) {
+			if ( $res instanceof WpOrg\Requests\Exception || 200 !== (int) $res->status_code ) {
+				throw new FStats_Unavailable( 'GloomSchedule api-get-scheduled-qs failed for ' . $d );
+			}
+			$this->days[ $d ] = (array) json_decode( (string) $res->body, true );
+		}
 	}
 }
 

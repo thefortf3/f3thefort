@@ -5,10 +5,12 @@
  * as the matching stats.f3thefort.com /api/* endpoint, or null when there's no data (not
  * configured, Supabase unreachable with no saved copy, or not found).
  *
- * Caching, as the Flask app's: the data changes once a day, so results are kept (transients) for
- * an hour; the backblast feed, archive and schedule for less. Text searches and archive pages past
- * 20 aren't cached (so arbitrary queries can't fill the cache) and misses never are. When Supabase
- * can't be reached, the last good copy is served.
+ * What every page shows (schedule, backblast feed, last week's summary, dashboard, streaks, FNGs)
+ * is read from copies the background job keeps fresh (refresh.php): pages never wait on
+ * GloomSchedule, Supabase or Google. What's only fetched on request (archive pages and searches,
+ * single backblasts, single months) is cached here: an hour, or 15 minutes for backblasts; text
+ * searches and archive pages past 20 aren't cached and misses never are. When Supabase can't be
+ * reached, the last good copy is served.
  *
  * @package FortStats
  */
@@ -73,10 +75,15 @@ function fstats_clamp( $v, $default, $lo, $hi ) {
 
 // ── FNGs come only from the sign-up sheet ─────────────────────────────────────────────────────
 
-/** The sheet's records (an hour's cache, last good copy when unreachable), or null if never read. */
+/** The sheet's records (kept fresh in the background), or null if it has never been read. */
 function fstats_sheet_records() {
-	list( $status, $records ) = fstats_cached( 'fng_sheet', fstats_ttl(), fn() => fstats_fng_records() );
-	return 200 === $status ? $records : null;
+	return fstats_kept( 'fng_sheet' );
+}
+
+/** array( status, data ) for a background job's stored copy: 200, or 503 before its first fetch. */
+function fstats_from_kept( $key ) {
+	$data = fstats_kept( $key );
+	return null === $data ? array( 503, null ) : array( 200, $data );
 }
 
 /** array( 'date|ao' => FNGs ) from the sheet, or null without it. */
@@ -104,7 +111,7 @@ function fstats_sheet_item( array $item ) {
 // ── Internal: array( status, data ) per endpoint (the REST routes use these) ─────────────────
 
 function fstats_get_core() {
-	return fstats_cached( 'core', fstats_ttl(), fn() => fstats_build( fn( $db ) => fstats_core_payload( $db ) ) );
+	return fstats_from_kept( 'core' );
 }
 
 /** Status 400 for a malformed month. */
@@ -117,22 +124,34 @@ function fstats_get_month( $key ) {
 }
 
 function fstats_get_streaks() {
-	return fstats_cached( 'streaks', fstats_ttl(), fn() => fstats_build( fn( $db ) => fstats_streaks_payload( $db ) ) );
+	return fstats_from_kept( 'streaks' );
 }
 
 function fstats_get_backblasts( $days = 7, $limit = 12 ) {
-	$days = fstats_clamp( $days, 7, 1, 31 );
+	$days  = fstats_clamp( $days, 7, 1, 31 );
 	$limit = fstats_clamp( $limit, 12, 1, 50 );
-	$res  = fstats_cached( "bb_{$days}_{$limit}", fstats_ttl( 0.25 ), fn() => fstats_build( fn( $db ) => fstats_backblasts_payload( $db, $days, $limit ) ) );
-	if ( 200 === $res[0] ) {
-		$res[1]['items'] = array_map( 'fstats_sheet_item', $res[1]['items'] );
+	$feed  = fstats_kept( 'bb_feed' );
+	if ( null === $feed ) {
+		return array( 503, null );
 	}
-	return $res;
+	// Cut from the kept 31 days / 50 workouts.
+	$today = fstats_region_today();
+	$from  = fstats_add_days( $today, -$days );
+	$items = array_values( array_filter( $feed['items'], fn( $i ) => $i['date'] >= $from && $i['date'] <= $today ) );
+	return array(
+		200,
+		array(
+			'generated_at' => $feed['generated_at'],
+			'from'         => $from,
+			'to'           => $today,
+			'items'        => array_map( 'fstats_sheet_item', array_slice( $items, 0, $limit ) ),
+		),
+	);
 }
 
 /** Last week's totals; its FNG number is the sheet's for those days (null without the sheet). */
 function fstats_get_backblast_summary() {
-	$res = fstats_cached( 'bb_summary', fstats_ttl( 0.25 ), fn() => fstats_build( fn( $db ) => fstats_backblast_summary_payload( $db ) ) );
+	$res = fstats_from_kept( 'bb_summary' );
 	if ( 200 === $res[0] ) {
 		$records        = fstats_sheet_records();
 		$res[1]['fngs'] = null === $records ? null : fstats_fng_count_between( $records, $res[1]['from'], $res[1]['to'] );
@@ -148,6 +167,14 @@ function fstats_get_backblast_archive( array $args ) {
 	$month    = mb_substr( trim( (string) ( $args['month'] ?? '' ) ), 0, 7 );
 	$q        = mb_substr( trim( (string) ( $args['q'] ?? '' ) ), 0, 80 );
 	$type     = mb_substr( trim( (string) ( $args['type'] ?? '' ) ), 0, 60 );
+	// The page as it first opens comes from the background job.
+	if ( 1 === $page && 24 === $per_page && '' === $ao . $month . $q . $type ) {
+		$res = fstats_from_kept( 'bb_archive_1' );
+		if ( 200 === $res[0] ) {
+			$res[1]['items'] = array_map( 'fstats_sheet_item', $res[1]['items'] );
+		}
+		return $res;
+	}
 	$build    = fn() => fstats_build( fn( $db ) => fstats_backblast_archive_payload( $db, $page, $per_page, $ao, $month, $q, $type ) );
 	$res      = ( '' !== $q || $page > 20 )
 		? fstats_cached( 'x', 0, $build, false )
@@ -169,42 +196,60 @@ function fstats_get_backblast( $event_id ) {
 }
 
 function fstats_get_schedule( $days = 7 ) {
-	$days = fstats_clamp( $days, 7, 1, 14 );
-	return fstats_cached(
-		'schedule_' . $days,
-		min( fstats_ttl(), 600 ), // The Q schedule changes during the day (people sign up).
-		fn() => fstats_schedule_payload( FStats_GloomSchedule::from_config(), $days )
+	$days  = fstats_clamp( $days, 7, 1, 14 );
+	$sched = fstats_kept( 'schedule' );
+	$soon  = fstats_kept( 'schedule_soon' );
+	if ( null === $sched ) {
+		$sched = $soon;
+	}
+	if ( null === $sched ) {
+		return array( 503, null );
+	}
+	// The 10-minute copy of today and tomorrow replaces those days in the hourly 14-day copy.
+	if ( $soon && ! empty( $soon['configured'] ) && ! empty( $sched['configured'] ) && $soon !== $sched ) {
+		$by_date = array();
+		foreach ( $sched['days'] as $d ) {
+			$by_date[ $d['date'] ] = $d;
+		}
+		foreach ( $soon['days'] as $d ) {
+			$by_date[ $d['date'] ] = $d;
+		}
+		ksort( $by_date );
+		$sched['days']         = array_values( $by_date );
+		$sched['aos']          = $soon['aos'] + $sched['aos'];
+		$sched['generated_at'] = $soon['generated_at'];
+	}
+	if ( empty( $sched['configured'] ) ) {
+		return array( 200, $sched );
+	}
+	// Cut from the kept 14 days, starting today (the copy may be from yesterday evening).
+	$today = fstats_region_today();
+	$list  = array_slice( array_values( array_filter( $sched['days'], fn( $d ) => $d['date'] >= $today ) ), 0, $days );
+	$used  = array();
+	foreach ( $list as $d ) {
+		foreach ( $d['workouts'] as $w ) {
+			$used[ $w['ao'] ] = true;
+		}
+	}
+	return array(
+		200,
+		array(
+			'configured'   => true,
+			'generated_at' => $sched['generated_at'],
+			'from'         => $list ? $list[0]['date'] : $today,
+			'to'           => $list ? $list[ count( $list ) - 1 ]['date'] : $today,
+			'days'         => $list,
+			'aos'          => array_intersect_key( $sched['aos'], $used ),
+		),
 	);
 }
 
 function fstats_get_fng() {
-	return fstats_cached(
-		'fng',
-		fstats_ttl(),
-		function () {
-			$records = fstats_sheet_records();
-			if ( null === $records ) {
-				throw new FStats_Unavailable( 'FNG sheet unavailable' );
-			}
-			return fstats_fng_payload( $records );
-		}
-	);
+	return fstats_from_kept( 'fng' );
 }
 
 function fstats_get_fng_challenge() {
-	$start = fstats_setting( 'fng_start' ) ?: '2026-09-01';
-	$end   = fstats_setting( 'fng_end' ) ?: '2026-09-30';
-	return fstats_cached(
-		'fng_challenge_' . md5( $start . $end ),
-		fstats_ttl(),
-		function () use ( $start, $end ) {
-			$records = fstats_sheet_records();
-			if ( null === $records ) {
-				throw new FStats_Unavailable( 'FNG sheet unavailable' );
-			}
-			return fstats_build( fn( $db ) => fstats_fng_challenge_payload( $db, $records, $start, $end ) );
-		}
-	);
+	return fstats_from_kept( 'fng_challenge' );
 }
 
 // ── Public: the payload, or null ──────────────────────────────────────────────────────────────
@@ -249,7 +294,7 @@ function fort_stats_fng_challenge() {
 	return fstats_get_fng_challenge()[1];
 }
 
-/** Forgets every cached result (Settings → Fort Stats → "Refresh now"); saved copies stay. */
+/** Forgets the on-request cache (Settings → Fort Stats → "Refresh now"); saved copies stay. */
 function fstats_flush_cache() {
 	global $wpdb;
 	$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_transient\\_fstats\\_%' OR option_name LIKE '\\_transient\\_timeout\\_fstats\\_%'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery

@@ -25,6 +25,7 @@ foreach ( glob( __DIR__ . '/includes/pure/*.php' ) as $fstats_file ) {
 require_once __DIR__ . '/includes/rest-source.php';
 require_once __DIR__ . '/includes/sources.php';
 require_once __DIR__ . '/includes/api.php';
+require_once __DIR__ . '/includes/refresh.php';
 require_once __DIR__ . '/includes/routes.php';
 require_once __DIR__ . '/includes/pages.php';
 if ( is_admin() ) {
@@ -32,9 +33,15 @@ if ( is_admin() ) {
 }
 
 register_activation_hook( __FILE__, 'fstats_activate' );
-register_deactivation_hook( __FILE__, 'flush_rewrite_rules' );
+register_deactivation_hook( __FILE__, 'fstats_deactivate' );
 
 function fstats_activate() {
 	fstats_register_pages();
+	flush_rewrite_rules();
+	wp_schedule_single_event( time(), 'fstats_refresh' ); // Fetch everything right away.
+}
+
+function fstats_deactivate() {
+	fstats_unschedule();
 	flush_rewrite_rules();
 }

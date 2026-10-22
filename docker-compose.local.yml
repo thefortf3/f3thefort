@@ -79,6 +79,9 @@ services:
         define( 'WP_SITEURL', WP_HOME );
         // The reverse proxy in front of this test site passes the visitor's address here.
         define( 'FORT_CLIENT_IP_HEADER', 'HTTP_X_REAL_IP' );
+        // Scheduled jobs (Fort Stats' background refresh) run from the wpcron service below, as a
+        // real cron job would on the host, not from visitors' page loads.
+        define( 'DISABLE_WP_CRON', true );
         // Style preview frame at /style-preview/ (try the alternative homepage styles). Local only.
         define( 'FORT_STYLE_PREVIEW', true );
         define( 'FORT_STATS_API', getenv( 'FORT_STATS_API' ) ?: 'https://stats.f3thefort.com' );
@@ -95,6 +98,14 @@ services:
       - ./wordpress-theme/fort:/var/www/html/wp-content/themes/fort:ro
       - ./wordpress-plugin/fort-weekly:/var/www/html/wp-content/plugins/fort-weekly:ro
       - ./wordpress-plugin/fort-stats:/var/www/html/wp-content/plugins/fort-stats:ro
+
+  # Runs WordPress's scheduled jobs every minute, like a cron job on the host would
+  # (production: see wordpress-plugin/fort-stats/README.md).
+  wpcron:
+    image: curlimages/curl:8.10.1
+    depends_on: [wordpress]
+    restart: unless-stopped
+    entrypoint: ["sh", "-c", "while true; do curl -s -o /dev/null -m 120 -H 'Host: localhost:8088' http://wordpress/wp-cron.php; sleep 60; done"]
 
   wpcli:
     image: wordpress:cli-php8.3
