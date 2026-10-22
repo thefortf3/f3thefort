@@ -42,4 +42,7 @@ echo "[4/4] HTTPS API functions…"
 "${PSQL[@]}" < "$STATS_REPO/analytics-sync/stats-api.sql" >/dev/null
 "${PSQL[@]}" -c "NOTIFY pgrst, 'reload schema'"
 
+# GloomSchedule / FNG settings for the local WordPress's Fort Stats (no database credentials).
+(umask 077 && grep -E '^(GS_API_ENDPOINT|GS_API_KEY|FNG_SHEET_URL|FNG_START|FNG_END)=' "$STATS_ENV_FILE" > .local/stats-wp.env || true)
+
 echo "Done → REST API at http://127.0.0.1:3010 (from WordPress: http://postgrest:3000)"
