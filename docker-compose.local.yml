@@ -52,7 +52,7 @@ services:
     volumes: [wpdb:/var/lib/mysql]
 
   wordpress:
-    image: wordpress:6-php8.2-apache
+    image: wordpress:7-php8.3-apache
     depends_on: [db]
     ports: ["8088:80"]
     environment:
@@ -84,7 +84,7 @@ services:
       - ./wordpress-plugin/fort-weekly:/var/www/html/wp-content/plugins/fort-weekly:ro
 
   wpcli:
-    image: wordpress:cli-php8.2
+    image: wordpress:cli-php8.3
     profiles: [tools]
     depends_on: [wordpress]
     user: "33:33"

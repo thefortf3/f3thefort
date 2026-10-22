@@ -103,17 +103,17 @@ scripts/build-theme-zip.sh     # → dist/fort-theme.zip
 ```
 
 Upload both under Plugins → Add New → Upload, and Appearance → Themes → Add New → Upload. The
-plugin needs PHP 7.4 or newer; f3thefort.com runs PHP 8.2 (confirmed 2026-10-20), the same as the
-local test site (`wordpress:6-php8.2-apache`).
+plugin and theme need PHP 8.3, and should only run on **PHP 8.3.36 or newer** (earlier 8.3
+releases have a known security hole). f3thefort.com runs WordPress 7.1.3; the local test sites use
+the same (`wordpress:7-php8.3-apache`, PHP 8.3.36).
 
 ## Tests
 
 - **Unit tests,** for the pure date, agenda, public-shape, Slack and newsletter functions. They
-  run without WordPress, on both PHP versions:
+  run without WordPress:
 
   ```
-  docker run --rm -v "$PWD/wordpress-plugin/fort-weekly":/p -w /p php:7.4-cli php tests/run.php
-  docker run --rm -v "$PWD/wordpress-plugin/fort-weekly":/p -w /p php:8.2-cli php tests/run.php
+  docker run --rm -v "$PWD/wordpress-plugin/fort-weekly":/p -w /p php:8.3.36-cli php tests/run.php
   ```
 
 - **Local site:** `docker-compose.local.yml` and `scripts/local/seed-wordpress.sh` build a
@@ -135,7 +135,8 @@ local test site (`wordpress:6-php8.2-apache`).
 
 ## Switching over (each step with the site owner's go-ahead)
 
-1. ~~Check f3thefort.com's PHP version~~ (8.2, confirmed). Check that backups cover the database
+1. Set f3thefort.com to PHP 8.3 in HostGator's cPanel and check Tools → Site Health shows
+   **8.3.36 or newer** (it was 8.2 on 2026-10-20). Check that backups cover the database
    and `wp-content/uploads`.
 2. Back up the old app's database and the WordPress site.
 3. Upload the theme and the plugin; activate the plugin.

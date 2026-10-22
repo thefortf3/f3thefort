@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3d72700f11d2fdf7cff64f24ca0804e5",
+    "content-hash": "d8d3c66ed0cd66c432332fd9f16c1034",
     "packages": [
         {
             "name": "pelago/emogrifier",
@@ -312,11 +312,11 @@
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
-        "php": ">=7.4"
+        "php": ">=8.3"
     },
     "platform-dev": {},
     "platform-overrides": {
-        "php": "7.4.33"
+        "php": "8.3.36"
     },
     "plugin-api-version": "2.9.0"
 }

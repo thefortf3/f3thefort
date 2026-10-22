@@ -2,7 +2,7 @@
 /**
  * Tiny test runner for the plugin's pure functions (no WordPress needed):
  *
- *   docker run --rm -v "$PWD/wordpress-plugin/fort-weekly":/p -w /p php:7.4-cli php tests/run.php
+ *   docker run --rm -v "$PWD/wordpress-plugin/fort-weekly":/p -w /p php:8.3.36-cli php tests/run.php
  *
  * Each tests/test-*.php file calls fortw_test( 'name', function () { ... } ) and the assert_*
  * helpers below. Exits non-zero if anything fails.

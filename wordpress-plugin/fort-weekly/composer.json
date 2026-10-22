@@ -4,11 +4,11 @@
   "type": "wordpress-plugin",
   "license": "GPL-2.0-or-later",
   "require": {
-    "php": ">=7.4",
+    "php": ">=8.3",
     "pelago/emogrifier": "^7.2"
   },
   "config": {
-    "platform": { "php": "7.4.33" },
+    "platform": { "php": "8.3.36" },
     "optimize-autoloader": true,
     "sort-packages": true
   }

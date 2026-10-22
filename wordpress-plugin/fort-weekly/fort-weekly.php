@@ -5,7 +5,7 @@
  * Description:       The Fort's events, approvals, region info and The Fort Weekly newsletter, inside WordPress. PAX submit events, editors approve them, and approved events appear on the site and in the next issue.
  * Version:           0.2.0
  * Requires at least: 6.0
- * Requires PHP:      7.4
+ * Requires PHP:      8.3
  * Author:            F3 The Fort
  * License:           GPL-2.0-or-later
  * Text Domain:       fort-weekly
