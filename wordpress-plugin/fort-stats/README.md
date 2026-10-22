@@ -6,9 +6,22 @@ The Fort's stats site inside WordPress. It covers:
 - the FNG challenge board at **/stats/fng-challenge/**;
 - the backblast feed, archive, single backblasts and Q schedule that the Fort theme shows.
 
-It is a new version of stats.f3thefort.com (the Flask app in the stats repo), built so no separate server is needed. The data is the same.
+It replaces stats.f3thefort.com (the Flask app in the stats repo), so no separate server is needed. It uses the same data but not the same pages.
 
-The dashboard sits inside the site's theme: the theme's header, footer, fonts and colours, so it follows the theme and its style options. A theme can lay the page out with its own `fort-stats.php` template, which the Fort theme does (it calls `fort_stats_dashboard()`); other themes get a simple fallback. The FNG challenge board is still a standalone page.
+**The pages are the site's own.** The plugin provides the addresses and the data; the theme renders them, server-side and in its own style, through its `fort-stats.php` template (the Fort theme's is in `wordpress-theme/fort/`). Filters are plain links and GET forms, so no JavaScript app is involved:
+
+| Address | What it shows |
+|---|---|
+| `/stats/` | the leaderboard (`?range=ytd\|last90\|last30\|all_time`, `?month=YYYY-MM`, `?sort=qs`, `?q=`, `?pg=`) |
+| `/stats/pax/<id>/` | one PAX |
+| `/stats/aos/` | the AOs (`?range=`, `?month=`, `?sort=workouts\|pax_posts\|unique_pax\|avg_pax`) |
+| `/stats/aos/<id>/` | one AO |
+| `/stats/trends/` | trends |
+| `/stats/streaks/` | streaks (`?type=`) |
+| `/stats/fngs/` | FNGs (`?when=all`) |
+| `/stats/fng-challenge/` | the FNG challenge board |
+
+A theme without `fort-stats.php` gets a plain leaderboard (`templates/dashboard.php`). `includes/pure/views.php` has the helpers the theme uses: ranks, search, one PAX, one AO, streak lists, month series.
 
 ## How it gets the data
 
