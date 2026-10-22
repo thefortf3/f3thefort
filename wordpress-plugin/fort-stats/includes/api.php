@@ -1,6 +1,7 @@
 <?php
 /**
- * The stats, as PHP functions the theme (and the REST routes) call. Each returns the same array
+ * The stats, as PHP functions the theme (and the REST routes) call. FNG numbers everywhere come
+ * from the FNG sign-up sheet only, not from backblast counts. Each returns the same array
  * as the matching stats.f3thefort.com /api/* endpoint, or null when there's no data (not
  * configured, Supabase unreachable with no saved copy, or not found).
  *
@@ -70,6 +71,36 @@ function fstats_clamp( $v, $default, $lo, $hi ) {
 	return is_numeric( $v ) ? max( $lo, min( $hi, (int) $v ) ) : $default;
 }
 
+// ── FNGs come only from the sign-up sheet ─────────────────────────────────────────────────────
+
+/** The sheet's records (an hour's cache, last good copy when unreachable), or null if never read. */
+function fstats_sheet_records() {
+	list( $status, $records ) = fstats_cached( 'fng_sheet', fstats_ttl(), fn() => fstats_fng_records() );
+	return 200 === $status ? $records : null;
+}
+
+/** array( 'date|ao' => FNGs ) from the sheet, or null without it. */
+function fstats_sheet_by_workout() {
+	static $by = false;
+	if ( false === $by ) {
+		$records = fstats_sheet_records();
+		$by      = null === $records ? null : fstats_fng_by_workout( $records );
+	}
+	return $by;
+}
+
+/** FNGs the sheet has for a workout (date, AO): a number, or null (no sheet, or no AO to match). */
+function fort_stats_sheet_fngs( $date, $ao ) {
+	$by = fstats_sheet_by_workout();
+	return null === $by ? null : fstats_fng_for_workout( $by, $date, $ao );
+}
+
+/** A backblast item (feed, archive, detail) with its fng_count from the sheet instead of the backblast. */
+function fstats_sheet_item( array $item ) {
+	$item['fng_count'] = fort_stats_sheet_fngs( $item['date'] ?? '', $item['ao'] ?? '' );
+	return $item;
+}
+
 // ── Internal: array( status, data ) per endpoint (the REST routes use these) ─────────────────
 
 function fstats_get_core() {
@@ -90,13 +121,23 @@ function fstats_get_streaks() {
 }
 
 function fstats_get_backblasts( $days = 7, $limit = 12 ) {
-	$days  = fstats_clamp( $days, 7, 1, 31 );
+	$days = fstats_clamp( $days, 7, 1, 31 );
 	$limit = fstats_clamp( $limit, 12, 1, 50 );
-	return fstats_cached( "bb_{$days}_{$limit}", fstats_ttl( 0.25 ), fn() => fstats_build( fn( $db ) => fstats_backblasts_payload( $db, $days, $limit ) ) );
+	$res  = fstats_cached( "bb_{$days}_{$limit}", fstats_ttl( 0.25 ), fn() => fstats_build( fn( $db ) => fstats_backblasts_payload( $db, $days, $limit ) ) );
+	if ( 200 === $res[0] ) {
+		$res[1]['items'] = array_map( 'fstats_sheet_item', $res[1]['items'] );
+	}
+	return $res;
 }
 
+/** Last week's totals; its FNG number is the sheet's for those days (null without the sheet). */
 function fstats_get_backblast_summary() {
-	return fstats_cached( 'bb_summary', fstats_ttl( 0.25 ), fn() => fstats_build( fn( $db ) => fstats_backblast_summary_payload( $db ) ) );
+	$res = fstats_cached( 'bb_summary', fstats_ttl( 0.25 ), fn() => fstats_build( fn( $db ) => fstats_backblast_summary_payload( $db ) ) );
+	if ( 200 === $res[0] ) {
+		$records        = fstats_sheet_records();
+		$res[1]['fngs'] = null === $records ? null : fstats_fng_count_between( $records, $res[1]['from'], $res[1]['to'] );
+	}
+	return $res;
 }
 
 /** $args: page, per_page, ao, month, q, type (clamped as the Flask API does). */
@@ -108,16 +149,23 @@ function fstats_get_backblast_archive( array $args ) {
 	$q        = mb_substr( trim( (string) ( $args['q'] ?? '' ) ), 0, 80 );
 	$type     = mb_substr( trim( (string) ( $args['type'] ?? '' ) ), 0, 60 );
 	$build    = fn() => fstats_build( fn( $db ) => fstats_backblast_archive_payload( $db, $page, $per_page, $ao, $month, $q, $type ) );
-	if ( '' !== $q || $page > 20 ) {
-		return fstats_cached( 'x', 0, $build, false );
+	$res      = ( '' !== $q || $page > 20 )
+		? fstats_cached( 'x', 0, $build, false )
+		: fstats_cached( 'bbarchive_' . md5( wp_json_encode( array( $page, $per_page, $ao, $month, $type ) ) ), fstats_ttl( 0.25 ), $build, false );
+	if ( 200 === $res[0] ) {
+		$res[1]['items'] = array_map( 'fstats_sheet_item', $res[1]['items'] );
 	}
-	return fstats_cached( 'bbarchive_' . md5( wp_json_encode( array( $page, $per_page, $ao, $month, $type ) ) ), fstats_ttl( 0.25 ), $build, false );
+	return $res;
 }
 
 /** Status 404 for an unknown workout. */
 function fstats_get_backblast( $event_id ) {
-	$id = (int) $event_id;
-	return fstats_cached( 'bb_' . $id, fstats_ttl( 0.25 ), fn() => fstats_build( fn( $db ) => fstats_backblast_detail_payload( $db, $id ) ), false );
+	$id  = (int) $event_id;
+	$res = fstats_cached( 'bb_' . $id, fstats_ttl( 0.25 ), fn() => fstats_build( fn( $db ) => fstats_backblast_detail_payload( $db, $id ) ), false );
+	if ( 200 === $res[0] ) {
+		$res[1]['item'] = fstats_sheet_item( $res[1]['item'] );
+	}
+	return $res;
 }
 
 function fstats_get_schedule( $days = 7 ) {
@@ -130,7 +178,17 @@ function fstats_get_schedule( $days = 7 ) {
 }
 
 function fstats_get_fng() {
-	return fstats_cached( 'fng', fstats_ttl(), fn() => fstats_fng_payload( fstats_fng_records() ) );
+	return fstats_cached(
+		'fng',
+		fstats_ttl(),
+		function () {
+			$records = fstats_sheet_records();
+			if ( null === $records ) {
+				throw new FStats_Unavailable( 'FNG sheet unavailable' );
+			}
+			return fstats_fng_payload( $records );
+		}
+	);
 }
 
 function fstats_get_fng_challenge() {
@@ -140,7 +198,10 @@ function fstats_get_fng_challenge() {
 		'fng_challenge_' . md5( $start . $end ),
 		fstats_ttl(),
 		function () use ( $start, $end ) {
-			$records = fstats_fng_records();
+			$records = fstats_sheet_records();
+			if ( null === $records ) {
+				throw new FStats_Unavailable( 'FNG sheet unavailable' );
+			}
 			return fstats_build( fn( $db ) => fstats_fng_challenge_payload( $db, $records, $start, $end ) );
 		}
 	);

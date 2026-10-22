@@ -78,7 +78,8 @@ function fort_render_backblast( $b ) {
 				<?php if ( $qs ) : ?><?php echo esc_html( sprintf( /* translators: %s: Q handle(s) */ __( 'Q: %s', 'fort' ), $qs ) ); ?><?php endif; ?>
 				<?php if ( 'backblast' === $kind ) : ?>
 					<?php echo $qs ? ' · ' : ''; ?><?php echo esc_html( sprintf( /* translators: %d: PAX count */ _n( '%d PAX', '%d PAX', (int) ( $b['pax_count'] ?? 0 ), 'fort' ), (int) ( $b['pax_count'] ?? 0 ) ) ); ?>
-					<?php if ( ! empty( $b['fng_count'] ) ) : ?> · <span class="fort-amber"><?php echo esc_html( sprintf( '+%d FNG', (int) $b['fng_count'] ) ); ?></span><?php endif; ?>
+					<?php $fngs = fort_fng_count( $b ); ?>
+					<?php if ( $fngs ) : ?> · <span class="fort-amber"><?php echo esc_html( sprintf( '+%d FNG', (int) $fngs ) ); ?></span><?php endif; ?>
 				<?php endif; ?>
 			</span>
 		<?php endif; ?>
@@ -139,7 +140,8 @@ function fort_render_backblast_entry( $b ) {
 			<?php if ( 'backblast' === $kind ) : ?>
 				<dt><?php esc_html_e( 'PAX', 'fort' ); ?></dt>
 				<dd>
-					<?php echo esc_html( (int) ( $b['pax_count'] ?? 0 ) ); ?><?php echo ! empty( $b['fng_count'] ) ? ' <span class="fort-amber">' . esc_html( sprintf( '+%d FNG', (int) $b['fng_count'] ) ) . '</span>' : ''; ?>
+					<?php $fngs = fort_fng_count( $b ); ?>
+					<?php echo esc_html( (int) ( $b['pax_count'] ?? 0 ) ); ?><?php echo $fngs ? ' <span class="fort-amber">' . esc_html( sprintf( '+%d FNG', (int) $fngs ) ) . '</span>' : ''; ?>
 					<?php if ( ! empty( $b['pax'] ) ) : ?><span class="fort-bb-pax"><?php echo esc_html( implode( ', ', $b['pax'] ) ); ?></span><?php endif; ?>
 				</dd>
 			<?php endif; ?>

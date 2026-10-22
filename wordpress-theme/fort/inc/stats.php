@@ -494,8 +494,19 @@ function fort_st_trends( $core ) {
 		<section class="fort-st-block">
 			<header class="fort-section__head fort-section__head--amber">
 				<h2 class="fort-h3"><?php esc_html_e( 'FNGs each month', 'fort' ); ?></h2>
+				<span class="fort-mono-dim"><?php esc_html_e( 'From the FNG sign-up sheet', 'fort' ); ?></span>
 			</header>
-			<?php fort_st_cols( array_map( fn( $m ) => array( $label( $m ), (int) ( $months[ $m ]['fngs'] ?? 0 ) ), $last12 ), true, 'amber' ); ?>
+			<?php
+			$sheet = array();
+			foreach ( ( fort_stats_fng()['monthly'] ?? array() ) as $r ) {
+				$sheet[ $r['month'] ] = (int) $r['count'];
+			}
+			if ( $sheet ) {
+				fort_st_cols( array_map( fn( $m ) => array( $label( $m ), $sheet[ $m ] ?? 0 ), $last12 ), true, 'amber' );
+			} else {
+				echo '<p class="fort-dim">' . esc_html__( 'The FNG sign-up sheet can’t be read right now.', 'fort' ) . '</p>';
+			}
+			?>
 		</section>
 	</div>
 	<section class="fort-st-block">

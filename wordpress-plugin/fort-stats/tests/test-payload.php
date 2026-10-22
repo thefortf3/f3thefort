@@ -269,3 +269,21 @@ fortw_test(
 		assert_same( array( 'total' => 0 ), fstats_fng_payload( array() ) );
 	}
 );
+
+fortw_test(
+	'FNG sheet: per-workout counts by date and AO (any spelling), and counts in a window',
+	function () {
+		$r = array(
+			array( 'date' => '2026-09-03', 'f3_name' => 'A', 'eh' => '', 'ao' => 'Sweep The Leg', 'q' => '' ),
+			array( 'date' => '2026-09-03', 'f3_name' => 'B', 'eh' => '', 'ao' => 'sweep the leg', 'q' => '' ),
+			array( 'date' => '2026-09-05', 'f3_name' => 'C', 'eh' => '', 'ao' => '6 @ 6', 'q' => '' ),
+			array( 'date' => '2026-09-06', 'f3_name' => 'D', 'eh' => '', 'ao' => '', 'q' => '' ),
+		);
+		$by = fstats_fng_by_workout( $r );
+		assert_same( 2, fstats_fng_for_workout( $by, '2026-09-03', 'Sweep the Leg' ) );
+		assert_same( 1, fstats_fng_for_workout( $by, '2026-09-05', '6@6' ) );
+		assert_same( 0, fstats_fng_for_workout( $by, '2026-09-04', 'Sweep the Leg' ) );
+		assert_same( null, fstats_fng_for_workout( $by, '2026-09-03', null ) );
+		assert_same( 3, fstats_fng_count_between( $r, '2026-09-03', '2026-09-05' ) );
+	}
+);

@@ -107,3 +107,34 @@ function fstats_fng_leaderboard_by_ao( array $records ) {
 	usort( $rows, fn( $a, $b ) => $b['count'] <=> $a['count'] ?: strcmp( mb_strtolower( $a['ao'] ), mb_strtolower( $b['ao'] ) ) );
 	return $rows;
 }
+
+/** Comparison key for AO names across the sheet and the stats data ("6 @ 6" = "6@6", "Sweep The Leg" = "Sweep the Leg"). */
+function fstats_fng_ao_key( $name ) {
+	$k = mb_strtolower( fstats_py_strip( (string) $name ) );
+	$k = preg_replace( '/^the\s+/', '', $k );
+	return preg_replace( '/[^a-z0-9@]+/', '', $k );
+}
+
+/** Sheet records → array( 'YYYY-MM-DD|aokey' => number of FNGs ), for per-workout counts. */
+function fstats_fng_by_workout( array $records ) {
+	$out = array();
+	foreach ( $records as $r ) {
+		$key = fstats_fng_ao_key( $r['ao'] );
+		if ( '' !== $key ) {
+			$k         = $r['date'] . '|' . $key;
+			$out[ $k ] = ( $out[ $k ] ?? 0 ) + 1;
+		}
+	}
+	return $out;
+}
+
+/** FNGs the sheet has for one workout (date, AO); 0 when none, null without an AO. */
+function fstats_fng_for_workout( array $by_workout, $date, $ao ) {
+	$key = fstats_fng_ao_key( (string) $ao );
+	return '' === $key ? null : ( $by_workout[ substr( (string) $date, 0, 10 ) . '|' . $key ] ?? 0 );
+}
+
+/** FNGs on the sheet between two dates (inclusive). */
+function fstats_fng_count_between( array $records, $from, $to ) {
+	return count( fstats_fng_in_range( $records, $from, $to ) );
+}

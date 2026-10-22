@@ -135,6 +135,18 @@ function fort_post_ao() {
 	return null;
 }
 
+/**
+ * A backblast's FNGs, from the FNG sign-up sheet only (Fort Stats): sheet entries for that date and
+ * AO. Null when unknown (no Fort Stats, no sheet, or no AO), so nothing is shown.
+ */
+function fort_fng_count( $b ) {
+	if ( ! function_exists( 'fort_stats_sheet_fngs' ) ) {
+		return null;
+	}
+	// Stats backblasts already carry the sheet's number; old posts are looked up.
+	return empty( $b['post_id'] ) && array_key_exists( 'fng_count', $b ) ? $b['fng_count'] : fort_stats_sheet_fngs( $b['date'] ?? '', $b['ao'] ?? '' );
+}
+
 /** A page on this site by slug (e.g. the existing "locations" page), else $fallback. */
 function fort_page_url( $slug, $fallback ) {
 	$page = get_page_by_path( $slug );

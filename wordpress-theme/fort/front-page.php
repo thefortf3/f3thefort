@@ -207,7 +207,7 @@ $principles = array(
 					<div><span class="fort-stat__num"><?php echo esc_html( (int) $summary['workouts'] ); ?></span><span class="fort-label"><?php esc_html_e( 'workouts', 'fort' ); ?></span></div>
 					<div><span class="fort-stat__num"><?php echo esc_html( (int) $summary['pax_posts'] ); ?></span><span class="fort-label"><?php esc_html_e( 'PAX posts', 'fort' ); ?></span></div>
 					<div><span class="fort-stat__num"><?php echo esc_html( (int) $summary['unique_pax'] ); ?></span><span class="fort-label"><?php esc_html_e( 'different men', 'fort' ); ?></span></div>
-					<div><span class="fort-stat__num fort-amber"><?php echo esc_html( (int) $summary['fngs'] ); ?></span><span class="fort-label"><?php esc_html_e( 'FNGs', 'fort' ); ?></span></div>
+					<div><span class="fort-stat__num fort-amber"><?php echo isset( $summary['fngs'] ) && function_exists( 'fort_stats_sheet_fngs' ) ? esc_html( (int) $summary['fngs'] ) : '—'; // FNGs from the sign-up sheet only. ?></span><span class="fort-label"><?php esc_html_e( 'FNGs', 'fort' ); ?></span></div>
 				</div>
 				<?php
 				$trend = array_slice( $summary['weekly_trend'] ?? array(), -8 );
