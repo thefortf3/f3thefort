@@ -91,7 +91,7 @@ function fstats_settings_page() {
 				<?php
 				$at = fstats_kept_at( 'core' );
 				/* translators: %s: time ago */
-				echo esc_html( $at ? sprintf( __( 'Stats last fetched %s ago; the schedule every 10 minutes, the rest hourly, in the background.', 'fort-stats' ), human_time_diff( $at ) ) : __( 'Stats haven’t been fetched yet.', 'fort-stats' ) );
+				echo esc_html( $at ? sprintf( __( 'Stats last fetched %s ago. The schedule, dashboard and FNGs refresh hourly, backblasts every 15 minutes, in the background.', 'fort-stats' ), human_time_diff( $at ) ) : __( 'Stats haven’t been fetched yet.', 'fort-stats' ) );
 				?>
 				<?php submit_button( __( 'Refresh now', 'fort-stats' ), 'secondary', 'submit', false ); ?></p>
 		</form>

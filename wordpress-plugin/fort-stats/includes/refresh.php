@@ -6,8 +6,9 @@
  * stored copy. When a copy is older than it should be, reading it asks for a refresh (in the
  * background) and still returns the copy.
  *
- * The job runs every 10 minutes and refreshes what's due: the next two days of the schedule every
- * 10 minutes, everything else (the full 14-day schedule too) every hour (FORT_STATS_CACHE_TTL). It also runs right after activation and from Settings → Fort
+ * The job runs every 10 minutes and refreshes what's due: the schedule, dashboard, streaks and FNGs
+ * every hour (FORT_STATS_CACHE_TTL), the backblast feed, summary and first Backblasts page every 15
+ * minutes. It also runs right after activation and from Settings → Fort
  * Stats → "Refresh now".
  *
  * WP-Cron runs on visits. For a steady 10 minutes whatever the traffic, add a real cron job on the
@@ -25,9 +26,7 @@ defined( 'ABSPATH' ) || exit;
 function fstats_jobs() {
 	return array(
 		'fng_sheet'     => array( fstats_ttl(), fn() => fstats_fng_records() ),
-		// The Q schedule: today and tomorrow every 10 minutes (people sign up during the day), all 14
-		// days hourly. Pages cut what they need from the two.
-		'schedule_soon' => array( min( fstats_ttl(), 10 * MINUTE_IN_SECONDS ), fn() => fstats_build_schedule( 2 ) ),
+		// The Q schedule: 14 days, hourly. Pages cut what they need from it.
 		'schedule'      => array( fstats_ttl(), fn() => fstats_build_schedule( 14 ) ),
 		// 31 days of backblasts; smaller feeds are cut from it.
 		'bb_feed'       => array( fstats_ttl( 0.25 ), fn() => fstats_build( fn( $db ) => fstats_backblasts_payload( $db, 31, 50 ) ) ),

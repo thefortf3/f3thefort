@@ -198,26 +198,8 @@ function fstats_get_backblast( $event_id ) {
 function fstats_get_schedule( $days = 7 ) {
 	$days  = fstats_clamp( $days, 7, 1, 14 );
 	$sched = fstats_kept( 'schedule' );
-	$soon  = fstats_kept( 'schedule_soon' );
-	if ( null === $sched ) {
-		$sched = $soon;
-	}
 	if ( null === $sched ) {
 		return array( 503, null );
-	}
-	// The 10-minute copy of today and tomorrow replaces those days in the hourly 14-day copy.
-	if ( $soon && ! empty( $soon['configured'] ) && ! empty( $sched['configured'] ) && $soon !== $sched ) {
-		$by_date = array();
-		foreach ( $sched['days'] as $d ) {
-			$by_date[ $d['date'] ] = $d;
-		}
-		foreach ( $soon['days'] as $d ) {
-			$by_date[ $d['date'] ] = $d;
-		}
-		ksort( $by_date );
-		$sched['days']         = array_values( $by_date );
-		$sched['aos']          = $soon['aos'] + $sched['aos'];
-		$sched['generated_at'] = $soon['generated_at'];
 	}
 	if ( empty( $sched['configured'] ) ) {
 		return array( 200, $sched );

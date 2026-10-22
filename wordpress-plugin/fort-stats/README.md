@@ -34,9 +34,9 @@ f3thefort.com's host refuses outbound Postgres connections (ports 5432 and 6543)
 **Background refresh, so pages never wait.** Everything the homepage and the stats pages show is fetched by a background job (`includes/refresh.php`), never while a page is being built. That covers the Q schedule, the backblast feed and last week's summary, the dashboard, streaks, the FNG sheet and the FNG challenge. Pages read the stored copy (the homepage answers in under 0.1 s), and a copy that's due for a refresh asks for one in the background.
 
 The job runs every 10 minutes:
-- today's and tomorrow's schedule refresh every 10 minutes;
-- everything else, including the full 14-day schedule, refreshes every hour;
-- the 14 schedule days are fetched in parallel, so a full refresh takes about 9 s and a 10-minute run about 2 s;
+- the schedule (14 days), dashboard, streaks and FNG numbers refresh every hour;
+- the backblast feed, last week's summary and the first Backblasts page refresh every 15 minutes;
+- the 14 schedule days are fetched in parallel, so a full refresh takes about 9 s;
 - it stops starting new jobs after 40 s, to stay inside the host's 60-second limit.
 
 Only what's opened on request is fetched live, and cached: archive pages and searches, single backblasts, single months. Each takes about 0.3 s. When a source can't be reached, the last good copy stays.
