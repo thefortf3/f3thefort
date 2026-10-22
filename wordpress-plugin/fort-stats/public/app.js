@@ -10,6 +10,21 @@ async function fetchJSON(url) {
   return r.json();
 }
 
+// Fort Stats (WordPress): chart colours and font from the theme's CSS variables, so the charts
+// match the site (and its style options). Canvas can't use var() itself, so they're read here.
+function themeColor(name, alpha = 1, fallback = '#8a8a82') {
+  const el = document.getElementById('fort-stats') || document.documentElement;
+  let v = getComputedStyle(el).getPropertyValue(name).trim() || fallback;
+  if (alpha >= 1) return v;
+  const hex = v.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (hex) {
+    let h = hex[1]; if (h.length === 3) h = h.split('').map(c => c + c).join('');
+    const n = parseInt(h, 16);
+    return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+  }
+  return `color-mix(in srgb, ${v} ${Math.round(alpha * 100)}%, transparent)`;
+}
+
 const STANDING_RANGES = ['all_time', 'ytd', 'last90', 'last30'];
 
 function app() {
@@ -67,6 +82,7 @@ function app() {
 
     // ── init ─────────────────────────────────────────────────────────────
     async init() {
+      if (window.Chart) Chart.defaults.font.family = themeColor('--body', 1, 'Georgia, serif');
       try {
         this.DATA = await fetchJSON('/api/core');
       } catch (e) {
@@ -245,9 +261,9 @@ function app() {
     // ── charts ───────────────────────────────────────────────────────────
     _scales(hasY2 = false) {
       return {
-        x: { ticks: { color: '#64748b', maxRotation: 45, font: { size: 10 } }, grid: { color: 'rgba(58,58,82,.5)' } },
-        y: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: 'rgba(58,58,82,.5)' } },
-        ...(hasY2 ? { y2: { position: 'right', ticks: { color: '#fbbf24', font: { size: 10 } }, grid: { drawOnChartArea: false } } } : {}),
+        x: { ticks: { color: themeColor('--text-mute'), maxRotation: 45, font: { size: 10 } }, grid: { color: themeColor('--line-2', .5) } },
+        y: { ticks: { color: themeColor('--text-mute'), font: { size: 10 } }, grid: { color: themeColor('--line-2', .5) } },
+        ...(hasY2 ? { y2: { position: 'right', ticks: { color: themeColor('--amber'), font: { size: 10 } }, grid: { drawOnChartArea: false } } } : {}),
       };
     },
 
@@ -259,20 +275,20 @@ function app() {
       if (this.trendMode === 'weekly') {
         const d = (this.DATA.weekly_trend || []).slice(-Math.round(this.trendMonths * 4.35));
         return { labels: d.map(w => w.week), datasets: [
-          { label: 'PAX Posts', data: d.map(w => w.pax_posts), borderColor: '#4f8ef7', backgroundColor: 'rgba(79,142,247,.15)', tension: .3, fill: true, yAxisID: 'y' },
-          { label: 'Workouts',  data: d.map(w => w.workouts),  borderColor: '#fbbf24', borderDash: [4, 3], tension: .3, fill: false, yAxisID: 'y2' },
+          { label: 'PAX Posts', data: d.map(w => w.pax_posts), borderColor: themeColor('--accent2'), backgroundColor: themeColor('--accent2', .15), tension: .3, fill: true, yAxisID: 'y' },
+          { label: 'Workouts',  data: d.map(w => w.workouts),  borderColor: themeColor('--amber'), borderDash: [4, 3], tension: .3, fill: false, yAxisID: 'y2' },
         ] };
       }
       if (this.trendMode === 'fng') {
         const d = (this.DATA.monthly_trend || []).filter(m => m.month >= cut);
         return { labels: d.map(m => m.month), datasets: [
-          { label: 'FNGs', data: d.map(m => m.fngs), borderColor: '#34d399', backgroundColor: 'rgba(52,211,153,.2)', tension: .3, fill: true },
+          { label: 'FNGs', data: d.map(m => m.fngs), borderColor: themeColor('--fstats-fng', 1, '#7fb685'), backgroundColor: themeColor('--fstats-fng', .2, '#7fb685'), tension: .3, fill: true },
         ] };
       }
       const d = (this.DATA.monthly_trend || []).filter(m => m.month >= cut);
       return { labels: d.map(m => m.month), datasets: [
-        { label: 'PAX Posts',  data: d.map(m => m.pax_posts),  backgroundColor: 'rgba(79,142,247,.7)', type: 'bar',  yAxisID: 'y' },
-        { label: 'Unique PAX', data: d.map(m => m.unique_pax), borderColor: '#fbbf24', tension: .3, fill: false, type: 'line', yAxisID: 'y' },
+        { label: 'PAX Posts',  data: d.map(m => m.pax_posts),  backgroundColor: themeColor('--accent2', .7), type: 'bar',  yAxisID: 'y' },
+        { label: 'Unique PAX', data: d.map(m => m.unique_pax), borderColor: themeColor('--amber'), tension: .3, fill: false, type: 'line', yAxisID: 'y' },
       ] };
     },
 
@@ -284,7 +300,7 @@ function app() {
       this.trendChart = new Chart(ctx, { type: 'line', data: cfg, options: {
         responsive: true, maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
-        plugins: { legend: { labels: { color: '#94a3b8', boxWidth: 12, font: { size: 11 } } } },
+        plugins: { legend: { labels: { color: themeColor('--text-dim'), boxWidth: 12, font: { size: 11 } } } },
         scales: this._scales(hasY2),
       } });
     },
@@ -296,7 +312,7 @@ function app() {
       const d = this.fng.monthly || [];
       this.fngChart = new Chart(ctx, { type: 'bar', data: {
         labels: d.map(r => r.month),
-        datasets: [{ label: 'FNGs', data: d.map(r => r.count), backgroundColor: 'rgba(52,211,153,.7)', borderRadius: 3 }],
+        datasets: [{ label: 'FNGs', data: d.map(r => r.count), backgroundColor: themeColor('--fstats-fng', .7, '#7fb685'), borderRadius: 3 }],
       }, options: {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } }, scales: this._scales(),
@@ -309,7 +325,7 @@ function app() {
       const rows = this.aoMonthlyMap[this.selectedAO.ao_id] || [];
       this.aoChart = new Chart(ctx, { type: 'bar', data: {
         labels: rows.map(r => r.month),
-        datasets: [{ label: 'PAX Posts', data: rows.map(r => r.pax_posts), backgroundColor: 'rgba(79,142,247,.7)' }],
+        datasets: [{ label: 'PAX Posts', data: rows.map(r => r.pax_posts), backgroundColor: themeColor('--accent2', .7) }],
       }, options: {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } }, scales: this._scales(),

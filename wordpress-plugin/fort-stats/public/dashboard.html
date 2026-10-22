@@ -1,53 +1,23 @@
-<!DOCTYPE html>
-<html lang="en" class="dark">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>F3 Stats</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: { extend: {
-        fontFamily: { display: ['Anton', 'sans-serif'], body: ['Archivo', 'sans-serif'] },
-        colors: {
-          surface: '#252535', card: '#2a2a3e', border: '#3a3a52',
-          gold: '#fbbf24', silver: '#94a3b8', bronze: '#c97c3a',
-          f3blue: '#4f8ef7', muted: '#64748b',
-        },
-      } },
-    }
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
-  <link rel="stylesheet" href="/app.css">
-</head>
-<body x-data="app()" x-init="init()" @keydown.escape.window="closeModals()" class="relative">
-
-<div class="grain fixed inset-0 z-50 pointer-events-none"></div>
-
+<!--
+  The stats dashboard, as a fragment for a theme page (Fort Stats: fort_stats_dashboard()).
+  From the stats repo's web/static/index.html <body>: the same markup, except that the theme's
+  header replaces the dashboard's own top bar (region name and "Synced" date move into the page),
+  the grain overlay is gone, and the loading message sits in the page instead of covering it.
+-->
+<div id="fort-stats" x-data="app()" x-init="init()" @keydown.escape.window="closeModals()" class="relative">
 <!-- ── LOADING ─────────────────────────────────────────────────────────────── -->
-<div x-show="!loaded" x-cloak class="fixed inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-[#1e1e2e]">
+<div x-show="!loaded" x-cloak class="flex flex-col items-center justify-center gap-4 py-24">
   <div class="spinner"></div>
   <p class="text-muted text-sm" x-text="err || 'Loading…'"></p>
 </div>
 
 <template x-if="loaded">
 <div>
-  <!-- ── NAV ─────────────────────────────────────────────────────────────── -->
-  <nav class="sticky top-0 z-30 border-b border-border bg-[#1e1e2e]/95 backdrop-blur px-4 py-3 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <span class="font-display text-2xl text-gold leading-none">F3</span>
-      <span class="text-lg font-semibold text-slate-200" x-text="DATA.region_name"></span>
-    </div>
-    <span class="flex items-center gap-2 text-xs text-muted">
-      <span class="w-1.5 h-1.5 rounded-full bg-gold live-dot"></span>
-      Synced <span class="text-slate-400" x-text="(DATA.synced_at||'').slice(0,10)"></span>
-    </span>
-  </nav>
+  <!-- ── SYNCED (the theme's header replaces the dashboard's own top bar) ── -->
+  <p class="fstats-synced flex items-center justify-end gap-2 text-xs text-muted">
+    <span class="w-1.5 h-1.5 rounded-full bg-gold live-dot"></span>
+    Synced <span class="text-slate-400" x-text="(DATA.synced_at||'').slice(0,10)"></span>
+  </p>
 
   <!-- ── TAB BAR ─────────────────────────────────────────────────────────── -->
   <div class="relative">
@@ -435,7 +405,4 @@
   </div>
 </div>
 </template>
-
-<script src="/app.js"></script>
-</body>
-</html>
+</div>
