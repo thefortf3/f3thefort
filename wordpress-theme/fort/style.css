@@ -299,9 +299,95 @@ a.fort-bb:hover .fort-bb__title { color: var(--amber-bright); }
 /* Backblasts page and single backblast */
 .fort-bbs .fort-wrap { max-width: 1200px; }
 
-/* Stats (the Fort Stats plugin's dashboard): it lines up with the page heading. */
-.fort-stats #fort-stats .max-w-5xl { max-width: none; padding-left: 0; padding-right: 0; }
-.fort-stats .fort-entry__head { margin-bottom: 8px; }
+/* Stats pages (fort-stats.php, inc/stats.php) */
+.fort-st__head { margin-bottom: 18px; }
+.fort-st-tabs { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin: 0 0 28px; padding-bottom: 16px; border-bottom: 1px solid var(--line-2); }
+.fort-st-tabs__synced { white-space: nowrap; }
+.fort-st-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 14px; }
+.fort-st-filters .fort-bbs__filters { margin: 0; flex: 1 1 360px; }
+.fort-st-count { margin: 0 0 10px; }
+.fort-st-block { margin-bottom: 44px; min-width: 0; }
+.fort-st-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 48px; }
+.fort-st-grid--wide { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+.fort-st__name { color: var(--text-bright); }
+.fort-st__name:hover { color: var(--amber-bright); }
+
+.fort-st-table-wrap { overflow-x: auto; }
+.fort-st-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.fort-st-table th { padding: 10px 12px; text-align: left; font-family: var(--mono); font-size: 11px; font-weight: 400; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-mute); border-bottom: 1px solid var(--line-2); white-space: nowrap; }
+.fort-st-table th a { color: inherit; }
+.fort-st-table th a.is-sorted, .fort-st-table th a:hover { color: var(--amber-bright); }
+.fort-st-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.fort-st-table tbody tr:hover td { background: var(--panel); }
+.fort-st-table tbody th { padding: 10px 12px; font-size: 12px; border-bottom: 1px solid var(--line); color: var(--text-dim); }
+.fort-st-table--compact td, .fort-st-table--compact tbody th { padding: 8px 10px; }
+.fort-st-num { text-align: right !important; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fort-st-table td.is-sorted { color: var(--text-bright); font-weight: 600; }
+.fort-st-rank { display: inline-grid; place-items: center; min-width: 26px; height: 26px; font-family: var(--mono); font-size: 12px; color: var(--text-mute); }
+.fort-st-rank--1, .fort-st-rank--2, .fort-st-rank--3 { border: 1px solid var(--amber); color: var(--amber-bright); }
+.fort-st-cell-bar { display: inline-flex; align-items: center; gap: 10px; justify-content: flex-end; }
+.fort-st-cell-bar .fort-st-bar { width: 64px; }
+
+.fort-st-bar { display: inline-block; flex: 1 1 auto; height: 6px; background: var(--line-2); vertical-align: middle; min-width: 40px; }
+.fort-st-bar > span { display: block; height: 100%; background: var(--accent2); }
+.fort-st-bar--amber > span { background: var(--amber); }
+.fort-st-spark { display: inline-flex; align-items: flex-end; gap: 2px; height: 26px; width: 108px; }
+.fort-st-spark i { flex: 1; background: var(--accent2); opacity: .75; }
+
+.fort-st-cols { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; height: 220px; align-items: end; padding-top: 4px; }
+.fort-st-col { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%; align-items: end; text-align: center; min-width: 0; }
+.fort-st-col__v { font-family: var(--mono); font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+.fort-st-col__bar { display: block; width: 100%; min-height: 2px; background: var(--accent2); align-self: end; }
+.fort-st-cols--amber .fort-st-col__bar { background: var(--amber); }
+.fort-st-cols--compact { gap: 3px; height: 160px; }
+.fort-st-cols--compact .fort-st-col__v { margin: 0; }
+.fort-st-col:hover .fort-st-col__bar { filter: brightness(1.2); }
+.fort-st-col__l { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--text-mute); padding-top: 6px; white-space: nowrap; overflow: hidden; }
+
+.fort-st-numbers { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 20px 24px; margin: 0 0 40px; }
+.fort-st-numbers > div { display: flex; flex-direction: column; gap: 6px; }
+
+.fort-st-ranked { list-style: none; margin: 0; padding: 0; }
+.fort-st-ranked li { display: grid; grid-template-columns: 28px minmax(0, 1.4fr) minmax(60px, 1fr) auto; grid-template-areas: "n name bar v" ". x x x"; align-items: center; gap: 2px 12px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.fort-st-ranked__n { grid-area: n; font-family: var(--mono); font-size: 12px; color: var(--text-mute); }
+.fort-st-ranked__name { grid-area: name; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fort-st-ranked__name a { color: var(--text-bright); }
+.fort-st-ranked .fort-st-bar { grid-area: bar; }
+.fort-st-ranked__v { grid-area: v; font-variant-numeric: tabular-nums; color: var(--text-bright); text-align: right; white-space: nowrap; }
+.fort-st-ranked__v small { color: var(--text-mute); font-size: 12px; }
+.fort-st-ranked__x { grid-area: x; font-size: 13px; color: var(--amber); }
+
+.fort-st-callout { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: 14px 16px; margin: 18px 0; background: var(--panel); border-left: 3px solid var(--amber); }
+.fort-st-callout .fort-label { flex-basis: 100%; }
+.fort-st-ranks { font-family: var(--display); font-size: 20px; color: var(--text-bright); margin: 0 0 8px; }
+.fort-st-milestones { margin: 14px 0; }
+.fort-st-milestones .fort-chip { border-color: var(--amber); color: var(--amber-bright); }
+.fort-st-pager { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 24px 0 8px; }
+
+.fort-st-board { list-style: none; margin: 0 0 16px; padding: 0; }
+.fort-st-board > li { border-bottom: 1px solid var(--line); }
+.fort-st-board summary, .fort-st-board__plain { display: grid; grid-template-columns: 32px minmax(0, 1.2fr) minmax(60px, 1fr) 40px; align-items: center; gap: 12px; padding: 12px 0; list-style: none; cursor: pointer; }
+.fort-st-board summary::-webkit-details-marker { display: none; }
+.fort-st-board__plain { cursor: default; }
+.fort-st-board__rank { font-family: var(--mono); font-size: 13px; color: var(--amber-bright); }
+.fort-st-board__ao { font-family: var(--display); font-size: 18px; font-weight: 600; color: var(--text-bright); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fort-st-board__n { font-family: var(--display); font-size: 22px; font-weight: 700; color: var(--amber-bright); text-align: right; }
+.fort-st-board .is-zero .fort-st-board__ao, .fort-st-board .is-zero .fort-st-board__n, .fort-st-board .is-zero .fort-st-board__rank { color: var(--text-mute); }
+.fort-st-board summary:hover .fort-st-board__ao { color: var(--amber-bright); }
+.fort-st-board__names { list-style: none; margin: 0 0 12px 44px; padding: 0; display: grid; gap: 4px; font-size: 15px; }
+.fort-st-board__names li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; }
+
+@media (max-width: 860px) {
+	.fort-st-grid, .fort-st-grid--wide { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 720px) {
+	.fort-st-wide { display: none; }
+	.fort-st-table th, .fort-st-table td { padding: 9px 8px; }
+	.fort-st-cols { height: 170px; gap: 3px; }
+	.fort-st-col__v { font-size: 9px; }
+	.fort-st-numbers .fort-stat__num { font-size: 32px; }
+	.fort-st-ranked li { grid-template-columns: 24px minmax(0, 1fr) auto; grid-template-areas: "n name v" ". bar bar" ". x x"; }
+}
 .fort-bbs__filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0 12px; }
 .fort-bbs__filters input[type=search] { flex: 1 1 260px; min-width: 0; }
 .fort-bbs__filters input, .fort-bbs__filters select { font: inherit; font-size: 15px; padding: 10px 12px; background: var(--bg-deep); border: 1px solid var(--line-2); color: var(--text-bright); border-radius: 0; }
