@@ -45,7 +45,7 @@ function build(o) {
   const p = P[o.palette];
   const R = { square: { c: 0, b: 0, t: 0 }, soft: { c: 6, b: 4, t: 3 }, round: { c: 18, b: 999, t: 999 } }[o.shape];
   const out = [];
-  out.push(`:root{--bg:${p.bg};--bg-deep:${p.bgDeep};--panel:${p.panel};--panel-2:${p.panel2};--line:${p.line};--line-2:${p.line2};--text:${p.text};--text-dim:${p.dim};--text-mute:${p.mute};--text-bright:${p.bright};--amber:${p.amber};--amber-bright:${p.amberB};--accent2:${p.accent2};${o.headings === 'serif' ? "--display:'Source Serif 4',Georgia,serif;" : ''}}
+  out.push(`:root{--bg:${p.bg};--bg-deep:${p.bgDeep};--panel:${p.panel};--panel-2:${p.panel2};--line:${p.line};--line-2:${p.line2};--text:${p.text};--text-dim:${p.dim};--text-mute:${p.mute};--text-bright:${p.bright};--amber:${p.amber};--amber-bright:${p.amberB};--accent2:${p.accent2};${p.dark ? '' : '--map-tiles:none;'}${o.headings === 'serif' ? "--display:'Source Serif 4',Georgia,serif;" : ''}}
 html{background-color:${p.bg};${p.html || ''}} body{background:transparent;}
 .fort-header{border-bottom:1px solid ${p.line2};} .fort-footer{background:${p.dark ? 'rgba(0,0,0,0.2)' : p.bgDeep};border-top-color:${p.line2};}
 .fort-trend rect{fill:${p.dark ? 'rgba(255,255,255,0.14)' : p.line2};}`);

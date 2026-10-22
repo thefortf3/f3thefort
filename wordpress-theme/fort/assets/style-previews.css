@@ -106,7 +106,7 @@ html[data-fort-style="1"] .fort-featured__media img,
 html[data-fort-style="1"] .fort-thumb img{filter:saturate(0.88) brightness(0.97);outline:1px solid rgba(255,255,255,0.12);outline-offset:-1px;}
 
 /* 2 · Carolina */
-html[data-fort-style="2"]{--bg:#f7fafd;--bg-deep:#e8f0f8;--panel:#edf3fa;--panel-2:#dfe9f5;--line:#dbe5f0;--line-2:#bccde0;--text:#1f2c40;--text-dim:#43566f;--text-mute:#56697f;--text-bright:#0b1a33;--amber:#4b9cd3;--amber-bright:#1d6aa3;--accent2:#a8352a;}
+html[data-fort-style="2"]{--bg:#f7fafd;--bg-deep:#e8f0f8;--panel:#edf3fa;--panel-2:#dfe9f5;--line:#dbe5f0;--line-2:#bccde0;--text:#1f2c40;--text-dim:#43566f;--text-mute:#56697f;--text-bright:#0b1a33;--amber:#4b9cd3;--amber-bright:#1d6aa3;--accent2:#a8352a;--map-tiles:none;}
 html[data-fort-style="2"]{background-color:#f7fafd;}
 html[data-fort-style="2"] body{background:transparent;}
 html[data-fort-style="2"] .fort-header{border-bottom:1px solid #bccde0;}
@@ -208,7 +208,7 @@ html[data-fort-style="2"] .fort-thumb img{border:7px solid #ffffff;box-shadow:0 
 html[data-fort-style="2"] .fort-thumb img{border-width:4px;}
 
 /* 3 · Brick & stone */
-html[data-fort-style="3"]{--bg:#f4efe8;--bg-deep:#e9e2d7;--panel:#ebe4d9;--panel-2:#e0d8ca;--line:#dcd3c4;--line-2:#c6bba8;--text:#34302b;--text-dim:#5a534a;--text-mute:#6b6359;--text-bright:#1d1a17;--amber:#a63a2b;--amber-bright:#8f2e21;--accent2:#3f5873;--display:'Source Serif 4',Georgia,serif;}
+html[data-fort-style="3"]{--bg:#f4efe8;--bg-deep:#e9e2d7;--panel:#ebe4d9;--panel-2:#e0d8ca;--line:#dcd3c4;--line-2:#c6bba8;--text:#34302b;--text-dim:#5a534a;--text-mute:#6b6359;--text-bright:#1d1a17;--amber:#a63a2b;--amber-bright:#8f2e21;--accent2:#3f5873;--map-tiles:none;--display:'Source Serif 4',Georgia,serif;}
 html[data-fort-style="3"]{background-color:#f4efe8;}
 html[data-fort-style="3"] body{background:transparent;}
 html[data-fort-style="3"] .fort-header{border-bottom:1px solid #c6bba8;}
@@ -500,7 +500,7 @@ html[data-fort-style="5"] .fort-featured__media img,
 html[data-fort-style="5"] .fort-thumb img{filter:saturate(0.88) brightness(0.97);outline:1px solid rgba(255,255,255,0.12);outline-offset:-1px;}
 
 /* 6 · Fellowship */
-html[data-fort-style="6"]{--bg:#fbfcfc;--bg-deep:#eef3f3;--panel:#eef4f4;--panel-2:#e1ecec;--line:#dde6e6;--line-2:#c3d3d3;--text:#29383a;--text-dim:#4c5f63;--text-mute:#5c6f72;--text-bright:#0e1c1e;--amber:#0b7a7a;--amber-bright:#0b6a6a;--accent2:#c2412e;}
+html[data-fort-style="6"]{--bg:#fbfcfc;--bg-deep:#eef3f3;--panel:#eef4f4;--panel-2:#e1ecec;--line:#dde6e6;--line-2:#c3d3d3;--text:#29383a;--text-dim:#4c5f63;--text-mute:#5c6f72;--text-bright:#0e1c1e;--amber:#0b7a7a;--amber-bright:#0b6a6a;--accent2:#c2412e;--map-tiles:none;}
 html[data-fort-style="6"]{background-color:#fbfcfc;}
 html[data-fort-style="6"] body{background:transparent;}
 html[data-fort-style="6"] .fort-header{border-bottom:1px solid #c3d3d3;}

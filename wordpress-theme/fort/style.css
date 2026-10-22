@@ -27,6 +27,8 @@ License: GNU General Public License v2 or later
 	--display: 'Oswald', 'Arial Narrow', Arial, sans-serif;
 	--mono: 'JetBrains Mono', 'Courier New', monospace;
 	--body: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+	/* Map tiles (OpenStreetMap) darkened to match; light styles set none. */
+	--map-tiles: invert(1) hue-rotate(180deg) brightness(0.82) contrast(0.88) saturate(0.3);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -294,6 +296,113 @@ a.fort-bb:hover .fort-bb__title { color: var(--amber-bright); }
 @media (max-width: 720px) {
 	.fort-sched { grid-template-columns: minmax(0, 1fr); }
 	.fort-sched__q { max-width: 11em; font-size: 14px; }
+}
+
+/* Find a workout (page-locations.php): the AO list beside a sticky map */
+.fort-loc .fort-entry__head { margin-bottom: 18px; }
+.fort-loc__bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 36px; margin: 0 0 20px; padding: 10px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.fort-loc__bar[hidden] { display: none; }
+button.fort-st-seg__opt { background: none; border: 0; border-bottom: 1px solid transparent; border-radius: 0; cursor: pointer; }
+.fort-loc__near { display: inline-flex; align-items: center; gap: 9px; margin-left: auto; padding: 9px 13px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent2); background: none; border: 1px solid var(--line-2); border-radius: 0; cursor: pointer; }
+.fort-loc__near:hover { border-color: var(--accent2); color: var(--text-bright); }
+.fort-loc__near[aria-pressed="true"] { border-color: var(--accent2); color: var(--text-bright); }
+.fort-loc__near[hidden] { display: none; }
+.fort-loc__near-dot { width: 9px; height: 9px; border: 2px solid currentColor; border-radius: 50%; }
+.fort-loc__near[aria-pressed="true"] .fort-loc__near-dot { background: var(--accent2); border-color: var(--accent2); }
+.fort-loc__near.is-busy .fort-loc__near-dot { animation: fort-blink 0.9s ease-in-out infinite alternate; }
+@keyframes fort-blink { to { opacity: 0.25; } }
+
+.fort-loc__body { display: grid; grid-template-columns: minmax(0, 430px) minmax(0, 1fr); grid-template-areas: "list map"; gap: 0 36px; align-items: start; }
+.fort-loc__mapcol { grid-area: map; position: sticky; top: 16px; }
+.fort-loc__map { height: min(700px, calc(100vh - 64px)); min-height: 420px; background: var(--panel); border-top: 2px solid var(--amber); }
+.fort-loc__nomap { margin: 0; padding: 24px; color: var(--text-mute); }
+.fort-loc__status { min-height: 1.6em; margin: 8px 0 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-mute); }
+.fort-loc__list { grid-area: list; }
+
+.fort-loc__site { margin: 0 -14px; padding: 16px 14px 18px; border-bottom: 1px solid var(--line); scroll-margin-top: 16px; transition: background-color 0.2s; }
+.fort-loc__site:first-child { padding-top: 6px; }
+.fort-loc__site[hidden] { display: none; }
+.fort-loc__site.is-selected { background: var(--panel); box-shadow: inset 2px 0 0 var(--amber); }
+.fort-loc__site-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 10px; }
+.fort-loc__venue { flex: 1; min-width: 0; margin: 0; font-family: var(--display); font-size: 20px; font-weight: 600; line-height: 1.2; letter-spacing: 0.03em; color: var(--text-bright); }
+.fort-loc__show { padding: 0; font: inherit; letter-spacing: inherit; text-align: left; color: inherit; background: none; border: 0; cursor: pointer; }
+.fort-loc__show:hover { color: var(--amber-bright); }
+.fort-loc__dist { font-family: var(--mono); font-size: 12px; color: var(--accent2); white-space: nowrap; }
+.fort-loc__dist:empty { display: none; }
+.fort-loc__dir { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-mute); white-space: nowrap; }
+.fort-loc__dir:hover { color: var(--accent2); }
+.fort-loc__aos { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.fort-loc__ao { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 14px; align-items: baseline; }
+.fort-loc__ao[hidden] { display: none; }
+.fort-loc__when { display: flex; flex-direction: column; gap: 1px; font-family: var(--mono); }
+.fort-loc__time { order: -1; font-size: 15px; font-weight: 700; color: var(--accent2); }
+.fort-loc__ao.is-other .fort-loc__time { color: var(--text-mute); }
+.fort-loc__days { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-mute); }
+.fort-loc__name, .fort-loc__name a { font-family: var(--display); font-size: 17px; font-weight: 600; letter-spacing: 0.02em; color: var(--text-bright); }
+.fort-loc__name a:hover { color: var(--amber-bright); }
+.fort-loc__name .fort-tag { margin-left: 6px; vertical-align: 2px; }
+.fort-loc__new { color: var(--amber-bright); }
+.fort-loc__meta { display: block; margin-top: 1px; font-size: 14px; line-height: 1.4; color: var(--text-dim); }
+.fort-loc__next { display: block; margin-top: 3px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.02em; color: var(--text-mute); }
+.fort-loc__site--unplaced .fort-loc__venue { font-size: 15px; color: var(--text-dim); }
+.fort-loc__empty { margin: 0; padding: 20px 0; }
+.fort-loc__foot { margin-top: 28px; font-size: 14px; }
+
+/* The map: darkened tiles, pins as start-time tags ("0515 +2" = three AOs here). */
+.fort-loc__map.leaflet-container { font-family: var(--body); background: var(--panel); }
+.fort-map-tiles { filter: var(--map-tiles); }
+.fort-pin__tag { position: absolute; left: 0; bottom: 7px; transform: translateX(-50%); display: inline-flex; align-items: baseline; gap: 5px; padding: 4px 7px 3px; font-family: var(--mono); font-size: 12px; font-weight: 700; line-height: 1.2; white-space: nowrap; color: var(--amber-bright); background: var(--bg); border: 1px solid var(--amber); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45); }
+.fort-pin__tag::after { content: ""; position: absolute; left: 50%; bottom: -6px; margin-left: -5px; border: 5px solid transparent; border-bottom: 0; border-top-color: var(--amber); border-top-width: 6px; }
+.fort-pin__more { font-size: 11px; font-weight: 400; color: var(--text-dim); }
+.fort-pin.is-other .fort-pin__tag { color: var(--accent2); border-color: var(--accent2); }
+.fort-pin.is-other .fort-pin__tag::after { border-top-color: var(--accent2); }
+.fort-pin:hover .fort-pin__tag { background: var(--panel-2); }
+.fort-pin.is-selected .fort-pin__tag { color: #15130e; background: var(--amber); }
+.fort-pin.is-selected.is-other .fort-pin__tag { background: var(--accent2); }
+.fort-pin.is-selected .fort-pin__more { color: inherit; opacity: 0.7; }
+/* Zoomed out, dots (the selected pin stays a tag). */
+.fort-loc__map:not(.is-far) .fort-pin__dot, .fort-pin.is-selected .fort-pin__dot, .fort-loc__map.is-far .fort-pin:not(.is-selected) .fort-pin__tag { display: none; }
+.fort-pin__dot { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; width: 12px; height: 12px; font-family: var(--mono); font-size: 9px; font-weight: 700; line-height: 1; color: #15130e; background: var(--amber); border: 2px solid var(--bg); border-radius: 50%; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.5); }
+.fort-pin__dot:not(:empty) { width: 18px; height: 18px; }
+.fort-pin.is-other .fort-pin__dot { background: var(--accent2); }
+.fort-pin:hover .fort-pin__dot { box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 45%, transparent); }
+.fort-pin:focus-visible { outline: none; }
+.fort-pin:focus-visible .fort-pin__dot { outline: 2px solid var(--amber-bright); outline-offset: 2px; }
+.fort-pin:focus-visible .fort-pin__tag { outline: 2px solid var(--amber-bright); outline-offset: 2px; }
+.fort-me { fill: var(--accent2); fill-opacity: 1; stroke: var(--bg); filter: drop-shadow(0 0 6px var(--accent2)); }
+.fort-loc__map .leaflet-bar { border: 1px solid var(--line-2); border-radius: 0; box-shadow: none; }
+.fort-loc__map .leaflet-bar a { color: var(--text-bright); background: var(--panel-2); border-bottom-color: var(--line-2); border-radius: 0; }
+.fort-loc__map .leaflet-bar a:hover { background: var(--line-2); }
+.fort-loc__map .leaflet-control-attribution { font-family: var(--mono); font-size: 10px; color: var(--text-mute); background: color-mix(in srgb, var(--bg) 80%, transparent); }
+.fort-loc__map .leaflet-control-attribution a { color: var(--text-dim); }
+.fort-loc__map .leaflet-popup-content-wrapper, .fort-loc__map .leaflet-popup-tip { color: var(--text); background: var(--panel-2); border-radius: 0; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5); }
+.fort-loc__map .leaflet-popup-content { margin: 14px 16px 12px; font-size: 14px; line-height: 1.4; }
+.fort-loc__map a.leaflet-popup-close-button { color: var(--text-mute); }
+.fort-pop__venue { margin: 0 0 8px; padding-right: 14px; font-family: var(--display); font-size: 17px; font-weight: 600; letter-spacing: 0.03em; color: var(--text-bright); }
+.fort-pop__list { margin: 0; padding: 0; list-style: none; }
+.fort-pop__list li { padding: 2px 0; color: var(--text-bright); }
+.fort-pop__when { margin-right: 4px; font-family: var(--mono); font-size: 11px; color: var(--accent2); }
+.fort-pop__links { display: flex; gap: 18px; margin: 10px 0 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+.fort-loc__map .fort-pop__links a { color: var(--accent2); }
+@media (min-width: 901px) { .fort-pop__details { display: none; } }
+@media (max-width: 900px) {
+	.fort-loc__body { grid-template-columns: minmax(0, 1fr); grid-template-areas: "map" "list"; }
+	.fort-loc__mapcol { position: static; margin-bottom: 14px; }
+	.fort-loc__map { height: 56vh; min-height: 300px; max-height: 460px; }
+	.fort-loc__near { margin-left: 0; }
+}
+@media (max-width: 720px) {
+	.fort-loc__mapcol { margin-left: -16px; margin-right: -16px; }
+	.fort-loc__status { padding: 0 16px; }
+	.fort-loc__bar { gap: 8px 24px; }
+	.fort-loc__bar .fort-st-seg { gap: 2px 15px; }
+	.fort-loc__long { display: none; }
+	.fort-loc__site { margin: 0; padding-left: 0; padding-right: 0; }
+	.fort-loc__site.is-selected { margin: 0 -16px; padding-left: 16px; padding-right: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+	.fort-loc__site { transition: none; }
+	.fort-loc__near.is-busy .fort-loc__near-dot { animation: none; }
 }
 
 /* Backblasts page and single backblast */
