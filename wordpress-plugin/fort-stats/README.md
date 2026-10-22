@@ -80,6 +80,8 @@ These routes are public and read-only.
   ```
   The last run (2026-10-22) gave 52 of 56 identical and 4 differing only in the order of equal-ranked rows. The SQL has no tie-breaker, so Postgres may return ties in any order, even in the Flask app itself. None were really different.
 
+One deliberate difference since then: the monthly trend's FNG numbers (`/core` → `monthly_trend[].fngs`). The Flask app counts each workout's FNGs once per man who posted; Fort Stats counts them once per workout, so this field differs from stats.f3thefort.com.
+
 ## Not part of this plugin
 
 The monthly Slack reports and the backblast reminders still run from the stats repo on the VPS (host cron). Before the VPS can be retired, they need a new home: a scheduled GitHub Action, the sync's Apps Script, or a PHP port.
