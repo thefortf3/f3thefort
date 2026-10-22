@@ -82,7 +82,6 @@ services:
         // Style preview frame at /style-preview/ (try the alternative homepage styles). Local only.
         define( 'FORT_STYLE_PREVIEW', true );
         define( 'FORT_STATS_API', getenv( 'FORT_STATS_API' ) ?: 'https://stats.f3thefort.com' );
-        define( 'FORT_STATS_URL', 'https://stats.f3thefort.com' );
         // Fort Stats plugin: the local PostgREST (profile "stats") and its local-only anon key.
         define( 'FORT_STATS_REST_URL', getenv( 'FORT_STATS_REST_URL' ) ?: 'http://postgrest:3000' );
         define( 'FORT_GS_API_ENDPOINT', getenv( 'GS_API_ENDPOINT' ) ?: '' );

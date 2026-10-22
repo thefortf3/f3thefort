@@ -60,9 +60,9 @@ function fstats_cached( $key, $ttl, callable $build, $keep_last = true ) {
 	return array( 200, $data );
 }
 
-/** Seconds to keep results: FORT_STATS_TTL in wp-config.php (default an hour). */
+/** Seconds to keep results: FORT_STATS_CACHE_TTL in wp-config.php (default an hour). */
 function fstats_ttl( $fraction = 1 ) {
-	$base = defined( 'FORT_STATS_TTL' ) ? (int) FORT_STATS_TTL : HOUR_IN_SECONDS;
+	$base = defined( 'FORT_STATS_CACHE_TTL' ) ? (int) FORT_STATS_CACHE_TTL : HOUR_IN_SECONDS;
 	return max( 0, (int) round( $base * $fraction ) );
 }
 

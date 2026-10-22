@@ -39,6 +39,9 @@ function fortw_region_settings() {
  * stats outage doesn't blank the numbers. Returns null if it has never been reachable.
  */
 function fortw_stats_fng() {
+	if ( function_exists( 'fort_stats_fng' ) ) {
+		return fort_stats_fng(); // The Fort Stats plugin, when active.
+	}
 	$cached = get_transient( 'fortw_stats_fng' );
 	if ( false !== $cached ) {
 		return $cached;

@@ -95,12 +95,19 @@ function fort_entries( $args = array() ) {
 
 /** Recent workouts (backblasts) from the stats API, newest first. */
 function fort_backblasts( $limit = 4 ) {
+	if ( function_exists( 'fort_stats_backblasts' ) ) {
+		return fort_stats_backblasts( 8, $limit )['items'] ?? array();
+	}
 	$data = fort_remote_json( FORT_STATS_API, '/api/backblasts?days=8&limit=' . (int) $limit, FORT_STATS_TTL );
 	return fort_is_missing( $data ) ? array() : ( $data['items'] ?? array() );
 }
 
 /** Upcoming workouts from GloomSchedule (via the stats API): $days days from today (2 = today and tomorrow, up to 14). */
 function fort_schedule( $days = 2 ) {
+	if ( function_exists( 'fort_stats_schedule' ) ) {
+		$data = fort_stats_schedule( $days );
+		return empty( $data['configured'] ) ? null : $data;
+	}
 	$data = fort_remote_json( FORT_STATS_API, '/api/schedule?days=' . max( 1, min( 14, (int) $days ) ), min( FORT_STATS_TTL, 900 ) );
 	if ( fort_is_missing( $data ) || empty( $data['configured'] ) ) {
 		return null;
@@ -110,6 +117,9 @@ function fort_schedule( $days = 2 ) {
 
 /** Last week's totals, the 8-week trend and the busiest AOs. */
 function fort_backblast_summary() {
+	if ( function_exists( 'fort_stats_backblast_summary' ) ) {
+		return fort_stats_backblast_summary();
+	}
 	$data = fort_remote_json( FORT_STATS_API, '/api/backblasts/summary', FORT_STATS_TTL );
 	return fort_is_missing( $data ) ? null : $data;
 }
@@ -129,12 +139,18 @@ function fort_backblast_archive( $args ) {
 			'q'        => (string) ( $args['q'] ?? '' ),
 		)
 	);
+	if ( function_exists( 'fort_stats_backblast_archive' ) ) {
+		return fort_stats_backblast_archive( $query );
+	}
 	$data = fort_remote_json( FORT_STATS_API, '/api/backblasts/archive?' . http_build_query( $query ), empty( $query['q'] ) ? FORT_STATS_TTL : 0, false );
 	return fort_is_missing( $data ) ? null : $data;
 }
 
 /** One backblast (full write-up, Qs, PAX) from the stats API, or null. */
 function fort_backblast( $event_id ) {
+	if ( function_exists( 'fort_stats_backblast' ) ) {
+		return fort_stats_backblast( $event_id )['item'] ?? null;
+	}
 	$data = fort_remote_json( FORT_STATS_API, '/api/backblasts/' . (int) $event_id, FORT_STATS_TTL, false );
 	return fort_is_missing( $data ) || empty( $data['item'] ) ? null : $data['item'];
 }
