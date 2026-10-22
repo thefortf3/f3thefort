@@ -79,6 +79,9 @@ services:
         define( 'FORT_STYLE_PREVIEW', true );
         define( 'FORT_STATS_API', getenv( 'FORT_STATS_API' ) ?: 'https://stats.f3thefort.com' );
         define( 'FORT_STATS_URL', 'https://stats.f3thefort.com' );
+        // Fort Stats plugin: the local PostgREST (profile "stats") and its local-only anon key.
+        define( 'FORT_STATS_REST_URL', getenv( 'FORT_STATS_REST_URL' ) ?: 'http://postgrest:3000' );
+        define( 'FORT_STATS_ANON_KEY', getenv( 'FORT_STATS_ANON_KEY' ) ?: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6ImxvY2FsIn0.Ig_vcDhxzvoAaC7lpgcdFlrjFIgEkmw5WSZaV9X-NfM' );
     volumes:
       - wp:/var/www/html
       - ./wordpress-theme/fort:/var/www/html/wp-content/themes/fort:ro
@@ -101,6 +104,53 @@ services:
       - ./wordpress-plugin/fort-weekly:/var/www/html/wp-content/plugins/fort-weekly:ro
       - ./.local/seed:/seed:ro
 
+  # ── Stats over HTTPS (profile "stats"): a local stand-in for the stats Supabase project, for
+  # building and checking the Fort Stats plugin without touching Supabase.
+  #   docker compose -f docker-compose.local.yml --profile stats up -d
+  #   bash scripts/local/seed-stats-db.sh       # copies the live data in (read-only)
+  stats-db:
+    image: postgres:17
+    profiles: [stats]
+    environment:
+      POSTGRES_PASSWORD: local-stats
+    volumes:
+      - statsdb:/var/lib/postgresql/data
+      - ./scripts/local/stats-db-init.sql:/docker-entrypoint-initdb.d/00-roles.sql:ro
+
+  # Supabase's REST API is PostgREST; the plugin talks to this one at http://postgrest:3000.
+  postgrest:
+    image: postgrest/postgrest:v12.2.3
+    profiles: [stats]
+    depends_on: [stats-db]
+    environment:
+      PGRST_DB_URI: postgres://authenticator:local-authenticator@stats-db:5432/postgres
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_DB_MAX_ROWS: "1000"
+      # Local only. The matching anon key is FORT_STATS_ANON_KEY below.
+      PGRST_JWT_SECRET: local-only-postgrest-jwt-secret-not-for-production
+    ports: ["127.0.0.1:3010:3000"]
+
+  # The existing Flask stats app on the same data, for the parity check
+  # (scripts/local/stats-parity.mjs). Image: the stats repo's, built locally as f3stats:backblast.
+  stats-flask:
+    image: ${STATS_FLASK_IMAGE:-f3stats:backblast}
+    profiles: [stats]
+    depends_on: [stats-db]
+    env_file:
+      - path: ${STATS_ENV_FILE:-/dev/null}   # GloomSchedule / FNG sheet settings, if given
+        required: false
+    environment:
+      DB_HOST: stats-db
+      DB_PORT: "5432"
+      DB_USER: postgres
+      DB_PASSWORD: local-stats
+      DB_NAME: postgres
+      DB_SSLMODE: disable
+      CACHE_TTL: "0"
+    ports: ["127.0.0.1:8091:8080"]
+
 volumes:
   wp:
   wpdb:
+  statsdb:
