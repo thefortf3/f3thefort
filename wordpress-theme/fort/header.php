@@ -37,7 +37,7 @@ defined( 'ABSPATH' ) || exit;
 					<li><a href="<?php echo esc_url( home_url( '/#coming-up' ) ); ?>"><?php esc_html_e( 'Calendar', 'fort' ); ?></a></li>
 					<li><a href="<?php echo esc_url( fort_page_url( 'schedule', home_url( '/#workouts' ) ) ); ?>"><?php esc_html_e( 'Schedule', 'fort' ); ?></a></li>
 					<li><a href="<?php echo esc_url( fort_backblasts_url() ); ?>"><?php esc_html_e( 'Backblasts', 'fort' ); ?></a></li>
-					<li><a href="<?php echo esc_url( FORT_STATS_URL ); ?>"><?php esc_html_e( 'Stats ↗', 'fort' ); ?></a></li>
+					<li><a href="<?php echo esc_url( FORT_STATS_URL ); ?>"<?php echo function_exists( 'fort_stats_is_dashboard' ) && fort_stats_is_dashboard() ? ' aria-current="page"' : ''; ?>><?php echo esc_html( __( 'Stats', 'fort' ) . fort_stats_link_arrow() ); ?></a></li>
 				</ul>
 				<?php
 			}

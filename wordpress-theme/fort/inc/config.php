@@ -20,6 +20,11 @@ if ( ! defined( 'FORT_STATS_API' ) ) {
 if ( ! defined( 'FORT_STATS_URL' ) ) {
 	define( 'FORT_STATS_URL', function_exists( 'fort_stats_core' ) ? home_url( '/stats/' ) : 'https://stats.f3thefort.com' );
 }
+
+/** ' ↗' when the stats link leaves the site (the separate stats site), else ''. */
+function fort_stats_link_arrow() {
+	return 0 === strpos( FORT_STATS_URL, home_url() ) ? '' : ' ↗';
+}
 // Seconds to cache stats responses (the stats data changes about once a day).
 if ( ! defined( 'FORT_STATS_TTL' ) ) {
 	define( 'FORT_STATS_TTL', 900 );

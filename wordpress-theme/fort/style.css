@@ -298,6 +298,10 @@ a.fort-bb:hover .fort-bb__title { color: var(--amber-bright); }
 
 /* Backblasts page and single backblast */
 .fort-bbs .fort-wrap { max-width: 1200px; }
+
+/* Stats (the Fort Stats plugin's dashboard): it lines up with the page heading. */
+.fort-stats #fort-stats .max-w-5xl { max-width: none; padding-left: 0; padding-right: 0; }
+.fort-stats .fort-entry__head { margin-bottom: 8px; }
 .fort-bbs__filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0 12px; }
 .fort-bbs__filters input[type=search] { flex: 1 1 260px; min-width: 0; }
 .fort-bbs__filters input, .fort-bbs__filters select { font: inherit; font-size: 15px; padding: 10px 12px; background: var(--bg-deep); border: 1px solid var(--line-2); color: var(--text-bright); border-radius: 0; }
