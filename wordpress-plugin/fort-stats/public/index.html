@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>F3 Stats</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: {
+        fontFamily: { display: ['Anton', 'sans-serif'], body: ['Archivo', 'sans-serif'] },
+        colors: {
+          surface: '#252535', card: '#2a2a3e', border: '#3a3a52',
+          gold: '#fbbf24', silver: '#94a3b8', bronze: '#c97c3a',
+          f3blue: '#4f8ef7', muted: '#64748b',
+        },
+      } },
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body x-data="app()" x-init="init()" @keydown.escape.window="closeModals()" class="relative">
+
+<div class="grain fixed inset-0 z-50 pointer-events-none"></div>
+
+<!-- ── LOADING ─────────────────────────────────────────────────────────────── -->
+<div x-show="!loaded" x-cloak class="fixed inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-[#1e1e2e]">
+  <div class="spinner"></div>
+  <p class="text-muted text-sm" x-text="err || 'Loading…'"></p>
+</div>
+
+<template x-if="loaded">
+<div>
+  <!-- ── NAV ─────────────────────────────────────────────────────────────── -->
+  <nav class="sticky top-0 z-30 border-b border-border bg-[#1e1e2e]/95 backdrop-blur px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="font-display text-2xl text-gold leading-none">F3</span>
+      <span class="text-lg font-semibold text-slate-200" x-text="DATA.region_name"></span>
+    </div>
+    <span class="flex items-center gap-2 text-xs text-muted">
+      <span class="w-1.5 h-1.5 rounded-full bg-gold live-dot"></span>
+      Synced <span class="text-slate-400" x-text="(DATA.synced_at||'').slice(0,10)"></span>
+    </span>
+  </nav>
+
+  <!-- ── TAB BAR ─────────────────────────────────────────────────────────── -->
+  <div class="relative">
+    <div class="max-w-5xl mx-auto px-4">
+      <div class="flex overflow-x-auto">
+        <template x-for="tab in tabs" :key="tab.id">
+          <button @click="switchTab(tab.id)"
+                  :class="activeTab===tab.id ? 'text-gold after:bg-gold' : 'text-slate-500 hover:text-slate-300 after:bg-transparent'"
+                  class="relative font-display text-xl sm:text-2xl uppercase tracking-wide px-5 sm:px-8 py-5 whitespace-nowrap transition-colors after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[3px] after:transition-colors"
+                  x-text="tab.label"></button>
+        </template>
+      </div>
+    </div>
+    <div class="absolute bottom-0 left-0 right-0 h-[2px] bg-border -z-10"></div>
+  </div>
+
+  <!-- ── TAB CONTENT ─────────────────────────────────────────────────────── -->
+  <div class="max-w-5xl mx-auto px-4 pb-12">
+
+    <!-- ── LEADERBOARD ─────────────────────────────────────────────────── -->
+    <div x-show="activeTab==='leaderboard'" class="pt-6">
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <div class="flex rounded-lg overflow-hidden border border-border text-xs shrink-0">
+          <button @click="lbSort='posts'" :class="lbSort==='posts' ? 'bg-surface text-f3blue' : 'text-muted hover:text-slate-200'" class="px-3 py-1.5 font-medium transition-colors">Posts</button>
+          <button @click="lbSort='qs'"    :class="lbSort==='qs'    ? 'bg-surface text-gold'   : 'text-muted hover:text-slate-200'" class="px-3 py-1.5 font-medium border-l border-border transition-colors">Qs</button>
+        </div>
+        <div class="flex rounded-lg overflow-hidden border border-border text-xs shrink-0">
+          <button @click="lbCoqCol='coq'"        :class="lbCoqCol==='coq'        ? 'bg-surface text-muted' : 'text-muted hover:text-slate-200'" class="px-3 py-1.5 font-medium transition-colors">Co-Qs</button>
+          <button @click="lbCoqCol='first_post'" :class="lbCoqCol==='first_post' ? 'bg-surface text-muted' : 'text-muted hover:text-slate-200'" class="px-3 py-1.5 font-medium border-l border-border transition-colors">First Post</button>
+        </div>
+        <div class="flex rounded-lg overflow-hidden border border-border text-xs shrink-0">
+          <template x-for="opt in ranges" :key="opt.id">
+            <button @click="setRange(opt.id)" :class="lbRange===opt.id ? 'bg-surface text-gold' : 'text-muted hover:text-slate-200'"
+                    class="px-3 py-1.5 font-medium border-l border-border first:border-l-0 transition-colors" x-text="opt.label"></button>
+          </template>
+        </div>
+        <select @change="pickMonth($event.target.value, 'lb'); $event.target.blur()"
+                :class="isMonthRange(lbRange) ? 'text-gold border-gold' : 'text-muted border-border'"
+                class="bg-surface border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-f3blue shrink-0 cursor-pointer">
+          <option value="" x-text="isMonthRange(lbRange) ? fmtMonth(lbRange) : 'Month…'"></option>
+          <template x-for="m in DATA.available_months" :key="m"><option :value="m" x-text="fmtMonth(m)"></option></template>
+        </select>
+        <div class="flex-1 min-w-[140px] max-w-xs relative">
+          <input x-model="searchQuery" @input="onSearch()" type="text" placeholder="Find a PAX…"
+                 class="w-full bg-surface border border-border rounded-lg pl-3 pr-8 py-1.5 text-sm text-slate-200 placeholder-muted focus:outline-none focus:border-f3blue">
+          <button x-show="searchQuery" @click="searchQuery=''; highlightId=null" class="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-slate-200 text-lg leading-none">&times;</button>
+        </div>
+        <div class="text-xs shrink-0">
+          <template x-if="loadingMonth"><span class="text-muted">Loading…</span></template>
+          <template x-if="!loadingMonth && searchQuery && highlightId"><span class="text-gold"><span x-text="paxName(highlightId)"></span> · #<span x-text="sortedLeaderboard.find(p=>p.user_id===highlightId)?.rank"></span></span></template>
+          <template x-if="!loadingMonth && searchQuery && !highlightId"><span class="text-muted">No match</span></template>
+          <template x-if="!loadingMonth && !searchQuery"><span class="text-muted" x-text="sortedLeaderboard.length + ' PAX'"></span></template>
+        </div>
+      </div>
+
+      <div class="bg-card rounded-xl border border-border overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="sticky top-0 bg-card z-10">
+            <tr class="border-b border-border text-xs text-muted">
+              <th class="py-2.5 pl-4 pr-3 text-left w-10">#</th>
+              <th class="py-2.5 pr-3 text-left">Name</th>
+              <th class="py-2.5 px-3 text-right">Posts</th>
+              <th class="py-2.5 px-3 text-right">Qs</th>
+              <th class="py-2.5 px-3 text-right hidden sm:table-cell" x-text="lbCoqCol==='coq' ? 'Co-Qs' : 'First Post'"></th>
+              <th class="py-2.5 px-3 text-right hidden sm:table-cell">Q%</th>
+              <th class="py-2.5 pr-4 text-left hidden md:table-cell">Home AO</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="p in sortedLeaderboard" :key="p.user_id">
+              <tr :id="'pax-'+p.user_id" @click="openPax(p.user_id)" :class="highlightId===p.user_id ? 'pax-row-highlight' : ''" class="pax-row border-b border-border/40">
+                <td class="py-2 pl-4 pr-3">
+                  <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold tabular-nums"
+                        :class="p.rank===1 ? 'bg-gold/20 text-gold' : p.rank===2 ? 'bg-silver/20 text-silver' : p.rank===3 ? 'bg-bronze/20 text-bronze' : 'text-muted'"
+                        x-text="p.rank"></span>
+                </td>
+                <td class="py-2 pr-3 font-medium text-slate-200" x-text="p.f3_name"></td>
+                <td class="py-2 px-3 text-right tabular-nums text-f3blue" x-text="p.total_posts"></td>
+                <td class="py-2 px-3 text-right tabular-nums text-gold" x-text="p.qs||0"></td>
+                <td class="py-2 px-3 text-right tabular-nums text-muted hidden sm:table-cell" x-text="lbCoqCol==='coq' ? (p.coqs||0) : (paxMap[p.user_id]?.first_post||'—')"></td>
+                <td class="py-2 px-3 text-right tabular-nums text-muted hidden sm:table-cell" x-text="p.total_posts > 0 ? Math.round((p.qs||0)/p.total_posts*100)+'%' : '-'"></td>
+                <td class="py-2 pr-4 text-xs text-muted hidden md:table-cell" x-text="homeAO(p.user_id)"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── AOs ─────────────────────────────────────────────────────────── -->
+    <div x-show="activeTab==='aos'" class="pt-6 space-y-4">
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="flex rounded-lg overflow-hidden border border-border text-xs shrink-0">
+          <template x-for="opt in ranges" :key="opt.id">
+            <button @click="setAORange(opt.id)" :class="aoRange===opt.id ? 'bg-surface text-gold' : 'text-muted hover:text-slate-200'"
+                    class="px-3 py-1.5 font-medium border-l border-border first:border-l-0 transition-colors" x-text="opt.label"></button>
+          </template>
+        </div>
+        <select @change="pickMonth($event.target.value, 'ao'); $event.target.blur()"
+                :class="isMonthRange(aoRange) ? 'text-gold border-gold' : 'text-muted border-border'"
+                class="bg-surface border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-f3blue shrink-0 cursor-pointer">
+          <option value="" x-text="isMonthRange(aoRange) ? fmtMonth(aoRange) : 'Month…'"></option>
+          <template x-for="m in DATA.available_months" :key="m"><option :value="m" x-text="fmtMonth(m)"></option></template>
+        </select>
+        <span class="text-xs text-muted ml-auto">
+          <span x-text="sortedAOs.length"></span> AOs · sorted by <span class="text-slate-300" x-text="aoSortLabel"></span> <span x-text="aoSortDir==='desc' ? '↓' : '↑'"></span>
+        </span>
+      </div>
+
+      <div class="bg-card rounded-xl border border-border overflow-hidden">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-border text-xs">
+              <th class="py-2.5 pl-4 pr-3 text-left text-muted font-medium">AO</th>
+              <template x-for="col in aoColumns" :key="col.id">
+                <th @click="toggleAOSort(col.id)" :class="aoSortCol===col.id ? 'text-gold' : 'text-muted hover:text-slate-200'"
+                    class="py-2.5 px-3 text-right font-medium cursor-pointer select-none transition-colors"
+                    x-text="col.label + (aoSortCol===col.id ? (aoSortDir==='desc'?' ↓':' ↑') : '')"></th>
+              </template>
+              <th class="py-2.5 pr-4 text-right text-muted font-medium hidden sm:table-cell text-xs">12mo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="ao in sortedAOs" :key="ao.ao_id">
+              <tr @click="openAO(ao.ao_id)" class="pax-row border-b border-border/40">
+                <td class="py-2.5 pl-4 pr-3"><span class="font-medium text-slate-200" x-text="ao.ao_name"></span></td>
+                <template x-for="col in aoColumns" :key="col.id">
+                  <td class="py-2.5 px-3">
+                    <div class="flex items-center justify-end gap-2">
+                      <span class="tabular-nums text-sm" :class="aoSortCol===col.id ? col.color : 'text-muted'" x-text="ao[col.id] ?? '-'"></span>
+                      <div x-show="aoSortCol===col.id" class="w-14 h-1 bg-border rounded-full overflow-hidden shrink-0">
+                        <div class="h-full rounded-full" :class="col.barColor" :style="`width:${aoMaxVal>0 ? Math.min(100,(ao[col.id]||0)/aoMaxVal*100) : 0}%`"></div>
+                      </div>
+                    </div>
+                  </td>
+                </template>
+                <td class="py-2 pr-4 hidden sm:table-cell" x-html="DATA.ao_sparklines[ao.ao_id] || ''"></td>
+              </tr>
+            </template>
+            <tr x-show="sortedAOs.length === 0"><td colspan="6" class="py-8 text-center text-muted text-sm" x-text="loadingMonth ? 'Loading…' : 'No data for this period'"></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── TRENDS ──────────────────────────────────────────────────────── -->
+    <div x-show="activeTab==='trends'" class="pt-6 space-y-6">
+      <div class="bg-card rounded-xl border border-border p-5">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div class="flex gap-1">
+            <button @click="trendMode='monthly'; rebuildTrendChart()" :class="trendMode==='monthly' ? 'bg-f3blue text-white' : 'bg-surface text-muted hover:text-slate-200'" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors">Monthly</button>
+            <button @click="trendMode='weekly';  rebuildTrendChart()" :class="trendMode==='weekly'  ? 'bg-f3blue text-white' : 'bg-surface text-muted hover:text-slate-200'" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors">Weekly</button>
+            <button @click="trendMode='fng';     rebuildTrendChart()" :class="trendMode==='fng'     ? 'bg-f3blue text-white' : 'bg-surface text-muted hover:text-slate-200'" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors">FNGs</button>
+          </div>
+          <div class="flex gap-1">
+            <template x-for="opt in [{label:'3mo',val:3},{label:'6mo',val:6},{label:'1yr',val:12}]">
+              <button @click="trendMonths=opt.val; rebuildTrendChart()" :class="trendMonths===opt.val ? 'text-gold border-gold' : 'text-muted border-border hover:text-slate-200'" class="px-3 py-1 rounded-lg text-xs border bg-surface transition-colors" x-text="opt.label"></button>
+            </template>
+          </div>
+        </div>
+        <div class="relative h-64"><canvas id="trendChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ── STREAKS ─────────────────────────────────────────────────────── -->
+    <div x-show="activeTab==='streaks'" class="pt-6 space-y-5">
+      <div x-show="!streaksLoaded" class="flex justify-center py-16"><div class="spinner"></div></div>
+      <template x-if="streaksLoaded">
+        <div class="space-y-5">
+          <div class="flex flex-wrap items-center gap-3">
+            <select x-model="streakType" class="bg-card border border-border rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-f3blue cursor-pointer">
+              <template x-for="t in DATA.streak_types" :key="t.id"><option :value="t.id" x-text="t.label"></option></template>
+            </select>
+            <span class="text-xs text-muted" x-text="currentStreakType?.desc"></span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-card rounded-xl border border-border p-5">
+              <h3 class="font-semibold text-sm text-f3blue mb-4">Active Streaks <span class="text-muted font-normal" x-text="'(current ' + (currentStreakType?.unit||'wks') + ')'"></span></h3>
+              <div class="space-y-2" x-show="activeStreaks.length > 0">
+                <template x-for="(s, i) in activeStreaks" :key="s.user_id">
+                  <div @click="openPax(s.user_id)" class="flex items-center gap-3 cursor-pointer hover:bg-surface rounded-lg px-2 py-1 transition-colors">
+                    <span class="text-xs text-muted w-5 text-right" x-text="i+1"></span>
+                    <span class="font-medium text-sm flex-1 truncate" x-text="paxName(s.user_id)"></span>
+                    <div class="flex items-center gap-2">
+                      <div class="w-20 h-1.5 bg-border rounded-full overflow-hidden"><div class="streak-bar h-full" :style="`width:${Math.min(100,s.current_streak/maxActiveStreak*100)}%`"></div></div>
+                      <span class="text-gold font-bold text-sm tabular-nums w-8 text-right" x-text="s.current_streak"></span>
+                      <span class="text-xs text-muted w-6" x-text="currentStreakType?.unit||'wks'"></span>
+                    </div>
+                  </div>
+                </template>
+              </div>
+              <p x-show="activeStreaks.length === 0" class="text-xs text-muted">No active streaks</p>
+            </div>
+            <div class="bg-card rounded-xl border border-border p-5">
+              <h3 class="font-semibold text-sm text-gold mb-4">Record Streaks <span class="text-muted font-normal" x-text="'(all-time ' + (currentStreakType?.unit||'wks') + ')'"></span></h3>
+              <div class="space-y-2">
+                <template x-for="(s, i) in recordStreaks" :key="s.user_id">
+                  <div @click="openPax(s.user_id)" class="flex items-center gap-3 cursor-pointer hover:bg-surface rounded-lg px-2 py-1 transition-colors">
+                    <span class="text-xs text-muted w-5 text-right" x-text="i+1"></span>
+                    <span class="font-medium text-sm flex-1 truncate" x-text="paxName(s.user_id)"></span>
+                    <div class="flex items-center gap-2">
+                      <div class="w-20 h-1.5 bg-border rounded-full overflow-hidden"><div class="h-full bg-gold rounded-full" :style="`width:${Math.min(100,s.max_streak/maxRecordStreak*100)}%`"></div></div>
+                      <span class="text-gold font-bold text-sm tabular-nums w-8 text-right" x-text="s.max_streak"></span>
+                      <span class="text-xs text-muted w-6" x-text="currentStreakType?.unit||'wks'"></span>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- ── FNGs ────────────────────────────────────────────────────────── -->
+    <div x-show="activeTab==='fngs'" class="pt-6 space-y-6">
+      <div x-show="!fngLoaded" class="flex justify-center py-16"><div class="spinner"></div></div>
+      <template x-if="fngLoaded && fng && fng.total > 0">
+        <div class="space-y-6">
+          <div class="flex rounded-lg overflow-hidden border border-border text-xs w-fit">
+            <button @click="fngRange='all_time'" :class="fngRange==='all_time' ? 'bg-surface text-gold' : 'text-muted hover:text-slate-200'" class="px-3 py-1.5 font-medium transition-colors">All-time</button>
+            <button @click="fngRange='ytd'"      :class="fngRange==='ytd'      ? 'bg-surface text-gold' : 'text-muted hover:text-slate-200'" class="px-3 py-1.5 font-medium border-l border-border transition-colors">YTD</button>
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="bg-card rounded-xl p-4 border border-border"><div class="font-display text-4xl tabular text-green-400" x-text="fng.total.toLocaleString()"></div><div class="text-sm font-medium text-slate-300 mt-0.5">All-Time FNGs</div></div>
+            <div class="bg-card rounded-xl p-4 border border-border"><div class="font-display text-4xl tabular text-f3blue" x-text="fng.ytd.toLocaleString()"></div><div class="text-sm font-medium text-slate-300 mt-0.5">YTD FNGs</div></div>
+            <div class="bg-card rounded-xl p-4 border border-border"><div class="font-display text-4xl tabular text-gold" x-text="fng.last90.toLocaleString()"></div><div class="text-sm font-medium text-slate-300 mt-0.5">Last 90 Days</div></div>
+            <div class="bg-card rounded-xl p-4 border border-border"><div class="font-display text-4xl tabular text-muted" x-text="fng.last30.toLocaleString()"></div><div class="text-sm font-medium text-slate-300 mt-0.5">Last 30 Days</div></div>
+          </div>
+          <div class="bg-card rounded-xl border border-border p-5">
+            <h3 class="text-sm font-semibold mb-4 text-slate-300">FNGs Per Month (All-Time)</h3>
+            <div class="relative h-48"><canvas id="fngChart"></canvas></div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-card rounded-xl border border-border overflow-hidden">
+              <div class="px-4 py-3 border-b border-border"><h3 class="text-sm font-semibold text-slate-300">Top EH'ers</h3><p class="text-xs text-muted mt-0.5">Most new brothers brought to F3</p></div>
+              <div class="divide-y divide-border/40">
+                <template x-for="(e, i) in ehList" :key="e.name">
+                  <div class="flex items-center gap-3 px-4 py-2.5 hover:bg-surface transition-colors">
+                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold tabular shrink-0" :class="i===0 ? 'bg-gold/20 text-gold' : i===1 ? 'bg-silver/20 text-silver' : i===2 ? 'bg-bronze/20 text-bronze' : 'text-muted'" x-text="i+1"></span>
+                    <span class="flex-1 font-medium text-sm text-slate-200 truncate" x-text="e.name"></span>
+                    <div class="flex items-center gap-2">
+                      <div class="w-20 h-1.5 bg-border rounded-full overflow-hidden"><div class="h-full bg-green-400 rounded-full" :style="`width:${Math.round(e.count/(ehList[0].count||1)*100)}%`"></div></div>
+                      <span class="text-green-400 font-bold text-sm tabular-nums w-6 text-right" x-text="e.count"></span>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+            <div class="bg-card rounded-xl border border-border overflow-hidden">
+              <div class="px-4 py-3 border-b border-border"><h3 class="text-sm font-semibold text-slate-300">FNGs by First AO</h3><p class="text-xs text-muted mt-0.5">Where new guys first posted</p></div>
+              <div class="divide-y divide-border/40">
+                <template x-for="(a, i) in byAoList" :key="a.ao">
+                  <div class="flex items-center gap-3 px-4 py-2 hover:bg-surface transition-colors">
+                    <span class="text-xs text-muted tabular-nums w-5 text-right shrink-0" x-text="i+1"></span>
+                    <span class="flex-1 text-sm text-slate-200 truncate" x-text="a.ao"></span>
+                    <div class="flex items-center gap-2">
+                      <div class="w-20 h-1.5 bg-border rounded-full overflow-hidden"><div class="h-full bg-f3blue rounded-full" :style="`width:${Math.round(a.count/(byAoList[0].count||1)*100)}%`"></div></div>
+                      <span class="text-f3blue font-semibold text-sm tabular-nums w-6 text-right" x-text="a.count"></span>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+          <div class="bg-card rounded-xl border border-border overflow-hidden">
+            <div class="px-4 py-3 border-b border-border"><h3 class="text-sm font-semibold text-slate-300">Recent FNGs</h3></div>
+            <table class="w-full text-sm">
+              <thead><tr class="border-b border-border text-xs text-muted">
+                <th class="py-2 pl-4 pr-3 text-left">Date</th><th class="py-2 pr-3 text-left">F3 Name</th>
+                <th class="py-2 pr-3 text-left hidden sm:table-cell">EH'd By</th><th class="py-2 pr-4 text-left hidden sm:table-cell">First AO</th>
+              </tr></thead>
+              <tbody>
+                <template x-for="r in fng.recent" :key="r.date + r.f3_name">
+                  <tr class="border-b border-border/40 hover:bg-surface transition-colors">
+                    <td class="py-2 pl-4 pr-3 text-xs text-muted tabular-nums" x-text="r.date"></td>
+                    <td class="py-2 pr-3 font-medium text-slate-200" x-text="r.f3_name || '—'"></td>
+                    <td class="py-2 pr-3 text-muted hidden sm:table-cell" x-text="r.eh || '—'"></td>
+                    <td class="py-2 pr-4 text-muted hidden sm:table-cell" x-text="r.ao || '—'"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </template>
+      <template x-if="fngLoaded && (!fng || fng.total === 0)"><p class="text-muted text-sm">FNG sheet data unavailable.</p></template>
+    </div>
+
+  </div><!-- end tab content -->
+
+  <!-- ── PAX MODAL ───────────────────────────────────────────────────────── -->
+  <div x-show="selectedPax" x-cloak @click.self="closePax()" class="modal-bg fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="bg-card rounded-2xl border border-border w-full max-w-lg max-h-[90vh] overflow-y-auto" @click.stop>
+      <template x-if="selectedPax">
+        <div class="p-6">
+          <div class="flex items-start justify-between mb-5">
+            <div>
+              <h2 class="font-display text-2xl" x-text="selectedPax.f3_name"></h2>
+              <div class="flex gap-3 mt-1 text-sm text-muted">
+                <span><span class="text-f3blue font-bold" x-text="selectedPax.total_posts"></span> posts</span>
+                <span><span class="text-gold font-bold" x-text="selectedPax.qs||0"></span> Qs</span>
+                <span x-text="(selectedPax.coqs||0) + ' Co-Qs'"></span>
+              </div>
+            </div>
+            <button @click="closePax()" class="text-muted hover:text-slate-200 text-2xl leading-none">&times;</button>
+          </div>
+          <div class="flex flex-wrap gap-2 mb-5">
+            <template x-for="m in [25,50,100,150,200]" :key="m">
+              <span :class="selectedPax.total_posts>=m ? 'bg-gold/20 text-gold border-gold/40' : 'bg-surface text-muted border-border'" class="border rounded-full px-2.5 py-0.5 text-xs font-semibold" x-text="m+' posts'"></span>
+            </template>
+          </div>
+          <div class="grid grid-cols-3 gap-3 mb-5">
+            <div class="bg-surface rounded-xl p-3 text-center"><div class="text-xl font-black text-gold" x-text="selectedPax.current_streak||0"></div><div class="text-xs text-muted">wk streak</div></div>
+            <div class="bg-surface rounded-xl p-3 text-center"><div class="text-xl font-black text-gold" x-text="selectedPax.max_streak||0"></div><div class="text-xs text-muted">best streak</div></div>
+            <div class="bg-surface rounded-xl p-3 text-center"><div class="text-xl font-black text-f3blue" x-text="selectedPax.aos_visited||0"></div><div class="text-xs text-muted">AOs visited</div></div>
+          </div>
+          <h3 class="text-sm font-semibold text-muted mb-3">Top AOs</h3>
+          <div class="space-y-2 mb-4">
+            <template x-for="ao in paxTopAOs" :key="ao.ao_name">
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-slate-300" x-text="ao.ao_name"></span>
+                  <span class="text-muted"><span class="text-f3blue" x-text="ao.posts"></span> posts · <span class="text-gold" x-text="ao.qs"></span> Qs</span>
+                </div>
+                <div class="h-1.5 bg-border rounded-full overflow-hidden"><div class="h-full bg-f3blue rounded-full bar-fill" :style="`width:${paxTopAOs[0]?ao.posts/paxTopAOs[0].posts*100:0}%`"></div></div>
+              </div>
+            </template>
+            <p x-show="paxTopAOs.length===0" class="text-xs text-muted">No AO data</p>
+          </div>
+          <div class="text-xs text-muted">Last post: <span class="text-slate-400" x-text="selectedPax.last_post||'—'"></span></div>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- ── AO MODAL ────────────────────────────────────────────────────────── -->
+  <div x-show="selectedAO" x-cloak @click.self="closeAO()" class="modal-bg fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="bg-card rounded-2xl border border-border w-full max-w-lg max-h-[90vh] overflow-y-auto" @click.stop>
+      <template x-if="selectedAO">
+        <div class="p-6">
+          <div class="flex items-start justify-between mb-4">
+            <div>
+              <h2 class="font-display text-2xl" x-text="selectedAO.ao_name"></h2>
+              <div class="flex gap-3 mt-1 text-sm text-muted">
+                <span><span class="text-slate-300 font-bold" x-text="selectedAO.workouts"></span> workouts</span>
+                <span><span class="text-f3blue font-bold" x-text="selectedAO.pax_posts"></span> posts</span>
+                <span>avg <span class="text-gold font-bold" x-text="selectedAO.avg_pax"></span> PAX</span>
+              </div>
+            </div>
+            <button @click="closeAO()" class="text-muted hover:text-slate-200 text-2xl leading-none">&times;</button>
+          </div>
+          <div class="relative h-36 mb-5"><canvas id="aoTrendChart"></canvas></div>
+          <template x-if="aoNoQMap[selectedAO.ao_id]">
+            <div class="mb-5 bg-surface rounded-xl px-4 py-3 flex items-center justify-between">
+              <div>
+                <div class="text-xs text-muted mb-0.5">Most posts without a Q (YTD)</div>
+                <div @click="closeAO(); openPaxByName(aoNoQMap[selectedAO.ao_id].f3_name)" class="font-bold text-slate-200 cursor-pointer hover:text-f3blue transition-colors" x-text="aoNoQMap[selectedAO.ao_id].f3_name"></div>
+              </div>
+              <div class="text-right"><div class="text-2xl font-black text-f3blue" x-text="aoNoQMap[selectedAO.ao_id].posts"></div><div class="text-xs text-muted">posts</div></div>
+            </div>
+          </template>
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold text-muted">Top Attendees</h3>
+            <div class="flex rounded-lg overflow-hidden border border-border text-xs">
+              <template x-for="opt in [{id:'ytd',label:'YTD'},{id:'last90',label:'90d'},{id:'last30',label:'30d'},{id:'all_time',label:'All-time'}]" :key="opt.id">
+                <button @click="aoModalRange=opt.id" :class="aoModalRange===opt.id ? 'bg-surface text-gold' : 'text-muted hover:text-slate-200'" class="px-2.5 py-1 font-medium border-l border-border first:border-l-0 transition-colors" x-text="opt.label"></button>
+              </template>
+            </div>
+          </div>
+          <div class="space-y-1">
+            <template x-for="(att, i) in aoTopAttendees" :key="att.user_id">
+              <div @click="closeAO(); openPax(att.user_id)" class="flex items-center gap-3 cursor-pointer hover:bg-surface rounded-lg px-2 py-1 transition-colors">
+                <span class="text-xs text-muted w-5 text-right" x-text="i+1"></span>
+                <span class="font-medium text-sm flex-1 truncate" x-text="att.f3_name"></span>
+                <span class="text-f3blue text-sm tabular-nums" x-text="att.posts"></span>
+                <span class="text-xs text-muted">posts</span>
+                <span class="text-gold text-xs" x-text="att.qs ? att.qs+'Q' : ''"></span>
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+</div>
+</template>
+
+<script src="/app.js"></script>
+</body>
+</html>
