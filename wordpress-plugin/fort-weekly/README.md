@@ -141,14 +141,12 @@ the same (`wordpress:7-php8.3-apache`, PHP 8.3.36).
   - the PHP newsletter renderer produces byte-identical HTML to the app's `renderAgenda` from the
     same export.
 
-## Open questions (decide before switching over)
+## Decided
 
-- **Old backblast URLs.** The site's ~11,800 backblast posts keep their WordPress addresses (e.g.
-  `/2026/10/19/50-caliber-workout/`) and still display. The new Backblasts page links to
-  `/backblasts/<id>/` pages built from the stats data, so each backblast now has two pages. Options:
-  - keep both;
-  - redirect the old posts to the new pages (needs each post's workout id);
-  - point the new cards at the existing posts instead.
+- **Old backblast URLs** (2026-10-22): no special handling. The Backblasts page and
+  `/backblasts/<id>/` pages (stats data) are the backblasts; the stats database's missing
+  write-ups and titles were filled from the site's posts (stats repo,
+  `analytics-sync/backfill_wordpress.py`). The old posts stay on the site and still display.
 
 ## Switching over (each step with the site owner's go-ahead)
 
