@@ -33,11 +33,15 @@ function fstats_rpc_many( array $calls ) {
 	}
 	$base     = rtrim( FORT_STATS_REST_URL, '/' );
 	$headers  = array(
-		'apikey'        => FORT_STATS_ANON_KEY,
-		'Authorization' => 'Bearer ' . FORT_STATS_ANON_KEY,
-		'Content-Type'  => 'application/json',
-		'Accept'        => 'application/json',
+		'apikey'       => FORT_STATS_ANON_KEY,
+		'Content-Type' => 'application/json',
+		'Accept'       => 'application/json',
 	);
+	// A legacy anon key (a JWT) also goes in Authorization; the newer publishable keys
+	// (sb_publishable_…) aren't JWTs and go in apikey only.
+	if ( str_starts_with( FORT_STATS_ANON_KEY, 'eyJ' ) ) {
+		$headers['Authorization'] = 'Bearer ' . FORT_STATS_ANON_KEY;
+	}
 	$requests = array();
 	foreach ( $calls as $k => list( $fn, $args ) ) {
 		$requests[ $k ] = array(
