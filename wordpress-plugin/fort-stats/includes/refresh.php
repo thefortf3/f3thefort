@@ -6,10 +6,10 @@
  * stored copy. When a copy is older than it should be, reading it asks for a refresh (in the
  * background) and still returns the copy.
  *
- * The job runs every 10 minutes and refreshes what's due: the schedule, dashboard, streaks and FNGs
- * every hour (FORT_STATS_CACHE_TTL), the backblast feed, summary and first Backblasts page every 15
- * minutes. It also runs right after activation and from Settings → Fort
- * Stats → "Refresh now".
+ * The job runs every 10 minutes and refreshes what's due: the schedule, AO map, dashboard, streaks
+ * and FNGs every hour (FORT_STATS_CACHE_TTL), the backblast feed, summary and first Backblasts page
+ * every 15 minutes. It also runs right after activation and from Settings → Fort Stats → "Refresh
+ * now".
  *
  * WP-Cron runs on visits. For a steady 10 minutes whatever the traffic, add a real cron job on the
  * host and set DISABLE_WP_CRON (see README.md).
@@ -28,6 +28,8 @@ function fstats_jobs() {
 		'fng_sheet'     => array( fstats_ttl(), fn() => fstats_fng_records() ),
 		// The Q schedule: 14 days, hourly. Pages cut what they need from it.
 		'schedule'      => array( fstats_ttl(), fn() => fstats_build_schedule( 14 ) ),
+		// Where each AO meets, for the Find a workout map.
+		'map'           => array( fstats_ttl(), fn() => fstats_build_map() ),
 		// 31 days of backblasts; smaller feeds are cut from it.
 		'bb_feed'       => array( fstats_ttl( 0.25 ), fn() => fstats_build( fn( $db ) => fstats_backblasts_payload( $db, 31, 50 ) ) ),
 		'bb_summary'    => array( fstats_ttl( 0.25 ), fn() => fstats_build( fn( $db ) => fstats_backblast_summary_payload( $db ) ) ),
@@ -48,6 +50,15 @@ function fstats_build_schedule( $days ) {
 		$gs->prefetch( array_map( fn( $n ) => fstats_add_days( $today, $n ), range( 0, $days - 1 ) ) );
 	}
 	return fstats_schedule_payload( $gs, $days );
+}
+
+/** The AO map from GloomSchedule's AO list (fstats_map_payload()). */
+function fstats_build_map() {
+	$gs = FStats_GloomSchedule::from_config();
+	if ( ! $gs ) {
+		return array( 'configured' => false, 'sites' => array(), 'unplaced' => array() );
+	}
+	return fstats_map_payload( $gs->get_ao_details( false )['aos'] ?? array(), fstats_region_today() );
 }
 
 /** The FNG sheet's stored records, for builders; throws when it has never been read. */

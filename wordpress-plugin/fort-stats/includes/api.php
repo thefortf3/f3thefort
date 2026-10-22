@@ -226,6 +226,19 @@ function fstats_get_schedule( $days = 7 ) {
 	);
 }
 
+/** The AO map, with each AO's next workout (from the kept schedule) and stats page. */
+function fstats_get_map() {
+	$map = fstats_kept( 'map' );
+	if ( null === $map ) {
+		return array( 503, null );
+	}
+	if ( empty( $map['configured'] ) ) {
+		return array( 200, $map );
+	}
+	$core = fstats_kept( 'core' );
+	return array( 200, fstats_map_enrich( $map, fstats_kept( 'schedule' ), $core['ao_data'] ?? null, fstats_region_today() ) );
+}
+
 function fstats_get_fng() {
 	return fstats_from_kept( 'fng' );
 }
@@ -266,6 +279,10 @@ function fort_stats_backblast( $event_id ) {
 
 function fort_stats_schedule( $days = 7 ) {
 	return fstats_get_schedule( $days )[1];
+}
+
+function fort_stats_map() {
+	return fstats_get_map()[1];
 }
 
 function fort_stats_fng() {

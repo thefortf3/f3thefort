@@ -4,7 +4,15 @@ The Fort's stats site inside WordPress. It covers:
 
 - the dashboard (leaderboards, AOs, trends, streaks, FNGs) at **/stats/**;
 - the FNG challenge board at **/stats/fng-challenge/**;
-- the backblast feed, archive, single backblasts and Q schedule that the Fort theme shows.
+- the backblast feed, archive, single backblasts and Q schedule that the Fort theme shows;
+- the AO map data for the theme's **Find a workout** page (`fort_stats_map()`).
+
+**The AO map** (`includes/pure/map.php`) comes from GloomSchedule's AO list, the same source as the schedule, not a separate sheet:
+- AOs are grouped into the places they meet: within 25 m, or the same venue within 300 m. Each place is named by the venue its AOs give most often.
+- Each AO has its days, start time, kind (1st / 2nd / 3rd F), workout types and site Qs.
+- At read time each AO also gets its next workout and Q from the schedule, plus its stats page and this year's average PAX.
+- AOs past their shutdown date are left out. One with no position borrows another AO's at the same venue, or is listed as "not on the map yet".
+- To move a pin or fix a venue name, change it in GloomSchedule; the map follows within the hour.
 
 It replaces stats.f3thefort.com (the Flask app in the stats repo), so no separate server is needed. It uses the same data but not the same pages.
 
@@ -31,10 +39,10 @@ f3thefort.com's host refuses outbound Postgres connections (ports 5432 and 6543)
 - **The page logic:** `includes/pure/` is a line-for-line port of the stats repo's `web/payload.py` and `web/fng_sheet.py`. For the same data it gives the same JSON as the Flask API.
 - **GloomSchedule** (the Q schedule) and the **FNG sign-up sheet** are fetched over HTTPS, as before.
 
-**Background refresh, so pages never wait.** Everything the homepage and the stats pages show is fetched by a background job (`includes/refresh.php`), never while a page is being built. That covers the Q schedule, the backblast feed and last week's summary, the dashboard, streaks, the FNG sheet and the FNG challenge. Pages read the stored copy (the homepage answers in under 0.1 s), and a copy that's due for a refresh asks for one in the background.
+**Background refresh, so pages never wait.** Everything the homepage and the stats pages show is fetched by a background job (`includes/refresh.php`), never while a page is being built. That covers the Q schedule, the AO map, the backblast feed and last week's summary, the dashboard, streaks, the FNG sheet and the FNG challenge. Pages read the stored copy (the homepage answers in under 0.1 s), and a copy that's due for a refresh asks for one in the background.
 
 The job runs every 10 minutes:
-- the schedule (14 days), dashboard, streaks and FNG numbers refresh every hour;
+- the schedule (14 days), AO map, dashboard, streaks and FNG numbers refresh every hour;
 - the backblast feed, last week's summary and the first Backblasts page refresh every 15 minutes;
 - the 14 schedule days are fetched in parallel, so a full refresh takes about 9 s;
 - it stops starting new jobs after 40 s, to stay inside the host's 60-second limit.
@@ -78,7 +86,8 @@ With the plugin active, the theme reads stats from it directly, and the nav's St
 
 - `core`, `month/<YYYY-MM>`, `streaks`;
 - `backblasts?days=&limit=`, `backblasts/summary`, `backblasts/archive?page=&per_page=&ao=&month=&type=&q=`, `backblasts/<id>`;
-- `schedule?days=`, `fng`, `fng-challenge`.
+- `schedule?days=`, `fng`, `fng-challenge`;
+- `map` (new; the Flask app has no equivalent), which returns the AO map.
 
 These routes are public and read-only.
 

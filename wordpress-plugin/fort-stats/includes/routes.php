@@ -22,6 +22,7 @@ add_action(
 			'/backblasts/archive'           => fn( $r ) => fstats_get_backblast_archive( $r->get_query_params() ),
 			'/backblasts/(?P<id>\d+)'       => fn( $r ) => fstats_get_backblast( $r['id'] ),
 			'/schedule'                     => fn( $r ) => fstats_get_schedule( $r['days'] ?? 7 ),
+			'/map'                          => fn( $r ) => fstats_get_map(),
 			'/fng'                          => fn( $r ) => fstats_get_fng(),
 			'/fng-challenge'                => fn( $r ) => fstats_get_fng_challenge(),
 		);
