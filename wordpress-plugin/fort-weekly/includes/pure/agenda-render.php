@@ -31,6 +31,11 @@ function fortw_summary_of( $entry, $max = 260 ) {
 	if ( '' === $s ) {
 		$s = fortw_text_of( $entry['description'] ?? '' );
 	}
+	return fortw_cut_words( $s, $max );
+}
+
+/** $s cut to $max characters on a word boundary, with "…" when anything was cut. */
+function fortw_cut_words( $s, $max ) {
 	if ( mb_strlen( $s ) <= $max ) {
 		return $s;
 	}
@@ -38,6 +43,36 @@ function fortw_summary_of( $entry, $max = 260 ) {
 	$space = mb_strrpos( $cut, ' ' );
 	$cut   = mb_substr( $cut, 0, max( false === $space ? -1 : $space, $max - 20 ) );
 	return preg_replace( '/[\s,.;:—-]+$/u', '', $cut ) . '…';
+}
+
+/**
+ * The featured card's write-up: the entry's description as plain paragraphs (list items as
+ * "• …"), at most $paras of them and $max characters in all, the last cut on a word boundary.
+ * Email can't clamp lines, so the cut happens here; Details links to the rest. Falls back to the
+ * summary when there's no description.
+ */
+function fortw_writeup_of( $entry, $max = 320, $paras = 3 ) {
+	$html = preg_replace( '/<li\b[^>]*>/i', "\n• ", (string) ( $entry['description'] ?? '' ) );
+	$html = preg_replace( '#<br\s*/?>|</(p|div|h[1-6]|li|ul|ol|blockquote)>#i', "\n", $html );
+	$all  = array_values( array_filter( array_map( 'fortw_text_of', explode( "\n", $html ) ), 'strlen' ) );
+	if ( ! $all ) {
+		$s = fortw_summary_of( $entry, $max );
+		return '' === $s ? array() : array( $s );
+	}
+	$out  = array();
+	$left = $max;
+	foreach ( array_slice( $all, 0, $paras ) as $p ) {
+		// Not a stub of a paragraph at the end: stop instead.
+		if ( $out && $left < 60 ) {
+			break;
+		}
+		$out[] = fortw_cut_words( $p, $left );
+		$left -= mb_strlen( $p );
+		if ( $left <= 0 ) {
+			break;
+		}
+	}
+	return $out;
 }
 
 /** A thumbnail: the hero image, else the first image in the description. */
@@ -157,7 +192,7 @@ function fortw_nl_featured( $e, $ctx ) {
     <td class="featured-body" valign="top">
       <div class="when"><span class="badge">Featured</span><span class="fmeta">' . fortw_h( $when . $qs ) . '</span></div>
       <a class="ftitle" href="' . $url . '">' . fortw_h( $e['title'] ) . '</a>
-      <p class="sum">' . fortw_h( fortw_summary_of( $e, 420 ) ) . '</p>
+      ' . implode( '', array_map( function ( $p ) { return '<p class="sum">' . fortw_h( $p ) . '</p>'; }, fortw_writeup_of( $e ) ) ) . '
       <div class="links"><a class="btn" href="' . $url . '">Details ↗</a>' . ( fortw_is_http_url( $e['link'] ?? '' ) ? '<span class="sp"> </span><a class="lnk" href="' . fortw_h( $e['link'] ) . '">Link ↗</a>' : '' ) . '</div>
     </td>';
 	$media = $img ? '

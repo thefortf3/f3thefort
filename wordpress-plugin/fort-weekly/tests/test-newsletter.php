@@ -15,6 +15,22 @@ fortw_test(
 );
 
 fortw_test(
+	'featured write-up: the description in paragraphs, cut to fit, else the summary',
+	function () {
+		$e = array( 'summary' => 'Short.', 'description' => '<p>One &amp; two.</p><ul><li>Beer</li><li>Tacos</li></ul><p>' . str_repeat( 'word ', 100 ) . '</p><p>Never shown.</p>' );
+		$w = fortw_writeup_of( $e, 200 );
+		assert_same( array( 'One & two.', '• Beer', '• Tacos' ), array_slice( $w, 0, 3 ), 'paragraphs and list items' );
+		assert_same( 3, count( $w ), 'three paragraphs at most' );
+		$w = fortw_writeup_of( array( 'summary' => '', 'description' => '<p>Intro.</p><p>' . str_repeat( 'word ', 100 ) . '</p>' ), 200 );
+		assert_same( 2, count( $w ) );
+		assert_true( '…' === mb_substr( $w[1], -1 ) && mb_strlen( $w[0] . $w[1] ) <= 201, 'cut to the budget' );
+		assert_same( array( 'Intro.' ), fortw_writeup_of( array( 'summary' => '', 'description' => '<p>Intro.</p><p>' . str_repeat( 'word ', 100 ) . '</p>' ), 40 ), 'no stub paragraph' );
+		assert_same( array( 'Short.' ), fortw_writeup_of( array( 'summary' => 'Short.', 'description' => '' ) ) );
+		assert_same( array( 'Line one', 'Line two' ), fortw_writeup_of( array( 'summary' => '', 'description' => "Line one\n\nLine two" ) ), 'plain text' );
+	}
+);
+
+fortw_test(
 	'render: escapes text, links entries to their site page, and fills the template',
 	function () {
 		$e    = fortw_t_entry( array( 'title' => 'Ruck <script>', 'slug' => 'ruck', 'summary' => 'A & B', 'occurrences' => array( array( 'date' => '2026-10-24', 'start_time' => '0915' ) ) ) );
