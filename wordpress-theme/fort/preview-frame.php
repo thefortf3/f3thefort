@@ -31,15 +31,9 @@ if ( fort_style_preview_has_newsletter() ) {
 }
 
 $preview = fort_style_preview_data();
-$email   = fort_style_preview_email_data();
 $config  = array(
 	'styles' => $preview['styles'],
-	'basis'  => $preview['basis'],
 	'pages'  => array_map( function ( $p ) { return array( 'label' => $p[0], 'url' => $p[1] ); }, $pages ),
-	'email'  => array(
-		'rules' => $email['rules'],
-		'notes' => array_map( function ( $s ) { return $s['notes'] ?? array(); }, $email['styles'] ),
-	),
 );
 ?><!doctype html>
 <html lang="en">
@@ -67,18 +61,8 @@ label { display: inline-flex; align-items: center; gap: 6px; color: #b4b9c2; }
 select { background: #1f2329; border: 1px solid #3a3f48; border-radius: 6px; padding: 6px 8px; }
 .recipe { color: #aab0bb; font-size: 13px; }
 .recipe b { color: #f1efe8; }
-.why { margin-top: 4px; color: #d9c9a3; font-size: 13px; }
-.why::before { content: 'Why: '; font-weight: 600; color: #e4b866; }
-.notes { margin: 4px 0 0; padding-left: 18px; color: #c9b8d9; font-size: 13px; }
-.notes li { margin: 2px 0; }
-.notes li:first-child::marker { content: ''; }
-.notes li:first-child { list-style: none; margin-left: -18px; color: #b9a3d6; font-weight: 600; }
 .cap .size { color: #9fc3e6; }
 .cap .size.is-big { color: #ff9c8a; }
-details.basis { font-size: 13px; color: #b4b9c2; }
-details.basis summary { cursor: pointer; color: #9fc3e6; display: inline; }
-details.basis ul { margin: 6px 0 2px; padding-left: 18px; max-width: 110ch; }
-details.basis li { margin: 3px 0; }
 .chips { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-top: 4px; }
 .chips span { border: 1px solid #343941; border-radius: 999px; padding: 1px 9px; font-size: 12px; color: #b4b9c2; }
 main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 10px; }
@@ -121,8 +105,6 @@ main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 10px; }
 		<select id="styleB" aria-label="Compare with style"></select>
 	</div>
 	<div class="recipe" id="recipe"></div>
-	<details class="basis" id="basis"><summary>Why these six</summary><ul></ul></details>
-	<details class="basis" id="emailRules" hidden><summary>What email can and can’t do</summary><ul></ul></details>
 </header>
 <main id="stage">
 	<section class="pane" id="paneA"><div class="cap" id="capA"></div><div class="view"><div class="shell"><iframe id="frameA" title="Site preview" loading="eager"></iframe></div></div></section>
@@ -151,13 +133,6 @@ main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 10px; }
   function el(tag, attrs, text) { var e = document.createElement(tag); for (var k in attrs || {}) e.setAttribute(k, attrs[k]); if (text) e.textContent = text; return e; }
 
   // Controls
-  var basisList = document.querySelector('#basis ul');
-  CFG.basis.forEach(function (t) { basisList.appendChild(el('li', {}, t)); });
-  if (!CFG.basis.length) $('basis').hidden = true;
-  $('basis').addEventListener('toggle', function () { layout(); });
-  var rulesList = document.querySelector('#emailRules ul');
-  CFG.email.rules.forEach(function (t) { rulesList.appendChild(el('li', {}, t)); });
-  $('emailRules').addEventListener('toggle', function () { layout(); });
   var stylesBar = $('styles');
   ['0'].concat(CFG.styles.map(function (s) { return s.key; })).forEach(function (k) {
     var b = el('button', { type: 'button', 'data-s': k, 'aria-pressed': 'false', title: k === '0' ? 'The site as it is now (key 0)' : (k.length === 1 ? 'Key ' + k : 'Use [ and ] to step through styles') }, styleName(k));
@@ -265,7 +240,6 @@ main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 10px; }
     $('paneB').hidden = !state.compare;
     $('gmailWrap').hidden = !isEmail();
     $('gmail').checked = state.gmail;
-    $('emailRules').hidden = !isEmail();
     var s = CFG.styles.filter(function (x) { return x.key === state.style; })[0];
     var r = $('recipe');
     r.innerHTML = '';
@@ -273,17 +247,9 @@ main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 10px; }
       var b = el('b', {}, s.key + ' · ' + s.name);
       r.appendChild(b);
       r.appendChild(document.createTextNode(' — ' + s.summary));
-      if (s.why) r.appendChild(el('div', { 'class': 'why' }, s.why));
       var chips = el('div', { 'class': 'chips' });
       s.ingredients.forEach(function (i) { chips.appendChild(el('span', {}, i)); });
       r.appendChild(chips);
-      var notes = isEmail() ? (CFG.email.notes[s.key] || []) : [];
-      if (notes.length) {
-        var ul = el('ul', { 'class': 'notes' });
-        ul.appendChild(el('li', {}, 'In email:'));
-        notes.forEach(function (n) { ul.appendChild(el('li', {}, n)); });
-        r.appendChild(ul);
-      }
     } else {
       r.appendChild(el('b', {}, 'Current'));
       r.appendChild(document.createTextNode(isEmail() ? ' — the newsletter as it goes out now. Pick a style above, or press 1–6 (0 for current, C to compare).' : ' — the site as it looks now. Pick a style above, or press 1–6 (0 for current, C to compare).'));
