@@ -306,7 +306,7 @@ function fortw_nl_footer( $region, $ctx ) {
  * $ctx: site_url, submit_url, year, and entry_url (callable: entry → its page on the site).
  */
 function fortw_render_agenda( $template, $entries, $region, $today, $ctx ) {
-	$sel = fortw_select_agenda( $entries, $today );
+	$sel = fortw_select_issue( $entries, $today );
 	$rp  = array_map( 'fortw_nl_word', fortw_date_parts( $sel['range']['from'] ) );
 	$rq  = array_map( 'fortw_nl_word', fortw_date_parts( $sel['range']['to'] ) );
 	$rng = $rp['mon'] === $rq['mon'] ? $rp['mon'] . ' ' . $rp['day'] . ' – ' . $rq['day'] : $rp['mon'] . ' ' . $rp['day'] . ' – ' . $rq['mon'] . ' ' . $rq['day'];

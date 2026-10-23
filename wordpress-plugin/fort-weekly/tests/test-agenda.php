@@ -189,3 +189,27 @@ fortw_test(
 		assert_same( array( 'stats' => null, 'weekly' => array() ), fortw_fng_stats( null, 226, FORTW_T_TODAY ) );
 	}
 );
+
+fortw_test(
+	'the newsletter’s week: Monday–Sunday after the Sunday it goes out',
+	function () {
+		assert_same( array( 'from' => '2026-10-26', 'to' => '2026-11-01' ), fortw_issue_week( '2026-10-20' ), 'built on a Tuesday' );
+		assert_same( array( 'from' => '2026-10-26', 'to' => '2026-11-01' ), fortw_issue_week( '2026-10-25' ), 'built on the Sunday it goes out' );
+		assert_same( array( 'from' => '2026-11-02', 'to' => '2026-11-08' ), fortw_issue_week( '2026-10-26' ), 'built on a Monday' );
+		$sel = fortw_select_issue(
+			array(
+				fortw_t_entry( array( 'title' => 'Before the issue', 'occurrences' => array( array( 'date' => '2026-10-24' ) ) ) ),
+				fortw_t_entry( array( 'title' => 'Twice', 'occurrences' => array( array( 'date' => '2026-10-22' ), array( 'date' => '2026-10-28' ) ) ) ),
+				fortw_t_entry( array( 'title' => 'Sunday', 'occurrences' => array( array( 'date' => '2026-11-01' ) ) ) ),
+				fortw_t_entry( array( 'title' => 'Next Monday', 'approved_at' => '2026-10-19 09:00:00', 'occurrences' => array( array( 'date' => '2026-11-02' ) ) ) ),
+			),
+			FORTW_T_TODAY
+		);
+		assert_same( array( '2026-10-28', '2026-11-01' ), array_column( $sel['this_week'], 'date' ), 'only the issue’s week, at the first date in it' );
+		assert_same( array( 'Next Monday' ), array_column( $sel['coming_up'], 'title' ) );
+		assert_true( $sel['coming_up'][0]['is_new'], 'new is still counted from the build day' );
+		assert_same( array( 'from' => '2026-10-26', 'to' => '2026-11-01' ), $sel['range'] );
+		$home = fortw_select_agenda( array( fortw_t_entry( array( 'title' => 'Sat', 'occurrences' => array( array( 'date' => '2026-10-24' ) ) ) ) ), FORTW_T_TODAY );
+		assert_same( array( '2026-10-24' ), array_column( $home['this_week'], 'date' ), 'the website keeps the next 7 days' );
+	}
+);

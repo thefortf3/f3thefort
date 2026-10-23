@@ -33,7 +33,7 @@ fortw_test(
 fortw_test(
 	'render: escapes text, links entries to their site page, and fills the template',
 	function () {
-		$e    = fortw_t_entry( array( 'title' => 'Ruck <script>', 'slug' => 'ruck', 'summary' => 'A & B', 'occurrences' => array( array( 'date' => '2026-10-24', 'start_time' => '0915' ) ) ) );
+		$e    = fortw_t_entry( array( 'title' => 'Ruck <script>', 'slug' => 'ruck', 'summary' => 'A & B', 'occurrences' => array( array( 'date' => '2026-10-27', 'start_time' => '0915' ) ) ) );
 		$html = fortw_render_agenda(
 			'<title>{{TITLE}}</title><body>{{BODY}}</body>',
 			array( $e ),
@@ -41,11 +41,11 @@ fortw_test(
 			FORTW_T_TODAY,
 			array( 'site_url' => 'https://s', 'submit_url' => 'https://s/submit/', 'year' => '2026', 'entry_url' => function ( $x ) { return 'https://s/events/' . $x['slug'] . '/'; } )
 		);
-		assert_true( false !== strpos( $html, '<title>The Fort Weekly — week of Oct 20</title>' ), 'title' );
+		assert_true( false !== strpos( $html, '<title>The Fort Weekly — week of Oct 26</title>' ), 'title' );
 		assert_true( false !== strpos( $html, 'Ruck &lt;script&gt;' ) && false === strpos( $html, '<script>' ), 'escaped title' );
 		assert_true( false !== strpos( $html, 'href="https://s/events/ruck/"' ), 'entry link' );
 		assert_true( false !== strpos( $html, 'A &amp; B' ), 'escaped summary' );
-		assert_true( false !== strpos( $html, 'This week' ) && false !== strpos( $html, 'Oct 20 – 26' ), 'this week section' );
+		assert_true( false !== strpos( $html, 'This week' ) && false !== strpos( $html, 'Oct 26 – Nov 1' ), 'this week section' );
 	}
 );
 

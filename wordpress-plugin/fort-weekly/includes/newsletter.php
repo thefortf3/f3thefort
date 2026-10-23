@@ -57,7 +57,7 @@ function fortw_prepare_for_email( $html ) {
 /** What this week's issue contains, for the screen's summary line. */
 function fortw_newsletter_counts( $today ) {
 	$entries = fortw_list_entries( array( 'upcoming_only' => true, 'today' => $today ) );
-	$sel     = fortw_select_agenda( $entries, $today );
+	$sel     = fortw_select_issue( $entries, $today );
 	$held    = count( array_filter( $entries, function ( $e ) { return $e['hold_from_newsletter']; } ) );
 	return array(
 		'featured'  => $sel['featured'] ? $sel['featured']['title'] : '',
@@ -217,7 +217,7 @@ add_action(
 		if ( is_wp_error( $result ) ) {
 			$note = array( 'error' => true, 'message' => $result->get_error_message() );
 		} else {
-			$sel  = fortw_select_agenda( fortw_list_entries( array( 'upcoming_only' => true, 'today' => $today ) ), $today );
+			$sel  = fortw_select_issue( fortw_list_entries( array( 'upcoming_only' => true, 'today' => $today ) ), $today );
 			$ids  = array_merge(
 				$sel['featured'] ? array( $sel['featured']['id'] ) : array(),
 				array_merge( array(), ...array_map( function ( $d ) { return array_column( $d['entries'], 'id' ); }, $sel['this_week'] ) ),

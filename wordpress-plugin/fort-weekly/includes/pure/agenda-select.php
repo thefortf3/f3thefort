@@ -11,17 +11,43 @@ defined( 'ABSPATH' ) || defined( 'FORTW_TESTING' ) || exit;
 const FORTW_THIS_WEEK_DAYS = 7;
 
 /**
+ * The week a newsletter built on $today covers: Monday to Sunday after the Sunday it goes out
+ * (the coming Sunday, or $today if that is a Sunday).
+ */
+function fortw_issue_week( $today ) {
+	$sunday = fortw_next_sunday( $today );
+	return array( 'from' => fortw_add_days( $sunday, 1 ), 'to' => fortw_add_days( $sunday, 7 ) );
+}
+
+/** The newsletter's selection: fortw_select_agenda() over the issue's Monday–Sunday week. */
+function fortw_select_issue( $entries, $today ) {
+	return fortw_select_agenda( $entries, $today, fortw_issue_week( $today ) );
+}
+
+/**
  * - Excluded: not approved, archived, held from the newsletter, or every date already passed.
  * - featured: the (single) featured entry, shown in the Featured card and not repeated below.
- * - this_week: next date within the next 7 days, grouped by that date.
+ * - this_week: next date within $week (default: the next 7 days from $today), grouped by date.
  * - coming_up: every later next date, in date order.
  * - ongoing: entries with no dates at all.
  * Each entry appears once, at its next date; 'also' lists its later dates.
  * 'is_new': approved within the last week (since the previous weekly issue).
+ * $week: array( 'from' => ..., 'to' => ... ). A week starting after $today leaves out dates
+ * before it (they'll have passed by the time the issue arrives).
  */
-function fortw_select_agenda( $entries, $today ) {
-	$week_end  = fortw_add_days( $today, FORTW_THIS_WEEK_DAYS - 1 );
+function fortw_select_agenda( $entries, $today, $week = null ) {
+	$week_from = $week['from'] ?? $today;
+	$week_end  = $week['to'] ?? fortw_add_days( $today, FORTW_THIS_WEEK_DAYS - 1 );
 	$new_since = fortw_add_days( $today, -6 );
+	if ( $week_from > $today ) {
+		$entries = array_map(
+			function ( $e ) use ( $week_from ) {
+				$e['next_occurrence'] = fortw_next_occurrence( $e['occurrences'], $week_from );
+				return $e;
+			},
+			$entries
+		);
+	}
 
 	$eligible = array_values(
 		array_filter(
@@ -87,6 +113,6 @@ function fortw_select_agenda( $entries, $today ) {
 		'this_week' => $this_week,
 		'coming_up' => $coming_up,
 		'ongoing'   => $ongoing,
-		'range'     => array( 'from' => $today, 'to' => $week_end ),
+		'range'     => array( 'from' => $week_from, 'to' => $week_end ),
 	);
 }
