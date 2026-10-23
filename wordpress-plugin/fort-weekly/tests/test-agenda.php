@@ -87,17 +87,20 @@ fortw_test(
 );
 
 fortw_test(
-	'the featured entry moves to the Featured card and is not repeated in the agenda',
+	'the featured entry is in the Featured card and also in the agenda, marked as featured',
 	function () {
 		$sel = fortw_select_agenda(
 			array(
 				fortw_t_entry( array( 'title' => 'Accelerate', 'featured' => true ) ),
+				fortw_t_entry( array( 'title' => 'Beers', 'featured' => true, 'occurrences' => array( array( 'date' => '2026-10-24' ) ) ) ),
 				fortw_t_entry( array( 'title' => 'Other', 'occurrences' => array( array( 'date' => '2026-10-22' ) ) ) ),
 			),
 			FORTW_T_TODAY
 		);
 		assert_same( 'Accelerate', $sel['featured']['title'] );
-		assert_same( 0, count( $sel['ongoing'] ) );
+		assert_same( array( 'Accelerate' ), array_column( $sel['ongoing'], 'title' ) );
+		assert_true( $sel['ongoing'][0]['featured'], 'marked in the list' );
+		assert_same( array( false, false ), array_column( array_merge( $sel['this_week'][0]['entries'], $sel['this_week'][1]['entries'] ), 'featured' ), 'only the one in the card counts as featured' );
 		$held = fortw_select_agenda( array( fortw_t_entry( array( 'title' => 'Held feature', 'featured' => true, 'hold_from_newsletter' => true ) ) ), FORTW_T_TODAY );
 		assert_same( null, $held['featured'], 'a held featured entry is not featured in the newsletter' );
 	}

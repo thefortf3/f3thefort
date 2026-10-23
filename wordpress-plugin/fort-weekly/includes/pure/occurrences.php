@@ -42,9 +42,10 @@ function fortw_is_iso_date( $s ) {
 function fortw_date_parts( $iso ) {
 	$ts = strtotime( $iso . ' 00:00:00 UTC' );
 	return array(
-		'dow' => strtoupper( gmdate( 'D', $ts ) ),
-		'mon' => strtoupper( gmdate( 'M', $ts ) ),
-		'day' => (int) gmdate( 'j', $ts ),
+		'dow'      => strtoupper( gmdate( 'D', $ts ) ),
+		'mon'      => strtoupper( gmdate( 'M', $ts ) ),
+		'day'      => (int) gmdate( 'j', $ts ),
+		'long_dow' => strtoupper( gmdate( 'l', $ts ) ),
 	);
 }
 

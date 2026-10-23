@@ -133,7 +133,16 @@ function fortw_nl_meta( $parts ) {
 	return implode( ' · ', array_filter( $parts, 'strlen' ) );
 }
 
+/** The featured entry in the date list: its time and title, linking to its page (it's in full above). */
+function fortw_nl_featured_line( $e, $ctx, $time ) {
+	return '<div class="item"><div class="when">' . fortw_h( $time ) . '<span class="new">Featured</span></div>
+        <a class="title" href="' . fortw_h( $ctx['entry_url']( $e ) ) . '">' . fortw_h( $e['title'] ) . '</a></div>';
+}
+
 function fortw_nl_week_entry( $e, $ctx ) {
+	if ( ! empty( $e['featured'] ) ) {
+		return fortw_nl_featured_line( $e, $ctx, fortw_nl_time( $e['next_occurrence'] ) );
+	}
 	$img  = fortw_image_of( $e );
 	$meta = fortw_nl_meta( array( (string) $e['location'], $e['leader'] ? 'Q: ' . $e['leader'] : '' ) );
 	$url  = fortw_h( $ctx['entry_url']( $e ) );
@@ -166,32 +175,43 @@ function fortw_nl_coming( $e, $ctx ) {
 	$p    = fortw_date_parts( $e['next_occurrence']['date'] );
 	$meta = fortw_nl_meta( array( fortw_nl_time( $e['next_occurrence'] ), (string) $e['location'], $e['leader'] ? 'Q: ' . $e['leader'] : '' ) );
 	$url  = fortw_h( $ctx['entry_url']( $e ) );
+	if ( ! empty( $e['featured'] ) ) { // In full in the Featured card: here just its title, time and place.
+		$chips = '<span class="new">Featured</span>';
+		$body  = '' !== $meta ? '<p class="sum sum--sm"><span class="meta-inline">' . fortw_h( $meta ) . '</span></p>' : '';
+	} else {
+		$chips = fortw_nl_tag_chip( $e ) . ( $e['is_new'] ? '<span class="new">New</span>' : '' );
+		$body  = '<p class="sum sum--sm">' . fortw_h( fortw_summary_of( $e, 170 ) ) . ( '' !== $meta ? ' <span class="meta-inline">' . fortw_h( $meta ) . '</span>' : '' ) . ' <a class="lnk" href="' . $url . '">Details ↗</a></p>
+        ' . fortw_nl_also( $e['also'] );
+	}
 	return '
     <table role="presentation" class="row" width="100%"><tr>
       <td class="row-date" valign="top" width="52"><div class="dow">' . fortw_nl_word( $p['mon'] ) . '</div><div class="dnum dnum--sm">' . $p['day'] . '</div></td>
       <td valign="top">
-        <div class="row-head"><a class="title title--sm" href="' . $url . '">' . fortw_h( $e['title'] ) . '</a>' . fortw_nl_tag_chip( $e ) . ( $e['is_new'] ? '<span class="new">New</span>' : '' ) . '</div>
-        <p class="sum sum--sm">' . fortw_h( fortw_summary_of( $e, 170 ) ) . ( '' !== $meta ? ' <span class="meta-inline">' . fortw_h( $meta ) . '</span>' : '' ) . ' <a class="lnk" href="' . $url . '">Details ↗</a></p>
-        ' . fortw_nl_also( $e['also'] ) . '
+        <div class="row-head"><a class="title title--sm" href="' . $url . '">' . fortw_h( $e['title'] ) . '</a>' . $chips . '</div>
+        ' . $body . '
       </td>
     </tr></table>';
 }
 
 function fortw_nl_featured( $e, $ctx ) {
 	$img  = fortw_image_of( $e );
-	$qs   = $e['leader'] ? ' · Q: ' . $e['leader'] : '';
-	$when = 'Ongoing';
+	$meta = fortw_nl_meta( array( (string) $e['location'], $e['leader'] ? 'Q: ' . $e['leader'] : '' ) );
+	$when = '';
 	if ( $e['next_occurrence'] ) {
+		// The day, date and time large above the title (the flyer may not say them).
 		$p    = fortw_date_parts( $e['next_occurrence']['date'] );
-		$when = fortw_nl_word( $p['dow'] ) . ' ' . fortw_nl_word( $p['mon'] ) . ' ' . $p['day'];
+		$when = fortw_nl_meta( array( fortw_nl_word( $p['long_dow'] ) . ', ' . fortw_nl_word( $p['mon'] ) . ' ' . $p['day'], fortw_nl_time( $e['next_occurrence'] ) ) );
 	}
 	$url  = fortw_h( $ctx['entry_url']( $e ) );
 	// The flyer beside the write-up: two real cells, which the phone layout stacks (the old
 	// newsletter's way: Gmail Android lets @media override a <td>'s own layout, not inline CSS).
 	$body = '
     <td class="featured-body" valign="top">
-      <div class="when"><span class="badge">Featured</span><span class="fmeta">' . fortw_h( $when . $qs ) . '</span></div>
+      <div class="when"><span class="badge">Featured</span>' . ( '' === $when ? '<span class="fmeta">Ongoing</span>' : '' ) . '</div>
+      ' . ( '' !== $when ? '<div class="fdate">' . fortw_h( $when ) . '</div>' : '' ) . '
       <a class="ftitle" href="' . $url . '">' . fortw_h( $e['title'] ) . '</a>
+      ' . ( '' !== $meta ? '<div class="fmeta">' . fortw_h( $meta ) . '</div>' : '' ) . '
+      ' . fortw_nl_also( $e['also'] ) . '
       ' . implode( '', array_map( function ( $p ) { return '<p class="sum">' . fortw_h( $p ) . '</p>'; }, fortw_writeup_of( $e ) ) ) . '
       <div class="links"><a class="btn" href="' . $url . '">Details ↗</a>' . ( fortw_is_http_url( $e['link'] ?? '' ) ? '<span class="sp"> </span><a class="lnk" href="' . fortw_h( $e['link'] ) . '">Link ↗</a>' : '' ) . '</div>
     </td>';
@@ -330,6 +350,10 @@ function fortw_render_agenda( $template, $entries, $region, $today, $ctx ) {
 				array_map(
 					function ( $e ) use ( $ctx ) {
 						$url = fortw_h( $ctx['entry_url']( $e ) );
+						if ( ! empty( $e['featured'] ) ) {
+							return '
+      <div class="ongoing"><a class="title title--sm" href="' . $url . '">' . fortw_h( $e['title'] ) . '</a><span class="new">Featured</span></div>';
+						}
 						return '
       <div class="ongoing"><a class="title title--sm" href="' . $url . '">' . fortw_h( $e['title'] ) . '</a>
         <p class="sum sum--sm">' . fortw_h( fortw_summary_of( $e, 200 ) ) . ' <a class="lnk" href="' . $url . '">Details ↗</a></p></div>';

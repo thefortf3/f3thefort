@@ -8,8 +8,22 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/** A "This week" entry: time + tag, linked title, meta, summary, links, optional flyer. */
+/**
+ * A "This week" entry: time + tag, linked title, meta, summary, links, optional flyer. The featured
+ * entry (in full at the top of the page) is just its time and linked title.
+ */
 function fort_render_week_entry( $e ) {
+	if ( ! empty( $e['featured'] ) ) {
+		?>
+		<article class="fort-week-entry">
+			<div class="fort-week-entry__body">
+				<div class="fort-when"><?php echo esc_html( fort_time_label( $e['next_occurrence'] ?? array() ) ); ?><span class="fort-badge"><?php esc_html_e( 'FEATURED', 'fort' ); ?></span></div>
+				<h3 class="fort-entry-title"><a href="<?php echo esc_url( fort_event_url( $e ) ); ?>"><?php echo esc_html( $e['title'] ); ?></a></h3>
+			</div>
+		</article>
+		<?php
+		return;
+	}
 	$img  = fort_entry_image( $e );
 	$meta = fort_entry_meta( $e );
 	?>
@@ -41,7 +55,7 @@ function fort_render_day( $day ) {
 	<?php
 }
 
-/** A compact "Coming up" row. */
+/** A compact "Coming up" row (the featured entry without its summary). */
 function fort_render_coming_row( $e ) {
 	$p    = fort_date_parts( $e['next_occurrence']['date'] );
 	$more = max( 0, count( $e['upcoming_dates'] ?? array() ) - 1 );
@@ -50,8 +64,8 @@ function fort_render_coming_row( $e ) {
 		<span class="fort-coming__date"><span class="fort-day__dow"><?php echo esc_html( $p['mon'] ); ?></span><span class="fort-coming__num"><?php echo esc_html( $p['day'] ); ?></span></span>
 		<span class="fort-coming__body">
 			<span class="fort-coming__title"><?php echo esc_html( $e['title'] ); ?></span>
-			<span class="fort-coming__summary"><?php echo esc_html( fort_summary( $e, 18 ) ); ?></span>
-			<span class="fort-coming__meta"><?php echo fort_tag_chip( $e ); // phpcs:ignore WordPress.Security.EscapeOutput ?><?php echo esc_html( fort_entry_meta( $e, true ) ); ?><?php echo $more ? esc_html( sprintf( /* translators: %d: number of later dates */ _n( ' · +%d more date', ' · +%d more dates', $more, 'fort' ), $more ) ) : ''; ?></span>
+			<?php if ( empty( $e['featured'] ) ) : ?><span class="fort-coming__summary"><?php echo esc_html( fort_summary( $e, 18 ) ); ?></span><?php endif; ?>
+			<span class="fort-coming__meta"><?php echo empty( $e['featured'] ) ? fort_tag_chip( $e ) : '<span class="fort-badge">' . esc_html__( 'FEATURED', 'fort' ) . '</span>'; // phpcs:ignore WordPress.Security.EscapeOutput ?><?php echo esc_html( fort_entry_meta( $e, true ) ); ?><?php echo $more ? esc_html( sprintf( /* translators: %d: number of later dates */ _n( ' · +%d more date', ' · +%d more dates', $more, 'fort' ), $more ) ) : ''; ?></span>
 		</span>
 	</a>
 	<?php

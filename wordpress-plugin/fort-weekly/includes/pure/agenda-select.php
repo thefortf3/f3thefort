@@ -26,7 +26,8 @@ function fortw_select_issue( $entries, $today ) {
 
 /**
  * - Excluded: not approved, archived, held from the newsletter, or every date already passed.
- * - featured: the (single) featured entry, shown in the Featured card and not repeated below.
+ * - featured: the (single) featured entry, shown in the Featured card and again in the lists
+ *   below with 'featured' => true (the renderers show it there as a short line).
  * - this_week: next date within $week (default: the next 7 days from $today), grouped by date.
  * - coming_up: every later next date, in date order.
  * - ongoing: entries with no dates at all.
@@ -72,11 +73,12 @@ function fortw_select_agenda( $entries, $today, $week = null ) {
 			break;
 		}
 	}
+	// Everything, the featured entry included, also goes in the date list; 'featured' marks the one
+	// in the Featured card (shown there in full, in the list as a short line that links to it).
 	$rest = array();
 	foreach ( $eligible as $e ) {
-		if ( ! $featured || $e['id'] !== $featured['id'] ) {
-			$rest[] = $decorate( $e );
-		}
+		$e['featured'] = $featured && $e['id'] === $featured['id'];
+		$rest[]        = $decorate( $e );
 	}
 
 	$dated = array_values( array_filter( $rest, function ( $e ) { return (bool) $e['next_occurrence']; } ) );

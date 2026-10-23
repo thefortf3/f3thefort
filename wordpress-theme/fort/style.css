@@ -87,6 +87,9 @@ a:hover { color: #f3cf74; }
 .fort-featured__media { flex: 0 1 auto; max-width: 58%; height: 380px; display: flex; align-items: center; justify-content: center; background: var(--panel-2); overflow: hidden; }
 .fort-featured__media img { width: auto; height: 100%; max-width: 100%; object-fit: contain; }
 .fort-featured__body { flex: 1 1 360px; min-width: 0; padding: 40px 48px; display: flex; flex-direction: column; gap: 16px; justify-content: center; }
+.fort-featured__when { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+.fort-featured__date { font-family: var(--display); font-size: 26px; font-weight: 500; line-height: 1.15; letter-spacing: 0.03em; text-transform: uppercase; color: var(--amber-bright); }
+.fort-featured__time { font-family: var(--mono); font-size: 20px; font-weight: 500; color: var(--text-bright); padding-left: 16px; border-left: 2px solid var(--line-2); }
 .fort-featured__title { margin: 0; font-family: var(--display); font-size: 44px; font-weight: 600; line-height: 1.06; letter-spacing: 0.02em; }
 .fort-featured__title a { color: var(--text-bright); }
 .fort-featured__summary { margin: 0; font-size: 18px; line-height: 1.6; max-width: 46ch; }
@@ -158,6 +161,8 @@ a:hover { color: #f3cf74; }
 .fort-week-entry { display: flex; flex-wrap: wrap; gap: 24px; }
 .fort-week-entry__body { flex: 999 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 8px; max-width: 64ch; }
 .fort-when { font-family: var(--mono); font-size: 12px; color: var(--text-mute); }
+.fort-when .fort-badge { margin-left: 10px; padding: 2px 7px; }
+.fort-coming__meta .fort-badge { margin-right: 8px; padding: 2px 7px; }
 .fort-entry-title { margin: 0; font-family: var(--display); font-size: 24px; font-weight: 600; letter-spacing: 0.02em; line-height: 1.2; }
 .fort-entry-title a { color: var(--text-bright); }
 .fort-entry-title a:hover { color: var(--amber-bright); }
@@ -649,6 +654,8 @@ button.fort-st-seg__opt { background: none; border: 0; border-bottom: 1px solid 
 	.fort-featured__media { height: 240px; max-width: none; }
 	.fort-featured__body { padding: 22px 20px 24px; }
 	.fort-featured__title { font-size: 30px; }
+	.fort-featured__date { font-size: 21px; }
+	.fort-featured__time { font-size: 17px; padding-left: 0; border-left: 0; } /* It wraps under the date here. */
 	.fort-about { gap: 28px; }
 	.fort-js .fort-about { padding: 20px 16px 64px; }
 	.fort-about__title { font-size: 30px; }

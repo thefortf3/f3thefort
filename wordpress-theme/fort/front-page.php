@@ -31,8 +31,21 @@ $bbs     = fort_backblasts( 4 );
 		<?php endif; ?>
 		<div class="fort-featured__body">
 			<span class="fort-badge"><?php esc_html_e( 'FEATURED', 'fort' ); ?></span>
+			<?php
+			// When, large: the day, date and time (the flyer may not say them).
+			if ( ! empty( $f['next_occurrence'] ) ) :
+				$fp   = fort_date_parts( $f['next_occurrence']['date'] );
+				$ft   = fort_time_label( $f['next_occurrence'] );
+				$more = max( 0, count( $f['upcoming_dates'] ?? array() ) - 1 );
+				?>
+				<p class="fort-featured__when">
+					<span class="fort-featured__date"><?php echo esc_html( $fp['long'] ); ?></span>
+					<?php if ( $ft ) : ?><span class="fort-featured__time"><?php echo esc_html( $ft ); ?></span><?php endif; ?>
+					<?php if ( $more ) : ?><span class="fort-mono-dim"><?php echo esc_html( sprintf( /* translators: %d: number of later dates */ _n( '+%d more date', '+%d more dates', $more, 'fort' ), $more ) ); ?></span><?php endif; ?>
+				</p>
+			<?php endif; ?>
 			<h1 class="fort-featured__title"><a href="<?php echo esc_url( fort_event_url( $f ) ); ?>"><?php echo esc_html( $f['title'] ); ?></a></h1>
-			<?php $m = fort_entry_meta( $f, true ); if ( $m ) : ?><div class="fort-meta"><?php echo esc_html( $m ); ?></div><?php endif; ?>
+			<?php $m = fort_entry_meta( $f ); if ( $m ) : ?><div class="fort-meta"><?php echo esc_html( $m ); ?></div><?php endif; ?>
 			<p class="fort-featured__summary"><?php echo esc_html( fort_summary( $f, 60 ) ); ?></p>
 			<div class="fort-actions">
 				<?php if ( ! empty( $f['link'] ) ) : ?>
@@ -183,7 +196,7 @@ $principles = array(
 					<?php foreach ( $home['ongoing'] as $e ) : ?>
 						<a class="fort-card" href="<?php echo esc_url( fort_event_url( $e ) ); ?>">
 							<span class="fort-card__title"><?php echo esc_html( $e['title'] ); ?></span>
-							<span class="fort-card__text"><?php echo esc_html( fort_summary( $e, 26 ) ); ?></span>
+							<?php if ( empty( $e['featured'] ) ) : ?><span class="fort-card__text"><?php echo esc_html( fort_summary( $e, 26 ) ); ?></span><?php else : ?><span class="fort-badge"><?php esc_html_e( 'FEATURED', 'fort' ); ?></span><?php endif; ?>
 						</a>
 					<?php endforeach; ?>
 				</div>

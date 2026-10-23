@@ -38,7 +38,7 @@ const P = {
   daylight: { bg: '#fbfcfc', bgDeep: '#eef3f3', panel: '#eef4f4', panel2: '#e1ecec', line: '#dde6e6', line2: '#c3d3d3', text: '#29383a', dim: '#4c5f63', mute: '#5c6f72', bright: '#0e1c1e', amber: '#0b7a7a', amberB: '#0b6a6a', accent2: '#c2412e', btnText: '#ffffff', ink: '#0b6a6a', inkText: '#ffffff', card: '#ffffff', mat: '#ffffff', dark: false },
 };
 
-const HEADS = '.fort-h2,.fort-h3,.fort-about__title,.fort-featured__title,.fort-entry-title,.fort-coming__title,.fort-bb__title,.fort-fs__name,.fort-card__title,.fort-stat__line,.fort-lineup__ao,.fort-lineup__ao a,.fort-lineup__day';
+const HEADS = '.fort-h2,.fort-h3,.fort-about__title,.fort-featured__title,.fort-featured__date,.fort-entry-title,.fort-coming__title,.fort-bb__title,.fort-fs__name,.fort-card__title,.fort-stat__line,.fort-lineup__ao,.fort-lineup__ao a,.fort-lineup__day';
 const LABELS = '.fort-kicker,.fort-label,.fort-meta,.fort-when,.fort-mono-dim,.fort-day__dow';
 const CARDS = '.fort-featured,.fort-panel,.fort-card,.fort-bb,.fort-fs__tile,.fort-about__fng,.fort-notice,.fort-band';
 
@@ -80,7 +80,7 @@ html{background-color:${p.bg};${p.html || ''}} body{background:transparent;}
 .fort-btn--outline,.fort-nav .fort-btn{background:transparent;color:${o.buttons === 'ink' && !p.dark ? p.ink : p.amberB};border-color:${o.buttons === 'ink' && !p.dark ? p.ink : p.amber};}
 .fort-btn--outline:hover,.fort-nav .fort-btn:hover{background:${p.dark ? 'rgba(255,255,255,0.08)' : p.ink};color:${p.dark ? p.amberB : p.inkText};}
 .fort-tag{color:${p.dim} !important;border-color:${p.line2} !important;} .fort-badge{background:${p.dark ? p.amber : p.amberB};color:${p.dark ? p.btnText : '#fff'};}
-.fort-brand .fort-amber{color:${p.amberB};} .fort-more,a.fort-more{color:${p.amberB};} .fort-day__num{color:${p.amberB};} .fort-coming__num{color:${p.dark ? p.accent2 : p.amberB};}
+.fort-brand .fort-amber{color:${p.amberB};} .fort-more,a.fort-more{color:${p.amberB};} .fort-day__num,.fort-featured__date{color:${p.amberB};} .fort-coming__num{color:${p.dark ? p.accent2 : p.amberB};}
 .fort-chip.is-current{color:${onFill(p.accent2)};} .fort-pagination .current,.fort-skip{color:${onFill(p.amber)};}
 .fort-principles__head{color:${p.accent2};} .fort-principles__list li::before{color:${p.dark ? p.accent2 : p.amberB};}`);
 
@@ -246,7 +246,7 @@ const EF = {
 // The template's label-like text (mono, small, capitals), and its headings.
 const E_LABELS = '.issue,.qby,.fmeta,.sec-aside,.dow,.when,.meta,.meta-inline,.also,.label,.small,.lnk,.pill,.lg-label,.lg-value';
 const E_CAPS = '.brand,.issue,.qby,.badge,.fmeta,.btn,.sec-title,.sec-aside,.dow,.tag,.new,.label,.lg-label,.links .lnk,.small .lnk,.copy';
-const E_HEADS = '.brand,.ftitle,.sec-title,.title';
+const E_HEADS = '.brand,.fdate,.ftitle,.sec-title,.title';
 
 function buildEmail(o) {
   const p = P[o.palette], s = c => solid(c, p.bg);
@@ -260,7 +260,7 @@ function buildEmail(o) {
 .brand{color:${p.bright};} .issue,.qby,.fmeta,.sec-aside,.dow,.when,.meta-inline,.also,.label,.dim{color:${p.mute};} .meta,.sum--sm,.dim2{color:${p.dim};} .sum{color:${p.text};}
 .ledger{border-top-color:${line2};} .lg-label{color:${p.mute};border-bottom-color:${line};} .lg-value{color:${p.text};border-bottom-color:${line};} .lg-value b{color:${p.bright};} .lg-value b.amber{color:${p.amberB};} .lg-last{border-bottom-color:${line2};}
 .bar-fill{background-color:${p.amber};} .bar-rest{background-color:${line2};}
-.qmark{color:${p.amber};} .qtext,.ftitle,.sec-title,.title{color:${p.bright};}
+.qmark{color:${p.amber};} .qtext,.ftitle,.sec-title,.title{color:${p.bright};} .fdate{color:${p.amberB};}
 .badge{background-color:${p.amber};color:${p.btnText};} .btn{background-color:${bBg};color:${bText};} .new{background-color:${p.amberB};color:${onFill(p.amberB)};}
 .tag{color:${p.dim} !important;border-color:${line2} !important;} .lnk{color:${p.amberB};} .pill{background-color:${panel2};color:${p.amberB};}
 .sec-head{border-bottom-color:${line2};} .sec-head--accent{border-bottom-color:${p.amber};} .dnum{color:${p.amberB};} .dnum--sm{color:${p.text};} .thumb{background-color:${line};}
@@ -362,7 +362,9 @@ for (const v of VARIANTS) {
   emailIssues.push(...emailProblems(`${v.key} ${v.name}`, css));
   // The email's own pairs (link pills sit on panel2; NEW is a filled accent).
   const panel2 = solid(p.panel2, p.bg);
-  for (const [n, c, g] of [['pill', p.amberB, panel2], ['new', onFill(p.amberB), p.amberB], ['badge', p.btnText, p.amber]]) {
+  // The featured card's date sits on the card (its colour as in buildEmail()).
+  const featBg = v.o.sections === 'cards' || p.dark ? solid(p.card, p.bg) : solid(p.panel, p.bg);
+  for (const [n, c, g] of [['pill', p.amberB, panel2], ['new', onFill(p.amberB), p.amberB], ['badge', p.btnText, p.amber], ['featured date', p.amberB, featBg]]) {
     const r = ratio(c, g); if (r < 4.5) emailIssues.push(`${v.key} ${v.name}: ${n} ${c} on ${g} is ${r.toFixed(2)}:1`);
   }
   // The day's date on its tinted column (the card styles).

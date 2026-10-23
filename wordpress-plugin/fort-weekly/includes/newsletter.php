@@ -218,11 +218,15 @@ add_action(
 			$note = array( 'error' => true, 'message' => $result->get_error_message() );
 		} else {
 			$sel  = fortw_select_issue( fortw_list_entries( array( 'upcoming_only' => true, 'today' => $today ) ), $today );
-			$ids  = array_merge(
-				$sel['featured'] ? array( $sel['featured']['id'] ) : array(),
-				array_merge( array(), ...array_map( function ( $d ) { return array_column( $d['entries'], 'id' ); }, $sel['this_week'] ) ),
-				array_column( $sel['coming_up'], 'id' ),
-				array_column( $sel['ongoing'], 'id' )
+			$ids  = array_values(
+				array_unique(
+					array_merge(
+						$sel['featured'] ? array( $sel['featured']['id'] ) : array(),
+						array_merge( array(), ...array_map( function ( $d ) { return array_column( $d['entries'], 'id' ); }, $sel['this_week'] ) ),
+						array_column( $sel['coming_up'], 'id' ),
+						array_column( $sel['ongoing'], 'id' )
+					)
+				)
 			);
 			$log = (array) get_option( 'fortw_issue_log', array() );
 			array_unshift(

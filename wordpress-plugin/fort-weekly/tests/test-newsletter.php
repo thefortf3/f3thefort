@@ -50,6 +50,23 @@ fortw_test(
 );
 
 fortw_test(
+	'featured: the day, date and time large in the card; in the date list just its time and title',
+	function () {
+		$e    = fortw_t_entry( array( 'title' => 'Beers for Beetus', 'slug' => 'beers', 'featured' => true, 'description' => '<p>Only in the card.</p>', 'location' => 'Print Shop', 'occurrences' => array( array( 'date' => '2026-10-31', 'start_time' => '1100', 'end_time' => '1500' ) ) ) );
+		$html = fortw_render_agenda(
+			'{{BODY}}',
+			array( $e ),
+			array( 'three_fs' => array(), 'links' => array(), 'slt' => array() ),
+			FORTW_T_TODAY,
+			array( 'site_url' => 'https://s', 'submit_url' => 'https://s/submit/', 'year' => '2026', 'entry_url' => function ( $x ) { return 'https://s/events/' . $x['slug'] . '/'; } )
+		);
+		assert_true( false !== strpos( $html, '<div class="fdate">Saturday, Oct 31 · 1100–1500</div>' ), 'large date in the card' );
+		assert_same( 1, substr_count( $html, 'Only in the card.' ), 'the write-up only once' );
+		assert_true( (bool) preg_match( '/class="day".*1100–1500<span class="new">Featured<\/span><\/div>\s*<a class="title" href="https:\/\/s\/events\/beers\/">Beers for Beetus<\/a><\/div>/s', $html ), 'short line in the day' );
+	}
+);
+
+fortw_test(
 	'the region’s week: one labelled row each, the FNG bar to scale, names escaped',
 	function () {
 		$html = fortw_nl_ledger(
