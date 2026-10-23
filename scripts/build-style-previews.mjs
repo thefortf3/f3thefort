@@ -232,6 +232,12 @@ function solid(c, bg) {
   return '#' + [1, 2, 3].map(i => Math.round(Number(m[i]) * a + b[i - 1] * (1 - a)).toString(16).padStart(2, '0')).join('');
 }
 
+// $hex at $a opacity over $ground, as solid hex (color-mix() for email).
+function tint(hex, ground, a) {
+  const n = parseInt(hex.slice(1), 16);
+  return solid(`rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`, ground);
+}
+
 const EF = {
   display: "'Oswald', 'Arial Narrow', Arial, sans-serif",
   serif: "'Source Serif 4', Georgia, 'Times New Roman', serif",
@@ -287,10 +293,15 @@ ${E_LABELS}{font-size:14px;} .lg-value{font-size:15px;} .btn{font-size:15px;font
   // Sections
   if (o.sections === 'rules') out.push(`.sec-head,.sec-head--accent{border-bottom-width:0;border-top:1px solid ${p.bright};} .sec-title,.sec-aside{padding-top:10px;padding-bottom:6px;} .featured{border-width:0;} .ledger{border-top-color:${p.bright};}`);
   if (o.sections === 'dashed') out.push(`.sec-head{border-bottom:1px dashed ${line2};} .sec-head--accent{border-bottom:1px dashed ${p.amber};} .day,.row,.ongoing{border-bottom:1px dashed ${line2};} .every,.footer{border-top:1px dashed ${line2};} .featured{border:1px dashed ${line2};} .lg-label,.lg-value{border-bottom:1px dashed ${line2};} .ledger{border-top:1px dashed ${line2};}`);
+  // In the card styles each day's date sits on a tinted column that runs the height of the day, as
+  // on the homepage: a <td> background does that by itself, and the cell spacing (a cellspacing
+  // attribute) insets it.
   if (o.sections === 'cards') out.push(`.sec-head,.sec-head--accent{border-bottom-width:0;} .sec-title,.sec-aside{padding-bottom:4px;}
 .featured{background-color:${card};border:1px solid ${line2};border-radius:${R.c}px;}
-.day,.row{background-color:${card};border:1px solid ${line};border-radius:${R.c}px;border-collapse:separate;border-spacing:0;margin-top:10px;}
-.ledger{background-color:${card};border:1px solid ${line};border-radius:${R.c}px;border-collapse:separate;border-spacing:0;} .lg-label{padding-left:14px;} .lg-value{padding-right:14px;} .lg-last{border-bottom-width:0;} .day-label,.row-date{padding-left:12px;} .day-items{padding-right:14px;} .row td{padding-right:14px;}
+.day{background-color:${card};border:1px solid ${line};border-radius:${R.c}px;border-collapse:separate;border-spacing:8px;margin-top:10px;}
+.day-label{background-color:${tint(p.amber, card, 0.14)};border-radius:${Math.min(R.c, 10)}px;padding:12px 0;} .day-label .dow{color:${p.dim};} .day-items{padding:6px 8px 6px 6px;}
+.row{background-color:${card};border:1px solid ${line};border-radius:${R.c}px;border-collapse:separate;border-spacing:0;margin-top:10px;}
+.ledger{background-color:${card};border:1px solid ${line};border-radius:${R.c}px;border-collapse:separate;border-spacing:0;} .lg-label{padding-left:14px;} .lg-value{padding-right:14px;} .lg-last{border-bottom-width:0;} .row-date{padding-left:12px;} .row td{padding-right:14px;}
 .ongoing{background-color:${card};border:1px solid ${line};border-radius:${R.c}px;padding:12px 14px;margin-top:10px;}`);
   else out.push(`.featured{border-radius:${R.c}px;}`);
   // The flyer sits inside the featured card, so it rounds on its own rather than at the card's corners.
@@ -328,7 +339,7 @@ const EMAIL_BANNED = [
   [/var\(/, 'var()'], [/color-mix/, 'color-mix()'], [/rgba?\(|hsla?\(/, 'rgba()/hsl()'], [/gradient/, 'gradients'],
   [/box-shadow/, 'box-shadow'], [/filter\s*:/, 'filters'], [/(^|[^-])transform\s*:/, 'transform'], [/position\s*:/, 'position'],
   [/::?(before|after)/, 'pseudo-elements'], [/display\s*:\s*(flex|grid|inline-flex)/, 'flex/grid'], [/clamp\(|calc\(/, 'clamp()/calc()'],
-  [/\d(rem|em|vw|vh)\b/, 'rem/em/vw units'], [/margin[\w-]*\s*:[^;}]*-\d/, 'negative margins'], [/@import/, '@import'], [/Impact/i, 'Impact'],
+  [/\d(rem|em|vw|vh)\b/, 'rem/em/vw units'], [/margin[\w-]*\s*:[^;}]*-\d/, 'negative margins'], [/@import/, '@import'], [/Impact/i, 'Impact'], [/\/\//, 'a // comment (not CSS: it breaks the next rule)'],
 ];
 function emailProblems(name, css) {
   const found = EMAIL_BANNED.filter(([re]) => re.test(css)).map(([, what]) => `${name}: ${what}`);
@@ -353,6 +364,13 @@ for (const v of VARIANTS) {
   const panel2 = solid(p.panel2, p.bg);
   for (const [n, c, g] of [['pill', p.amberB, panel2], ['new', onFill(p.amberB), p.amberB], ['badge', p.btnText, p.amber]]) {
     const r = ratio(c, g); if (r < 4.5) emailIssues.push(`${v.key} ${v.name}: ${n} ${c} on ${g} is ${r.toFixed(2)}:1`);
+  }
+  // The day's date on its tinted column (the card styles).
+  if (v.o.sections === 'cards') {
+    const col = tint(p.amber, solid(p.card, p.bg), 0.14);
+    for (const [n, c] of [['date', p.amberB], ['weekday', p.dim]]) {
+      const r = ratio(c, col); if (r < 4.5) emailIssues.push(`${v.key} ${v.name}: ${n} ${c} on the date column ${col} is ${r.toFixed(2)}:1`);
+    }
   }
   email[v.key] = { scheme: p.dark ? 'dark' : 'light', css, notes: emailNotes(v.o) };
 }
