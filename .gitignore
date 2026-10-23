@@ -10,6 +10,8 @@ fng-data.csv
 # Generated newsletter output
 newsletter-dark.html
 newsletter-agenda.html
+# ...but not the Fort Weekly plugin's template of the same name.
+!wordpress-plugin/fort-weekly/templates/newsletter-agenda.html
 newsletter-email.html
 newsletter-email-rendered.html
 newsletter-preview.html
