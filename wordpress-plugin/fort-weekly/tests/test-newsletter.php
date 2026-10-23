@@ -34,6 +34,29 @@ fortw_test(
 );
 
 fortw_test(
+	'the region’s week: one labelled row each, the FNG bar to scale, names escaped',
+	function () {
+		$html = fortw_nl_ledger(
+			array(
+				'fng_stats'    => array( 'total' => 82, 'goal' => 226, 'days_elapsed' => 295 ),
+				'shovel_flags' => array( array( 'from' => 'Boogie <b>', 'to' => 'Bam Bam', 'ao' => 'The Armory' ) ),
+				'vqs'          => array( array( 'name' => 'A', 'ao' => '' ), array( 'name' => 'B', 'ao' => 'Hive' ) ),
+				'weekly_fngs'  => array( 'Teflon', '' ),
+			)
+		);
+		assert_true( false !== strpos( $html, '<b class="amber">82</b> of 226 · day 295 of 365' ), 'FNG line' );
+		assert_true( false !== strpos( $html, 'class="bar-fill" width="36%"' ), 'bar to scale' );
+		assert_true( false !== strpos( $html, 'Boogie &lt;b&gt; → Bam Bam' ), 'escaped' );
+		assert_true( false !== strpos( $html, '>VQs</td>' ) && false !== strpos( $html, 'A<br>B' ), 'VQs in one row' );
+		assert_same( 4, substr_count( $html, 'class="lg-label' ) );
+		assert_same( 1, substr_count( $html, 'lg-last' ) / 2 );
+		$full = fortw_nl_ledger( array( 'fng_stats' => array( 'total' => 300, 'goal' => 226, 'days_elapsed' => 1 ) ) );
+		assert_true( false !== strpos( $full, 'width="100%" height="6"' ) && false === strpos( $full, 'bar-rest' ), 'a full bar is one cell' );
+		assert_same( '', fortw_nl_ledger( array() ) );
+	}
+);
+
+fortw_test(
 	'campaign: the coming Sunday, named and subjected like the app did',
 	function () {
 		assert_same( '2026-10-25', fortw_next_sunday( '2026-10-20' ) );

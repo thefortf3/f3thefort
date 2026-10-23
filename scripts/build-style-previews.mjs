@@ -238,8 +238,8 @@ const EF = {
   mono: "'JetBrains Mono', 'Courier New', monospace",
 };
 // The template's label-like text (mono, small, capitals), and its headings.
-const E_LABELS = '.issue,.qby,.fmeta,.sec-aside,.dow,.when,.meta,.meta-inline,.also,.label,.small,.lnk,.chip,.pill';
-const E_CAPS = '.brand,.issue,.qby,.badge,.fmeta,.btn,.sec-title,.sec-aside,.dow,.tag,.new,.label,.links .lnk,.small .lnk,.copy';
+const E_LABELS = '.issue,.qby,.fmeta,.sec-aside,.dow,.when,.meta,.meta-inline,.also,.label,.small,.lnk,.pill,.lg-label,.lg-value';
+const E_CAPS = '.brand,.issue,.qby,.badge,.fmeta,.btn,.sec-title,.sec-aside,.dow,.tag,.new,.label,.lg-label,.links .lnk,.small .lnk,.copy';
 const E_HEADS = '.brand,.ftitle,.sec-title,.title';
 
 function buildEmail(o) {
@@ -252,7 +252,8 @@ function buildEmail(o) {
   // Colours
   out.push(`body,.canvas,.canvas-cell{background-color:${p.bg};} body{color:${p.text};} a,.amber{color:${p.amberB};}
 .brand{color:${p.bright};} .issue,.qby,.fmeta,.sec-aside,.dow,.when,.meta-inline,.also,.label,.dim{color:${p.mute};} .meta,.sum--sm,.dim2{color:${p.dim};} .sum{color:${p.text};}
-.chip{background-color:${panel2};color:${p.text};} .chip b{color:${p.bright};} .chip b.amber{color:${p.amberB};}
+.ledger{border-top-color:${line2};} .lg-label{color:${p.mute};border-bottom-color:${line};} .lg-value{color:${p.text};border-bottom-color:${line};} .lg-value b{color:${p.bright};} .lg-value b.amber{color:${p.amberB};} .lg-last{border-bottom-color:${line2};}
+.bar-fill{background-color:${p.amber};} .bar-rest{background-color:${line2};}
 .qmark{color:${p.amber};} .qtext,.ftitle,.sec-title,.title{color:${p.bright};}
 .badge{background-color:${p.amber};color:${p.btnText};} .btn{background-color:${bBg};color:${bText};} .new{background-color:${p.amberB};color:${onFill(p.amberB)};}
 .tag{color:${p.dim} !important;border-color:${line2} !important;} .lnk{color:${p.amberB};} .pill{background-color:${panel2};color:${p.amberB};}
@@ -262,7 +263,7 @@ function buildEmail(o) {
 
   // Readable sizes, as on the site: body text 16px and labels 12px+ (the template's are 10-11px).
   out.push(`.sum{font-size:16px;} .sum--sm{font-size:15px;} .qtext{font-size:19px;} .title{font-size:19px;} .title--sm{font-size:17px;}
-${E_LABELS}{font-size:12px;} .badge,.new,.tag{font-size:11px;} .btn{font-size:13px;}`);
+${E_LABELS}{font-size:12px;} .lg-value{font-size:13px;} .badge,.new,.tag{font-size:11px;} .btn{font-size:13px;}`);
 
   // Headings
   if (o.headings === 'sentence') out.push(`${E_HEADS}{text-transform:none;font-weight:500;letter-spacing:0.2px;} .brand{font-size:25px;font-weight:600;} .sec-title{font-size:24px;} .ftitle{font-size:26px;}`);
@@ -272,24 +273,24 @@ ${E_LABELS}{font-size:12px;} .badge,.new,.tag{font-size:11px;} .btn{font-size:13
   // Labels
   if (o.labels === 'plain' || o.labels === 'italic') {
     out.push(`${E_LABELS},.badge,.new,.tag,.btn{font-family:${EF.serif};letter-spacing:0;} ${E_CAPS}{text-transform:none;}
-${E_LABELS}{font-size:14px;} .btn{font-size:15px;font-weight:600;padding:11px 18px;} .badge,.new,.tag{font-size:12px;}`);
+${E_LABELS}{font-size:14px;} .lg-value{font-size:15px;} .btn{font-size:15px;font-weight:600;padding:11px 18px;} .badge,.new,.tag{font-size:12px;}`);
     // The brand and headings keep their own heading treatment.
     if (o.headings === 'bold' || o.headings === 'calm') out.push(`.brand,.sec-title{text-transform:uppercase;}`);
   }
-  if (o.labels === 'italic') out.push(`.issue,.qby,.fmeta,.sec-aside,.when,.meta,.meta-inline,.also,.label,.dow,.lnk{font-style:italic;}`);
-  // Lower-case labels, but not where people's and AOs' names appear (chips, bylines, the Q).
-  if (o.labels === 'monoLower') out.push(`.issue,.badge,.btn,.sec-aside,.dow,.tag,.new,.label,.links .lnk,.small .lnk,.copy,.lnk{text-transform:lowercase;letter-spacing:0.4px;} .qby,.fmeta{text-transform:none;letter-spacing:0.4px;}`);
+  if (o.labels === 'italic') out.push(`.issue,.qby,.fmeta,.sec-aside,.when,.meta,.meta-inline,.also,.label,.dow,.lnk,.lg-label{font-style:italic;}`);
+  // Lower-case labels, but not where people's and AOs' names appear (the week's names, bylines, the Q).
+  if (o.labels === 'monoLower') out.push(`.issue,.badge,.btn,.sec-aside,.dow,.tag,.new,.label,.lg-label,.links .lnk,.small .lnk,.copy,.lnk{text-transform:lowercase;letter-spacing:0.4px;} .qby,.fmeta{text-transform:none;letter-spacing:0.4px;}`);
 
   // Shape
-  // Chips may wrap at the bigger size (a long shovel flag), so their corners stop short of a pill.
-  out.push(`.pill,.badge,.tag,.new{border-radius:${R.t}px;} .chip{border-radius:${Math.min(R.t, 12)}px;white-space:normal;line-height:1.45;} .btn{border-radius:${R.b}px;} .thumb{border-radius:${Math.min(R.c, 8)}px;}`);
+  out.push(`.pill,.badge,.tag,.new{border-radius:${R.t}px;} .bar-fill,.bar-rest{border-radius:${Math.min(R.t, 3)}px;} .btn{border-radius:${R.b}px;} .thumb{border-radius:${Math.min(R.c, 8)}px;}`);
 
   // Sections
-  if (o.sections === 'rules') out.push(`.sec-head,.sec-head--accent{border-bottom-width:0;border-top:1px solid ${p.bright};} .sec-title,.sec-aside{padding-top:10px;padding-bottom:6px;} .featured{border-width:0;}`);
-  if (o.sections === 'dashed') out.push(`.sec-head{border-bottom:1px dashed ${line2};} .sec-head--accent{border-bottom:1px dashed ${p.amber};} .day,.row,.ongoing{border-bottom:1px dashed ${line2};} .every,.footer{border-top:1px dashed ${line2};} .featured{border:1px dashed ${line2};}`);
+  if (o.sections === 'rules') out.push(`.sec-head,.sec-head--accent{border-bottom-width:0;border-top:1px solid ${p.bright};} .sec-title,.sec-aside{padding-top:10px;padding-bottom:6px;} .featured{border-width:0;} .ledger{border-top-color:${p.bright};}`);
+  if (o.sections === 'dashed') out.push(`.sec-head{border-bottom:1px dashed ${line2};} .sec-head--accent{border-bottom:1px dashed ${p.amber};} .day,.row,.ongoing{border-bottom:1px dashed ${line2};} .every,.footer{border-top:1px dashed ${line2};} .featured{border:1px dashed ${line2};} .lg-label,.lg-value{border-bottom:1px dashed ${line2};} .ledger{border-top:1px dashed ${line2};}`);
   if (o.sections === 'cards') out.push(`.sec-head,.sec-head--accent{border-bottom-width:0;} .sec-title,.sec-aside{padding-bottom:4px;}
 .featured{background-color:${card};border:1px solid ${line2};border-radius:${R.c}px;} .hero{border-radius:${Math.max(R.c - 1, 0)}px ${Math.max(R.c - 1, 0)}px 0 0;}
-.day,.row{background-color:${card};border:1px solid ${line};border-radius:${R.c}px;border-collapse:separate;margin-top:10px;} .day-label,.row-date{padding-left:12px;} .day-items{padding-right:14px;} .row td{padding-right:14px;}
+.day,.row{background-color:${card};border:1px solid ${line};border-radius:${R.c}px;border-collapse:separate;border-spacing:0;margin-top:10px;}
+.ledger{background-color:${card};border:1px solid ${line};border-radius:${R.c}px;border-collapse:separate;border-spacing:0;} .lg-label{padding-left:14px;} .lg-value{padding-right:14px;} .lg-last{border-bottom-width:0;} .day-label,.row-date{padding-left:12px;} .day-items{padding-right:14px;} .row td{padding-right:14px;}
 .ongoing{background-color:${card};border:1px solid ${line};border-radius:${R.c}px;padding:12px 14px;margin-top:10px;}`);
   else out.push(`.featured{border-radius:${R.c}px;} .hero{border-radius:${R.c}px ${R.c}px 0 0;}`);
 
@@ -297,7 +298,7 @@ ${E_LABELS}{font-size:14px;} .btn{font-size:15px;font-weight:600;padding:11px 18
   if (o.flyers === 'mat') out.push(`.thumb{border:3px solid ${p.mat};}`);
 
   // Header
-  if (o.header === 'pill') out.push(`.mast{background-color:${card};border:1px solid ${line2};border-radius:999px;border-collapse:separate;} .brand{padding:12px 0 12px 20px;} .issue{padding:12px 20px 12px 0;}`);
+  if (o.header === 'pill') out.push(`.mast{background-color:${card};border:1px solid ${line2};border-radius:999px;border-collapse:separate;border-spacing:0;} .brand{padding:12px 0 12px 20px;} .issue{padding:12px 20px 12px 0;}`);
   return out.join('\n');
 }
 
@@ -346,9 +347,9 @@ const email = {};
 for (const v of VARIANTS) {
   const p = P[v.o.palette], css = buildEmail(v.o);
   emailIssues.push(...emailProblems(`${v.key} ${v.name}`, css));
-  // The email's own pairs (chips and pills sit on panel2; NEW is a filled accent).
+  // The email's own pairs (link pills sit on panel2; NEW is a filled accent).
   const panel2 = solid(p.panel2, p.bg);
-  for (const [n, c, g] of [['chip text', p.text, panel2], ['pill', p.amberB, panel2], ['new', onFill(p.amberB), p.amberB], ['badge', p.btnText, p.amber]]) {
+  for (const [n, c, g] of [['pill', p.amberB, panel2], ['new', onFill(p.amberB), p.amberB], ['badge', p.btnText, p.amber]]) {
     const r = ratio(c, g); if (r < 4.5) emailIssues.push(`${v.key} ${v.name}: ${n} ${c} on ${g} is ${r.toFixed(2)}:1`);
   }
   email[v.key] = { scheme: p.dark ? 'dark' : 'light', css, notes: emailNotes(v.o) };

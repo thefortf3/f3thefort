@@ -1,6 +1,6 @@
 <?php
 /**
- * The Fort Weekly "agenda" issue (design canvas E3): masthead and stat chips, the Nan'tan's note,
+ * The Fort Weekly "agenda" issue (design canvas E3): masthead and the region's week, the Nan'tan's note,
  * one featured event, then every upcoming approved event as a dated agenda (This week / Coming
  * up / Ongoing), the Every-week line and the footer. Port of renderAgenda() and its helpers in
  * the newsletter app's lib/newsletter-agenda.js. Text is written in normal case and the template
@@ -174,23 +174,52 @@ function fortw_nl_section( $title, $aside, $body, $accent = false ) {
   </div>';
 }
 
-function fortw_nl_chips( $region ) {
-	$out = array();
+/**
+ * The region's week under the masthead, as a small labelled table: the FNG challenge (count, a
+ * progress bar and the day of the year), shovel flags, VQs and this week's FNGs. A table rather
+ * than chips: long names wrap inside their row instead of piling up.
+ */
+function fortw_nl_ledger( $region ) {
+	$rows = array();
 	if ( ! empty( $region['fng_stats'] ) ) {
-		$f     = $region['fng_stats'];
-		$out[] = '<span class="chip"><b class="amber">' . (int) $f['total'] . '</b>/' . (int) $f['goal'] . ' FNGs</span>';
-		$out[] = '<span class="chip">Day <b>' . (int) $f['days_elapsed'] . '</b>/365</span>';
+		$f    = $region['fng_stats'];
+		$goal = max( 1, (int) $f['goal'] );
+		$pct  = max( 0, min( 100, (int) round( 100 * (int) $f['total'] / $goal ) ) );
+		// The bar is two table cells (email has no other way to draw one); a 0% or 100% bar is one.
+		$bar    = ( $pct > 0 ? '<td class="bar-fill" width="' . $pct . '%" height="6">&nbsp;</td>' : '' )
+			. ( $pct < 100 ? '<td class="bar-rest" height="6">&nbsp;</td>' : '' );
+		$rows[] = array(
+			'FNG challenge',
+			'<b class="amber">' . (int) $f['total'] . '</b> of ' . $goal . ' · day ' . (int) $f['days_elapsed'] . ' of 365'
+			. '<table role="presentation" class="bar" width="100%"><tr>' . $bar . '</tr></table>',
+		);
 	}
 	foreach ( $region['shovel_flags'] ?? array() as $s ) {
-		$out[] = '<span class="chip">Shovel flag: ' . fortw_h( $s['from'] ) . ' → ' . fortw_h( $s['to'] ) . ( $s['ao'] ? ' @ ' . fortw_h( $s['ao'] ) : '' ) . '</span>';
+		$rows[] = array( 'Shovel flag', fortw_h( $s['from'] ) . ' → ' . fortw_h( $s['to'] ) . ( $s['ao'] ? ' <span class="dim">@ ' . fortw_h( $s['ao'] ) . '</span>' : '' ) );
 	}
-	foreach ( $region['vqs'] ?? array() as $v ) {
-		$out[] = '<span class="chip">VQ: ' . fortw_h( $v['name'] ) . ( $v['ao'] ? ' @ ' . fortw_h( $v['ao'] ) : '' ) . '</span>';
+	$vqs = array_map( function ( $v ) { return fortw_h( $v['name'] ) . ( $v['ao'] ? ' <span class="dim">@ ' . fortw_h( $v['ao'] ) . '</span>' : '' ); }, $region['vqs'] ?? array() );
+	if ( $vqs ) {
+		$rows[] = array( 1 === count( $vqs ) ? 'VQ' : 'VQs', implode( '<br>', $vqs ) );
 	}
-	if ( ! empty( $region['weekly_fngs'] ) ) {
-		$out[] = '<span class="chip">FNGs this week: ' . fortw_h( implode( ', ', array_filter( $region['weekly_fngs'], 'strlen' ) ) ) . '</span>';
+	$fngs = array_filter( $region['weekly_fngs'] ?? array(), 'strlen' );
+	if ( $fngs ) {
+		$rows[] = array( 'FNGs this week', fortw_h( implode( ', ', $fngs ) ) );
 	}
-	return $out ? '<div class="chips">' . implode( ' ', $out ) . '</div>' : '';
+	if ( ! $rows ) {
+		return '';
+	}
+	$last = count( $rows ) - 1;
+	return '<table role="presentation" class="ledger" width="100%">' . implode(
+		'',
+		array_map(
+			function ( $r, $i ) use ( $last ) {
+				$cls = $i === $last ? ' lg-last' : '';
+				return '<tr><td class="lg-label' . $cls . '" width="128" valign="top">' . $r[0] . '</td><td class="lg-value' . $cls . '" valign="top">' . $r[1] . '</td></tr>';
+			},
+			$rows,
+			array_keys( $rows )
+		)
+	) . '</table>';
 }
 
 function fortw_nl_nantan( $n ) {
@@ -249,7 +278,7 @@ function fortw_render_agenda( $template, $entries, $region, $today, $ctx ) {
       <td class="brand">The Fort <span class="amber">Weekly</span></td>
       <td class="issue" align="right">Week of ' . $rp['mon'] . ' ' . $rp['day'] . '</td>
     </tr></table>',
-		fortw_nl_chips( $region ),
+		fortw_nl_ledger( $region ),
 		fortw_nl_nantan( $region['nantan'] ?? null ),
 		$sel['featured'] ? fortw_nl_featured( $sel['featured'], $ctx ) : '',
 		$sel['this_week'] ? fortw_nl_section( 'This week', $rng, implode( '', array_map( function ( $d ) use ( $ctx ) { return fortw_nl_day( $d, $ctx ); }, $sel['this_week'] ) ), true ) : '',
