@@ -99,6 +99,11 @@ function fort_weekly_entry_page( $post ) {
 	if ( ! $entry ) {
 		return null;
 	}
+	// The page shows the flyer above the description; don't show it again inside it.
+	$copy = $entry['hero_image'] ? fortw_flyer_copy_test( $entry['id'] ) : null;
+	if ( $copy ) {
+		$entry['description'] = fortw_drop_images( $entry['description'], $copy );
+	}
 	return fortw_build_entry_page( $entry, fortw_list_entries( array( 'upcoming_only' => true, 'today' => $today ) ), $today, 'fortw_sanitize_html' );
 }
 

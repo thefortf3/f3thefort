@@ -73,6 +73,31 @@ function fortw_build_home( $entries, $tags, $region, $today, $sanitize, $generat
 }
 
 /**
+ * $html without the <img> tags for which $drop( $src ) is true, along with whatever they leave
+ * empty (a wrapping link, div or paragraph) and the blank lines that then start the text.
+ */
+function fortw_drop_images( $html, $drop ) {
+	$mark = '<!--fortw-dropped-->';
+	$out  = preg_replace_callback(
+		'/<img\b[^>]*>/i',
+		function ( $m ) use ( $drop, $mark ) {
+			return preg_match( '/\ssrc\s*=\s*["\']([^"\']+)/i', $m[0], $s ) && $drop( html_entity_decode( $s[1] ) ) ? $mark : $m[0];
+		},
+		(string) $html
+	);
+	if ( false === strpos( $out, $mark ) ) {
+		return $html;
+	}
+	$m = preg_quote( $mark, '#' );
+	do {
+		$before = $out;
+		$out    = preg_replace( '#<(a|div|p|figure|span)\b[^>]*>\s*' . $m . '\s*(?:<br\s*/?>\s*)?</\1>#i', $mark, $out );
+	} while ( $out !== $before );
+	$out = str_replace( $mark, '', $out );
+	return preg_replace( '#^(?:\s*(?:<br\s*/?>|&nbsp;|<(div|p)\b[^>]*>\s*(?:<br\s*/?>|&nbsp;)?\s*</\1>))+\s*#i', '', $out );
+}
+
+/**
  * One entry page: the entry, other upcoming entries on its next date, and up to four more that
  * share a tag. $others: every public entry (any order); $entry is excluded from both lists.
  */

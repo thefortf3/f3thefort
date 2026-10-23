@@ -176,6 +176,23 @@ fortw_test(
 );
 
 fortw_test(
+	'entry page: a description image that is the flyer again is dropped, with the blank lines it leaves',
+	function () {
+		$flyer = function ( $src ) { return 'https://x/flyer.jpg' === $src; };
+		assert_same(
+			"It's the third annual Reindeer Run.",
+			fortw_drop_images( '<div><img src="https://x/flyer.jpg"></div><div><br></div>It\'s the third annual Reindeer Run.', $flyer )
+		);
+		assert_same(
+			'<p>Before</p><p>After <img src="https://x/map.png"></p>',
+			fortw_drop_images( '<p>Before</p><p><a href="https://x/flyer.jpg"><img alt="" src="https://x/flyer.jpg" /></a></p><p>After <img src="https://x/map.png"></p>', $flyer )
+		);
+		$same = '<div>No flyer here</div><div><br></div><div>Second line</div>';
+		assert_same( $same, fortw_drop_images( $same, $flyer ), 'untouched when nothing matches' );
+	}
+);
+
+fortw_test(
 	'FNG numbers: year-to-date vs goal, and this week (Mon–Sun) names',
 	function () {
 		$fng = array(

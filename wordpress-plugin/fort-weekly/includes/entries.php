@@ -115,6 +115,36 @@ function fortw_hero_url( $post_id ) {
 }
 
 /**
+ * For an event with a flyer: a test of whether a description image (its src) is that flyer again,
+ * either the same upload (at any size) or another upload of the same file. Null without a flyer.
+ */
+function fortw_flyer_copy_test( $post_id ) {
+	$file = get_attached_file( get_post_thumbnail_id( $post_id ) );
+	if ( ! $file || ! is_readable( $file ) ) {
+		return null;
+	}
+	$uploads = wp_get_upload_dir();
+	$base    = untrailingslashit( (string) wp_parse_url( $uploads['baseurl'], PHP_URL_PATH ) );
+	$size    = filesize( $file );
+	$hash    = null;
+	return function ( $src ) use ( $file, $uploads, $base, $size, &$hash ) {
+		$path = rawurldecode( (string) wp_parse_url( $src, PHP_URL_PATH ) );
+		if ( '' === $base || 0 !== strpos( $path, $base . '/' ) || false !== strpos( $path, '..' ) ) {
+			return false; // Not one of our uploads (the host can differ: develop.lan, f3beta…).
+		}
+		$local = $uploads['basedir'] . substr( $path, strlen( $base ) );
+		if ( preg_replace( '/-\d+x\d+(?=\.\w+$)/', '', $local ) === $file || $local === $file ) {
+			return true;
+		}
+		if ( ! is_readable( $local ) || filesize( $local ) !== $size ) {
+			return false;
+		}
+		$hash = $hash ?? md5_file( $file );
+		return md5_file( $local ) === $hash;
+	};
+}
+
+/**
  * An event as an entry array. Never includes submitter details: use fortw_entry_private() for
  * those, in admin screens only.
  */
