@@ -20,7 +20,9 @@ All of it is under **Fort Weekly**:
 | **Events** | One row per event, sorted by next date. Views: **Needs approval** (with a count on the menu), Upcoming, Held from newsletter, Past, Rejected, Archived, Everything. Filter by tag or by whether it has a flyer; search also matches the Q and location. Row actions: Approve, Reject (with a reason), Feature, Hold, Archive / Restore. |
 | **Edit event** | Title and description; flyer (the featured image); tags; **Dates** (any number); **Details** (Q, where, sign-up link, video); **Newsletter** (summary, "write one for me", featured, hold); pre-blast; who submitted it. **Publish = approve.** |
 | **Tags** | What's Hot, I2, Weekly… each with a colour and an order. An event shows its first tag. |
-| **Region** | The Nan'tan's note, FNG goal, Every week (Three F's), SLT, helpful links, shovel flags, VQs. |
+| **Desk of the Nan'tan** | The note at the top of the newsletter (heading, from, text, optional image). |
+| **Shovel flags & VQs** | This week's shovel flags and VQs, for the newsletter's region table. |
+| **Region** | Every week (Three F's), SLT, helpful links and the FNG goal. |
 | **Newsletter** | This week's issue: preview at phone and email widths, download the email-ready HTML, **save it as a Mailchimp draft**. |
 | **Import** | (administrators) Bring data in from the old app. See below. |
 

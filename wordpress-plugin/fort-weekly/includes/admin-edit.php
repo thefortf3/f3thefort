@@ -238,7 +238,7 @@ add_action(
 		}
 		wp_enqueue_style( 'fortw-admin', plugins_url( 'assets/admin.css', FORT_WEEKLY_FILE ), array(), FORT_WEEKLY_VERSION );
 		wp_enqueue_script( 'fortw-admin', plugins_url( 'assets/admin.js', FORT_WEEKLY_FILE ), array(), FORT_WEEKLY_VERSION, true );
-		if ( false !== strpos( $hook, 'fortw-region' ) ) {
+		if ( false !== strpos( $hook, 'fortw-nantan' ) ) { // The Nan'tan's image picker.
 			wp_enqueue_media();
 		}
 	}

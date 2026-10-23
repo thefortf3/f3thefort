@@ -1,25 +1,32 @@
 <?php
 /**
- * Fort Weekly → Region: the Nan'tan's note and the region lists the site and newsletter show
- * (Three F's, SLT, helpful links, shovel flags, VQs) plus the FNG goal. Stored in one option,
- * fort_weekly_region (see fortw_region_defaults()).
+ * Fort Weekly → Desk of the Nan'tan, Shovel flags & VQs, and Region: what the site and newsletter
+ * show besides events. Three pages over one option, fort_weekly_region (see
+ * fortw_region_defaults()); each page saves only its own fields.
  *
  * @package FortWeekly
  */
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * The pages: slug => [menu title, page title, what's on it]. 'nantan' is the note, 'fng_goal' the
+ * FNG goal; the rest are keys of fortw_region_lists().
+ */
+function fortw_region_pages() {
+	return array(
+		'fortw-nantan' => array( __( 'Desk of the Nan’tan', 'fort-weekly' ), __( 'Desk of the Nan’tan', 'fort-weekly' ), array( 'nantan' ) ),
+		'fortw-week'   => array( __( 'Shovel flags & VQs', 'fort-weekly' ), __( 'Shovel flags & VQs', 'fort-weekly' ), array( 'shovel_flags', 'vqs' ) ),
+		'fortw-region' => array( __( 'Region', 'fort-weekly' ), __( 'Region info', 'fort-weekly' ), array( 'three_fs', 'slt', 'links', 'fng_goal' ) ),
+	);
+}
+
 add_action(
 	'admin_menu',
 	function () {
-		add_submenu_page(
-			'edit.php?post_type=' . FORTW_POST_TYPE,
-			__( 'Region info', 'fort-weekly' ),
-			__( 'Region', 'fort-weekly' ),
-			'manage_fort_region',
-			'fortw-region',
-			'fortw_render_region_page'
-		);
+		foreach ( fortw_region_pages() as $slug => $page ) {
+			add_submenu_page( 'edit.php?post_type=' . FORTW_POST_TYPE, $page[1], $page[0], 'manage_fort_region', $slug, 'fortw_render_region_page' );
+		}
 	},
 	20
 );
@@ -73,41 +80,50 @@ function fortw_render_region_page() {
 	if ( ! current_user_can( 'manage_fort_region' ) ) {
 		wp_die( esc_html__( 'Sorry, you are not allowed to do that.', 'fort-weekly' ) );
 	}
+	$pages = fortw_region_pages();
+	$slug  = isset( $_GET['page'] ) && isset( $pages[ $_GET['page'] ] ) ? sanitize_key( $_GET['page'] ) : 'fortw-region'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	$parts = $pages[ $slug ][2];
 	$s     = fortw_region_settings();
-	$n     = $s['nantan'];
-	$image = $n['image_id'] ? wp_get_attachment_image_url( (int) $n['image_id'], 'medium' ) : '';
 	?>
 	<div class="wrap fortw-region">
-		<h1><?php esc_html_e( 'Region info', 'fort-weekly' ); ?></h1>
+		<h1><?php echo esc_html( $pages[ $slug ][1] ); ?></h1>
 		<?php if ( isset( $_GET['saved'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
 			<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Saved. The site shows it now; the newsletter picks it up next time it’s generated.', 'fort-weekly' ); ?></p></div>
 		<?php endif; ?>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<input type="hidden" name="action" value="fortw_region">
+			<input type="hidden" name="fortw_page" value="<?php echo esc_attr( $slug ); ?>">
 			<?php wp_nonce_field( 'fortw_region' ); ?>
 
-			<h2><?php esc_html_e( 'From the Nan’tan', 'fort-weekly' ); ?></h2>
-			<p class="description"><?php esc_html_e( 'The note at the top of the newsletter.', 'fort-weekly' ); ?></p>
-			<table class="form-table" role="presentation">
-				<tr><th scope="row"><label for="fortw-n-heading"><?php esc_html_e( 'Heading', 'fort-weekly' ); ?></label></th>
-					<td><input type="text" id="fortw-n-heading" name="region[nantan][heading]" value="<?php echo esc_attr( $n['heading'] ); ?>" class="regular-text"></td></tr>
-				<tr><th scope="row"><label for="fortw-n-author"><?php esc_html_e( 'From', 'fort-weekly' ); ?></label></th>
-					<td><input type="text" id="fortw-n-author" name="region[nantan][author]" value="<?php echo esc_attr( $n['author'] ); ?>" class="regular-text" placeholder="Band Camp"></td></tr>
-				<tr><th scope="row"><?php esc_html_e( 'Note', 'fort-weekly' ); ?></th>
-					<td><?php wp_editor( $n['text'], 'fortw_nantan_text', array( 'textarea_name' => 'region[nantan][text]', 'textarea_rows' => 6, 'media_buttons' => false, 'teeny' => true ) ); ?></td></tr>
-				<tr><th scope="row"><?php esc_html_e( 'Image (optional)', 'fort-weekly' ); ?></th>
-					<td class="fortw-image-pick">
-						<input type="hidden" name="region[nantan][image_id]" value="<?php echo (int) $n['image_id']; ?>">
-						<img src="<?php echo esc_url( $image ); ?>" alt="" class="fortw-image-preview"<?php echo $image ? '' : ' hidden'; ?>>
-						<button type="button" class="button fortw-image-choose"><?php esc_html_e( 'Choose image', 'fort-weekly' ); ?></button>
-						<button type="button" class="button-link fortw-image-clear"<?php echo $image ? '' : ' hidden'; ?>><?php esc_html_e( 'Remove', 'fort-weekly' ); ?></button>
-					</td></tr>
-				<tr><th scope="row"><label for="fortw-goal"><?php esc_html_e( 'FNG goal this year', 'fort-weekly' ); ?></label></th>
-					<td><input type="number" id="fortw-goal" name="region[fng_goal]" value="<?php echo (int) $s['fng_goal']; ?>" min="0" max="100000">
-						<p class="description"><?php esc_html_e( 'The count comes from the stats site.', 'fort-weekly' ); ?></p></td></tr>
-			</table>
+			<?php
+			if ( in_array( 'nantan', $parts, true ) ) :
+				$n     = $s['nantan'];
+				$image = $n['image_id'] ? wp_get_attachment_image_url( (int) $n['image_id'], 'medium' ) : '';
+				?>
+				<p class="description"><?php esc_html_e( 'The note at the top of the newsletter.', 'fort-weekly' ); ?></p>
+				<table class="form-table" role="presentation">
+					<tr><th scope="row"><label for="fortw-n-heading"><?php esc_html_e( 'Heading', 'fort-weekly' ); ?></label></th>
+						<td><input type="text" id="fortw-n-heading" name="region[nantan][heading]" value="<?php echo esc_attr( $n['heading'] ); ?>" class="regular-text"></td></tr>
+					<tr><th scope="row"><label for="fortw-n-author"><?php esc_html_e( 'From', 'fort-weekly' ); ?></label></th>
+						<td><input type="text" id="fortw-n-author" name="region[nantan][author]" value="<?php echo esc_attr( $n['author'] ); ?>" class="regular-text" placeholder="Band Camp"></td></tr>
+					<tr><th scope="row"><?php esc_html_e( 'Note', 'fort-weekly' ); ?></th>
+						<td><?php wp_editor( $n['text'], 'fortw_nantan_text', array( 'textarea_name' => 'region[nantan][text]', 'textarea_rows' => 6, 'media_buttons' => false, 'teeny' => true ) ); ?></td></tr>
+					<tr><th scope="row"><?php esc_html_e( 'Image (optional)', 'fort-weekly' ); ?></th>
+						<td class="fortw-image-pick">
+							<input type="hidden" name="region[nantan][image_id]" value="<?php echo (int) $n['image_id']; ?>">
+							<img src="<?php echo esc_url( $image ); ?>" alt="" class="fortw-image-preview"<?php echo $image ? '' : ' hidden'; ?>>
+							<button type="button" class="button fortw-image-choose"><?php esc_html_e( 'Choose image', 'fort-weekly' ); ?></button>
+							<button type="button" class="button-link fortw-image-clear"<?php echo $image ? '' : ' hidden'; ?>><?php esc_html_e( 'Remove', 'fort-weekly' ); ?></button>
+						</td></tr>
+				</table>
+			<?php endif; ?>
 
-			<?php foreach ( fortw_region_lists() as $key => $list ) : ?>
+			<?php
+			foreach ( fortw_region_lists() as $key => $list ) :
+				if ( ! in_array( $key, $parts, true ) ) {
+					continue;
+				}
+				?>
 				<h2><?php echo esc_html( $list[0] ); ?></h2>
 				<?php if ( $list[1] ) : ?><p class="description"><?php echo esc_html( $list[1] ); ?></p><?php endif; ?>
 				<table class="widefat striped fortw-rows" data-fortw-rows="<?php echo esc_attr( $key ); ?>">
@@ -124,7 +140,16 @@ function fortw_render_region_page() {
 				<p><button type="button" class="button fortw-add-row" data-fortw-target="<?php echo esc_attr( $key ); ?>"><?php esc_html_e( 'Add a row', 'fort-weekly' ); ?></button></p>
 			<?php endforeach; ?>
 
-			<?php submit_button( __( 'Save region info', 'fort-weekly' ) ); ?>
+			<?php if ( in_array( 'fng_goal', $parts, true ) ) : ?>
+				<h2><?php esc_html_e( 'FNG challenge', 'fort-weekly' ); ?></h2>
+				<table class="form-table" role="presentation">
+					<tr><th scope="row"><label for="fortw-goal"><?php esc_html_e( 'FNG goal this year', 'fort-weekly' ); ?></label></th>
+						<td><input type="number" id="fortw-goal" name="region[fng_goal]" value="<?php echo (int) $s['fng_goal']; ?>" min="0" max="100000">
+							<p class="description"><?php esc_html_e( 'The count comes from the stats site.', 'fort-weekly' ); ?></p></td></tr>
+				</table>
+			<?php endif; ?>
+
+			<?php submit_button( __( 'Save', 'fort-weekly' ) ); ?>
 		</form>
 	</div>
 	<?php
@@ -137,17 +162,27 @@ add_action(
 		if ( ! current_user_can( 'manage_fort_region' ) ) {
 			wp_die( esc_html__( 'Sorry, you are not allowed to do that.', 'fort-weekly' ), 403 );
 		}
-		$in  = (array) wp_unslash( $_POST['region'] ?? array() ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- each field sanitized below
-		$out = fortw_region_settings();
-		$n   = (array) ( $in['nantan'] ?? array() );
-		$out['nantan'] = array(
-			'text'     => wp_kses_post( (string) ( $n['text'] ?? '' ) ),
-			'author'   => sanitize_text_field( (string) ( $n['author'] ?? '' ) ),
-			'heading'  => sanitize_text_field( (string) ( $n['heading'] ?? '' ) ),
-			'image_id' => wp_attachment_is_image( (int) ( $n['image_id'] ?? 0 ) ) ? (int) $n['image_id'] : 0,
-		);
-		$out['fng_goal'] = max( 0, min( 100000, (int) ( $in['fng_goal'] ?? 226 ) ) );
+		$pages = fortw_region_pages();
+		$slug  = isset( $_POST['fortw_page'] ) && isset( $pages[ $_POST['fortw_page'] ] ) ? sanitize_key( $_POST['fortw_page'] ) : 'fortw-region';
+		$parts = $pages[ $slug ][2]; // Only this page's fields: the others keep what they have.
+		$in    = (array) wp_unslash( $_POST['region'] ?? array() ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- each field sanitized below
+		$out   = fortw_region_settings();
+		if ( in_array( 'nantan', $parts, true ) ) {
+			$n             = (array) ( $in['nantan'] ?? array() );
+			$out['nantan'] = array(
+				'text'     => wp_kses_post( (string) ( $n['text'] ?? '' ) ),
+				'author'   => sanitize_text_field( (string) ( $n['author'] ?? '' ) ),
+				'heading'  => sanitize_text_field( (string) ( $n['heading'] ?? '' ) ),
+				'image_id' => wp_attachment_is_image( (int) ( $n['image_id'] ?? 0 ) ) ? (int) $n['image_id'] : 0,
+			);
+		}
+		if ( in_array( 'fng_goal', $parts, true ) ) {
+			$out['fng_goal'] = max( 0, min( 100000, (int) ( $in['fng_goal'] ?? 226 ) ) );
+		}
 		foreach ( fortw_region_lists() as $key => $list ) {
+			if ( ! in_array( $key, $parts, true ) ) {
+				continue;
+			}
 			$rows = array();
 			foreach ( (array) ( $in[ $key ] ?? array() ) as $row ) {
 				$clean = array();
@@ -167,7 +202,7 @@ add_action(
 			$out[ $key ] = $rows;
 		}
 		update_option( 'fort_weekly_region', $out );
-		wp_safe_redirect( admin_url( 'edit.php?post_type=' . FORTW_POST_TYPE . '&page=fortw-region&saved=1' ) );
+		wp_safe_redirect( admin_url( 'edit.php?post_type=' . FORTW_POST_TYPE . '&page=' . $slug . '&saved=1' ) );
 		exit;
 	}
 );
