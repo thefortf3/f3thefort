@@ -7,6 +7,7 @@
  * is scoped to html[data-fort-style="N"] so the site can switch between them live. Output:
  *   wordpress-theme/fort/assets/style-previews.css    (loaded only when FORT_STYLE_PREVIEW is on)
  *   wordpress-theme/fort/assets/style-previews.json   (names and summaries for the preview frame)
+ *   wordpress-theme/fort/assets/newsletter-previews.json (the newsletter in each style: email CSS)
  *
  *   node scripts/build-style-previews.mjs
  *
@@ -14,7 +15,7 @@
  * live theme styles: the CSS only applies while a style is switched on.
  */
 
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -216,8 +217,143 @@ for (const v of VARIANTS) {
 }
 if (problems.length) { console.error('Contrast below 4.5:1:\n  ' + problems.join('\n  ')); process.exit(1); }
 
+// ── The newsletter in each style ───────────────────────────────────────────
+// The same ingredients as email CSS, added after the Fort Weekly template's own (templates/
+// newsletter-agenda.html) and inlined with it, so the preview is what Mailchimp gets. Email can't
+// do what the site does: no var(), rgba, gradients, shadows, filters or pseudo-elements, px only
+// (the rules are in the template's header comment). Translucent site colours are flattened onto
+// the background here, and emailProblems() below fails the build on anything that slips through.
+
+// A colour as solid hex: rgba(...) mixed onto the background.
+function solid(c, bg) {
+  const m = /^rgba\(\s*(\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\s*\)$/.exec(c);
+  if (!m) return c;
+  const n = parseInt(bg.slice(1), 16), b = [n >> 16, (n >> 8) & 255, n & 255], a = Number(m[4]);
+  return '#' + [1, 2, 3].map(i => Math.round(Number(m[i]) * a + b[i - 1] * (1 - a)).toString(16).padStart(2, '0')).join('');
+}
+
+const EF = {
+  display: "'Oswald', 'Arial Narrow', Arial, sans-serif",
+  serif: "'Source Serif 4', Georgia, 'Times New Roman', serif",
+  mono: "'JetBrains Mono', 'Courier New', monospace",
+};
+// The template's label-like text (mono, small, capitals), and its headings.
+const E_LABELS = '.issue,.qby,.fmeta,.sec-aside,.dow,.when,.meta,.meta-inline,.also,.label,.small,.lnk,.chip,.pill';
+const E_CAPS = '.brand,.issue,.qby,.badge,.fmeta,.btn,.sec-title,.sec-aside,.dow,.tag,.new,.label,.links .lnk,.small .lnk,.copy';
+const E_HEADS = '.brand,.ftitle,.sec-title,.title';
+
+function buildEmail(o) {
+  const p = P[o.palette], s = c => solid(c, p.bg);
+  const panel = s(p.panel), panel2 = s(p.panel2), card = s(p.card), line = s(p.line), line2 = s(p.line2);
+  const R = { square: { c: 0, b: 0, t: 0 }, soft: { c: 6, b: 4, t: 3 }, round: { c: 16, b: 999, t: 999 } }[o.shape];
+  const bBg = o.buttons === 'ink' ? p.ink : p.amber, bText = o.buttons === 'ink' ? p.inkText : p.btnText;
+  const out = [];
+
+  // Colours
+  out.push(`body,.canvas,.canvas-cell{background-color:${p.bg};} body{color:${p.text};} a,.amber{color:${p.amberB};}
+.brand{color:${p.bright};} .issue,.qby,.fmeta,.sec-aside,.dow,.when,.meta-inline,.also,.label,.dim{color:${p.mute};} .meta,.sum--sm,.dim2{color:${p.dim};} .sum{color:${p.text};}
+.chip{background-color:${panel2};color:${p.text};} .chip b{color:${p.bright};} .chip b.amber{color:${p.amberB};}
+.qmark{color:${p.amber};} .qtext,.ftitle,.sec-title,.title{color:${p.bright};}
+.badge{background-color:${p.amber};color:${p.btnText};} .btn{background-color:${bBg};color:${bText};} .new{background-color:${p.amberB};color:${onFill(p.amberB)};}
+.tag{color:${p.dim} !important;border-color:${line2} !important;} .lnk{color:${p.amberB};} .pill{background-color:${panel2};color:${p.amberB};}
+.sec-head{border-bottom-color:${line2};} .sec-head--accent{border-bottom-color:${p.amber};} .dnum{color:${p.amberB};} .dnum--sm{color:${p.text};} .thumb{background-color:${line};}
+.day,.row,.ongoing{border-bottom-color:${line};} .every,.footer{border-top-color:${line};}
+.featured{background-color:${p.dark ? card : panel};border-color:${line2};}`);
+
+  // Readable sizes, as on the site: body text 16px and labels 12px+ (the template's are 10-11px).
+  out.push(`.sum{font-size:16px;} .sum--sm{font-size:15px;} .qtext{font-size:19px;} .title{font-size:19px;} .title--sm{font-size:17px;}
+${E_LABELS}{font-size:12px;} .badge,.new,.tag{font-size:11px;} .btn{font-size:13px;}`);
+
+  // Headings
+  if (o.headings === 'sentence') out.push(`${E_HEADS}{text-transform:none;font-weight:500;letter-spacing:0.2px;} .brand{font-size:25px;font-weight:600;} .sec-title{font-size:24px;} .ftitle{font-size:26px;}`);
+  if (o.headings === 'serif') out.push(`${E_HEADS},.dnum,.qmark{font-family:${EF.serif};text-transform:none;letter-spacing:0;font-weight:600;} .brand{font-size:26px;} .sec-title{font-size:24px;} .ftitle{font-size:28px;line-height:1.15;}`);
+  if (o.headings === 'calm') out.push(`${E_HEADS},.dnum{font-weight:400;letter-spacing:1.5px;}`);
+
+  // Labels
+  if (o.labels === 'plain' || o.labels === 'italic') {
+    out.push(`${E_LABELS},.badge,.new,.tag,.btn{font-family:${EF.serif};letter-spacing:0;} ${E_CAPS}{text-transform:none;}
+${E_LABELS}{font-size:14px;} .btn{font-size:15px;font-weight:600;padding:11px 18px;} .badge,.new,.tag{font-size:12px;}`);
+    // The brand and headings keep their own heading treatment.
+    if (o.headings === 'bold' || o.headings === 'calm') out.push(`.brand,.sec-title{text-transform:uppercase;}`);
+  }
+  if (o.labels === 'italic') out.push(`.issue,.qby,.fmeta,.sec-aside,.when,.meta,.meta-inline,.also,.label,.dow,.lnk{font-style:italic;}`);
+  // Lower-case labels, but not where people's and AOs' names appear (chips, bylines, the Q).
+  if (o.labels === 'monoLower') out.push(`.issue,.badge,.btn,.sec-aside,.dow,.tag,.new,.label,.links .lnk,.small .lnk,.copy,.lnk{text-transform:lowercase;letter-spacing:0.4px;} .qby,.fmeta{text-transform:none;letter-spacing:0.4px;}`);
+
+  // Shape
+  // Chips may wrap at the bigger size (a long shovel flag), so their corners stop short of a pill.
+  out.push(`.pill,.badge,.tag,.new{border-radius:${R.t}px;} .chip{border-radius:${Math.min(R.t, 12)}px;white-space:normal;line-height:1.45;} .btn{border-radius:${R.b}px;} .thumb{border-radius:${Math.min(R.c, 8)}px;}`);
+
+  // Sections
+  if (o.sections === 'rules') out.push(`.sec-head,.sec-head--accent{border-bottom-width:0;border-top:1px solid ${p.bright};} .sec-title,.sec-aside{padding-top:10px;padding-bottom:6px;} .featured{border-width:0;}`);
+  if (o.sections === 'dashed') out.push(`.sec-head{border-bottom:1px dashed ${line2};} .sec-head--accent{border-bottom:1px dashed ${p.amber};} .day,.row,.ongoing{border-bottom:1px dashed ${line2};} .every,.footer{border-top:1px dashed ${line2};} .featured{border:1px dashed ${line2};}`);
+  if (o.sections === 'cards') out.push(`.sec-head,.sec-head--accent{border-bottom-width:0;} .sec-title,.sec-aside{padding-bottom:4px;}
+.featured{background-color:${card};border:1px solid ${line2};border-radius:${R.c}px;} .hero{border-radius:${Math.max(R.c - 1, 0)}px ${Math.max(R.c - 1, 0)}px 0 0;}
+.day,.row{background-color:${card};border:1px solid ${line};border-radius:${R.c}px;border-collapse:separate;margin-top:10px;} .day-label,.row-date{padding-left:12px;} .day-items{padding-right:14px;} .row td{padding-right:14px;}
+.ongoing{background-color:${card};border:1px solid ${line};border-radius:${R.c}px;padding:12px 14px;margin-top:10px;}`);
+  else out.push(`.featured{border-radius:${R.c}px;} .hero{border-radius:${R.c}px ${R.c}px 0 0;}`);
+
+  // Flyers: a mat on the thumbnails (email has no image filters, so "matte" stays as is).
+  if (o.flyers === 'mat') out.push(`.thumb{border:3px solid ${p.mat};}`);
+
+  // Header
+  if (o.header === 'pill') out.push(`.mast{background-color:${card};border:1px solid ${line2};border-radius:999px;border-collapse:separate;} .brand{padding:12px 0 12px 20px;} .issue{padding:12px 20px 12px 0;}`);
+  return out.join('\n');
+}
+
+// What email can't carry over from each style's site version, shown under the preview.
+function emailNotes(o) {
+  const notes = [];
+  if (P[o.palette].html) notes.push('The sunrise glow behind the page is site-only (email has no gradients); the email gets the plain indigo.');
+  if (o.flyers === 'matte') notes.push('Flyers are shown as they are: email has no image filters to tone them down.');
+  if (o.sections === 'cards') notes.push('Cards have no drop shadows in email, just a border.');
+  if (o.shape !== 'square') notes.push('Outlook for Windows shows square corners.');
+  if (!P[o.palette].dark) notes.push('Gmail and Outlook phone apps in dark mode may darken a light email themselves; this can’t be prevented.');
+  return notes;
+}
+
+// The email rules in plain words, for the preview frame (the same list as the template's header).
+const EMAIL_RULES = [
+  'What you see here is the email exactly as it goes to Mailchimp: the style is added to the newsletter’s own CSS and inlined with it, the same way the Save as Mailchimp draft button does.',
+  'Email keeps the old newsletter’s compromises: solid colours only (no CSS variables, see-through colours, gradients or shadows), real tables for layout, no decorative pseudo-elements, pixel sizes, 600px wide with the phone layout at 480px.',
+  'Gmail drops the web fonts, so each style falls back to Arial Narrow, Georgia and Courier New there. Tick “Gmail fonts” to see that. Apple Mail and the iPhone Mail app show the web fonts.',
+  'Gmail cuts off emails over 102 KB (“Message clipped”). The size of this issue is shown above the preview.',
+];
+
+// Fails the build on CSS email clients don't support (the rules in the template's header).
+const EMAIL_BANNED = [
+  [/var\(/, 'var()'], [/color-mix/, 'color-mix()'], [/rgba?\(|hsla?\(/, 'rgba()/hsl()'], [/gradient/, 'gradients'],
+  [/box-shadow/, 'box-shadow'], [/filter\s*:/, 'filters'], [/(^|[^-])transform\s*:/, 'transform'], [/position\s*:/, 'position'],
+  [/::?(before|after)/, 'pseudo-elements'], [/display\s*:\s*(flex|grid|inline-flex)/, 'flex/grid'], [/clamp\(|calc\(/, 'clamp()/calc()'],
+  [/\d(rem|em|vw|vh)\b/, 'rem/em/vw units'], [/margin[\w-]*\s*:[^;}]*-\d/, 'negative margins'], [/@import/, '@import'], [/Impact/i, 'Impact'],
+];
+function emailProblems(name, css) {
+  const found = EMAIL_BANNED.filter(([re]) => re.test(css)).map(([, what]) => `${name}: ${what}`);
+  for (const m of css.matchAll(/font-family\s*:\s*([^;}]+)/g)) {
+    if (!/(serif|sans-serif|monospace)\s*$/.test(m[1].trim())) found.push(`${name}: font stack without a system fallback: ${m[1]}`);
+  }
+  for (const m of css.matchAll(/@media[^{]*\{([\s\S]*?\})\s*\}/g)) {
+    for (const d of m[1].matchAll(/[\w-]+\s*:\s*([^;}]+)/g)) if (!/!important/.test(d[1])) found.push(`${name}: @media rule without !important: ${d[0]}`);
+  }
+  return found;
+}
+
 const here = dirname(fileURLToPath(import.meta.url));
 const assets = resolve(here, '..', 'wordpress-theme', 'fort', 'assets');
+const template = readFileSync(resolve(here, '..', 'wordpress-plugin', 'fort-weekly', 'templates', 'newsletter-agenda.html'), 'utf8');
+const emailIssues = emailProblems('newsletter-agenda.html', (/<style>([\s\S]*?)<\/style>/.exec(template) || [])[1] || '');
+const email = {};
+for (const v of VARIANTS) {
+  const p = P[v.o.palette], css = buildEmail(v.o);
+  emailIssues.push(...emailProblems(`${v.key} ${v.name}`, css));
+  // The email's own pairs (chips and pills sit on panel2; NEW is a filled accent).
+  const panel2 = solid(p.panel2, p.bg);
+  for (const [n, c, g] of [['chip text', p.text, panel2], ['pill', p.amberB, panel2], ['new', onFill(p.amberB), p.amberB], ['badge', p.btnText, p.amber]]) {
+    const r = ratio(c, g); if (r < 4.5) emailIssues.push(`${v.key} ${v.name}: ${n} ${c} on ${g} is ${r.toFixed(2)}:1`);
+  }
+  email[v.key] = { scheme: p.dark ? 'dark' : 'light', css, notes: emailNotes(v.o) };
+}
+if (emailIssues.length) { console.error('Newsletter styles break the email rules:\n  ' + emailIssues.join('\n  ')); process.exit(1); }
 let css = `/* Style previews: generated by scripts/build-style-previews.mjs. Applies only while a style is
    switched on (html[data-fort-style]); loaded only when FORT_STYLE_PREVIEW is enabled. */\n`;
 const meta = [];
@@ -233,4 +369,5 @@ for (const v of VARIANTS) {
 }
 writeFileSync(resolve(assets, 'style-previews.css'), css);
 writeFileSync(resolve(assets, 'style-previews.json'), JSON.stringify({ basis: BASIS, styles: meta }, null, 2) + '\n');
-console.log(`Wrote ${VARIANTS.length} styles → wordpress-theme/fort/assets/style-previews.css (${(css.length / 1024).toFixed(1)} KB)`);
+writeFileSync(resolve(assets, 'newsletter-previews.json'), JSON.stringify({ rules: EMAIL_RULES, styles: email }, null, 2) + '\n');
+console.log(`Wrote ${VARIANTS.length} styles → wordpress-theme/fort/assets/style-previews.css (${(css.length / 1024).toFixed(1)} KB) and newsletter-previews.json`);

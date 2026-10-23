@@ -3,7 +3,8 @@
  * /style-preview/ — a frame around the site for trying the alternative styles live (see
  * inc/style-preview.php). A standalone page: its own small stylesheet and script, no theme chrome.
  * Choices live in the address (?style=3&w=phone&page=schedule&b=5) so a view can be shared; nothing
- * is saved.
+ * is saved. The "Newsletter (email)" page loads /style-preview/newsletter/?style=N instead: email
+ * can't switch styles live, so each style is a fresh load (&fonts=gmail drops the web fonts).
  *
  * @package Fort
  */
@@ -24,12 +25,21 @@ if ( ! empty( $bbs[0]['event_id'] ) ) {
 	$pages['backblast'] = array( 'A backblast', fort_backblast_url( $bbs[0] ) );
 }
 $pages['submit'] = array( 'Submit an event', fort_submit_url() );
+// This week's newsletter, as the email (each style is built on the server, see inc/style-preview.php).
+if ( fort_style_preview_has_newsletter() ) {
+	$pages['newsletter'] = array( 'Newsletter (email)', home_url( '/style-preview/newsletter/' ) );
+}
 
 $preview = fort_style_preview_data();
+$email   = fort_style_preview_email_data();
 $config  = array(
 	'styles' => $preview['styles'],
 	'basis'  => $preview['basis'],
 	'pages'  => array_map( function ( $p ) { return array( 'label' => $p[0], 'url' => $p[1] ); }, $pages ),
+	'email'  => array(
+		'rules' => $email['rules'],
+		'notes' => array_map( function ( $s ) { return $s['notes'] ?? array(); }, $email['styles'] ),
+	),
 );
 ?><!doctype html>
 <html lang="en">
@@ -59,6 +69,12 @@ select { background: #1f2329; border: 1px solid #3a3f48; border-radius: 6px; pad
 .recipe b { color: #f1efe8; }
 .why { margin-top: 4px; color: #d9c9a3; font-size: 13px; }
 .why::before { content: 'Why: '; font-weight: 600; color: #e4b866; }
+.notes { margin: 4px 0 0; padding-left: 18px; color: #c9b8d9; font-size: 13px; }
+.notes li { margin: 2px 0; }
+.notes li:first-child::marker { content: ''; }
+.notes li:first-child { list-style: none; margin-left: -18px; color: #b9a3d6; font-weight: 600; }
+.cap .size { color: #9fc3e6; }
+.cap .size.is-big { color: #ff9c8a; }
 details.basis { font-size: 13px; color: #b4b9c2; }
 details.basis summary { cursor: pointer; color: #9fc3e6; display: inline; }
 details.basis ul { margin: 6px 0 2px; padding-left: 18px; max-width: 110ch; }
@@ -100,11 +116,13 @@ main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 10px; }
 			<button type="button" data-w="phone" aria-pressed="false">Phone</button>
 		</div>
 		<label>Page <select id="page"></select></label>
+		<label id="gmailWrap" hidden title="Gmail drops the web fonts: see the fallbacks it uses"><input type="checkbox" id="gmail"> Gmail fonts</label>
 		<label><input type="checkbox" id="compare"> Compare with</label>
 		<select id="styleB" aria-label="Compare with style"></select>
 	</div>
 	<div class="recipe" id="recipe"></div>
 	<details class="basis" id="basis"><summary>Why these six</summary><ul></ul></details>
+	<details class="basis" id="emailRules" hidden><summary>What email can and can’t do</summary><ul></ul></details>
 </header>
 <main id="stage">
 	<section class="pane" id="paneA"><div class="cap" id="capA"></div><div class="view"><div class="shell"><iframe id="frameA" title="Site preview" loading="eager"></iframe></div></div></section>
@@ -123,8 +141,10 @@ main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 10px; }
     styleB: isStyle(q.get('b')) ? q.get('b') : '0',
     page: CFG.pages[q.get('page')] ? q.get('page') : 'home',
     w: WIDTHS[q.get('w')] ? q.get('w') : (window.innerWidth <= 600 ? 'phone' : 'desktop'),
-    compare: q.get('compare') === '1'
+    compare: q.get('compare') === '1',
+    gmail: q.get('gm') === '1'
   };
+  function isEmail() { return state.page === 'newsletter'; }
   if (state.compare && state.styleB === state.style) state.styleB = state.style === '0' ? '1' : '0';
 
   function styleName(k) { if (k === '0') return 'Current'; var s = CFG.styles.filter(function (x) { return x.key === k; })[0]; return s ? k + ' · ' + s.name : k; }
@@ -135,6 +155,9 @@ main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 10px; }
   CFG.basis.forEach(function (t) { basisList.appendChild(el('li', {}, t)); });
   if (!CFG.basis.length) $('basis').hidden = true;
   $('basis').addEventListener('toggle', function () { layout(); });
+  var rulesList = document.querySelector('#emailRules ul');
+  CFG.email.rules.forEach(function (t) { rulesList.appendChild(el('li', {}, t)); });
+  $('emailRules').addEventListener('toggle', function () { layout(); });
   var stylesBar = $('styles');
   ['0'].concat(CFG.styles.map(function (s) { return s.key; })).forEach(function (k) {
     var b = el('button', { type: 'button', 'data-s': k, 'aria-pressed': 'false', title: k === '0' ? 'The site as it is now (key 0)' : (k.length === 1 ? 'Key ' + k : 'Use [ and ] to step through styles') }, styleName(k));
@@ -186,18 +209,30 @@ main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 10px; }
     cap.innerHTML = '';
     var b = el('b', {}, styleName(which === 'A' ? state.style : state.styleB));
     cap.appendChild(b);
+    if (isEmail()) {
+      // The email's size, against the point where Gmail cuts it off ("Message clipped").
+      var bytes = 0;
+      try { bytes = new Blob([f.contentWindow.document.documentElement.outerHTML]).size; } catch (e) { bytes = 0; }
+      cap.appendChild(document.createTextNode('   email' + (state.gmail ? ', Gmail fonts' : ', web fonts') + ' · '));
+      if (bytes) cap.appendChild(el('span', { 'class': 'size' + (bytes > 92 * 1024 ? ' is-big' : '') }, Math.round(bytes / 1024) + ' KB of Gmail’s 102 KB'));
+      return;
+    }
     cap.appendChild(document.createTextNode(path ? '   ' + path : ''));
   }
 
+  // The newsletter can't switch styles in place (its styles are inlined), so its address carries
+  // the style and a change reloads it.
   function url(which) {
     var base = CFG.pages[state.page].url;
-    return base;
+    if (!isEmail()) return base;
+    return base + '?style=' + encodeURIComponent(which === 'A' ? state.style : state.styleB) + (state.gmail ? '&fonts=gmail' : '');
   }
   var loadedPage = { A: null, B: null };
   function loadPage(which) {
-    if (loadedPage[which] === state.page) return;
-    loadedPage[which] = state.page;
-    frames[which].src = url(which);
+    var u = url(which);
+    if (loadedPage[which] === u) return;
+    loadedPage[which] = u;
+    frames[which].src = u;
   }
 
   // Layout: scale the chosen width to fit the pane, then fill the pane's height
@@ -228,6 +263,9 @@ main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 10px; }
     $('styleB').value = state.styleB;
     $('styleB').hidden = !state.compare;
     $('paneB').hidden = !state.compare;
+    $('gmailWrap').hidden = !isEmail();
+    $('gmail').checked = state.gmail;
+    $('emailRules').hidden = !isEmail();
     var s = CFG.styles.filter(function (x) { return x.key === state.style; })[0];
     var r = $('recipe');
     r.innerHTML = '';
@@ -239,9 +277,16 @@ main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 10px; }
       var chips = el('div', { 'class': 'chips' });
       s.ingredients.forEach(function (i) { chips.appendChild(el('span', {}, i)); });
       r.appendChild(chips);
+      var notes = isEmail() ? (CFG.email.notes[s.key] || []) : [];
+      if (notes.length) {
+        var ul = el('ul', { 'class': 'notes' });
+        ul.appendChild(el('li', {}, 'In email:'));
+        notes.forEach(function (n) { ul.appendChild(el('li', {}, n)); });
+        r.appendChild(ul);
+      }
     } else {
       r.appendChild(el('b', {}, 'Current'));
-      r.appendChild(document.createTextNode(' — the site as it looks now. Pick a style above, or press 1–6 (0 for current, C to compare).'));
+      r.appendChild(document.createTextNode(isEmail() ? ' — the newsletter as it goes out now. Pick a style above, or press 1–6 (0 for current, C to compare).' : ' — the site as it looks now. Pick a style above, or press 1–6 (0 for current, C to compare).'));
     }
     applyStyle(frames.A, state.style);
     if (state.compare) applyStyle(frames.B, state.styleB);
@@ -254,6 +299,7 @@ main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 10px; }
     if (state.compare) { p.set('compare', '1'); p.set('b', state.styleB); }
     if (state.page !== 'home') p.set('page', state.page);
     if (state.w !== 'desktop') p.set('w', state.w);
+    if (isEmail() && state.gmail) p.set('gm', '1');
     history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : ''));
   }
 
@@ -261,6 +307,7 @@ main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 10px; }
   $('widths').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) { state.w = b.getAttribute('data-w'); render(); } });
   $('page').addEventListener('change', function () { state.page = this.value; this.blur(); render(); });
   $('compare').addEventListener('change', function () { this.blur(); state.compare = this.checked; if (state.compare && state.styleB === state.style) state.styleB = state.style === '0' ? '1' : '0'; if (state.compare) loadedPage.B = null; render(); });
+  $('gmail').addEventListener('change', function () { this.blur(); state.gmail = this.checked; render(); });
   $('styleB').addEventListener('change', function () { state.styleB = this.value; this.blur(); render(); });
   document.addEventListener('keydown', function (e) {
     if (e.metaKey || e.ctrlKey || e.altKey || /^(SELECT|INPUT|TEXTAREA)$/.test((e.target.tagName || ''))) return;

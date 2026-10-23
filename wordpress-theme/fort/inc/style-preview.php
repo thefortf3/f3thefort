@@ -9,6 +9,8 @@
  * When on:
  *   - /style-preview/ is a page with a toolbar (style, page, width, side-by-side compare) around
  *     the real site in a frame (preview-frame.php);
+ *   - /style-preview/newsletter/?style=N is this week's newsletter in style N, inlined for email
+ *     the way Fort Weekly sends it to Mailchimp (&fonts=gmail: without the web fonts);
  *   - the site loads assets/style-previews.css, whose rules apply only under
  *     html[data-fort-style="1".."6"];
  *   - an early script sets that attribute from the frame's name, ?fort_style=N, or the last choice
@@ -39,15 +41,51 @@ function fort_style_preview_styles() {
 	return fort_style_preview_data()['styles'];
 }
 
+/** assets/newsletter-previews.json: each style's newsletter CSS, colour scheme and email notes. */
+function fort_style_preview_email_data() {
+	$file = get_template_directory() . '/assets/newsletter-previews.json';
+	$data = is_readable( $file ) ? json_decode( (string) file_get_contents( $file ), true ) : null; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+	return array(
+		'styles' => is_array( $data['styles'] ?? null ) ? $data['styles'] : array(),
+		'rules'  => is_array( $data['rules'] ?? null ) ? $data['rules'] : array(),
+	);
+}
+
+/** Whether this site can build the newsletter (Fort Weekly is active). */
+function fort_style_preview_has_newsletter() {
+	return function_exists( 'fortw_newsletter_html' ) && function_exists( 'fortw_prepare_for_email' );
+}
+
+/**
+ * This week's newsletter in style $key ('0' = as it is now), ready for email exactly as Fort
+ * Weekly saves it to Mailchimp: the style's CSS goes after the template's and is inlined with it.
+ * $gmail: without the web fonts, as Gmail shows it (it drops the font <link>).
+ */
+function fort_style_preview_newsletter( $key, $gmail = false ) {
+	$style = fort_style_preview_email_data()['styles'][ $key ] ?? null;
+	$add   = function ( $template ) use ( $style ) {
+		if ( ! $style ) {
+			return $template;
+		}
+		$template = str_replace( '</head>', "<style>\n" . $style['css'] . "\n</style>\n</head>", $template );
+		return preg_replace( '/(<meta name="(?:supported-)?color-scheme" content=")[^"]*(">)/', '${1}' . $style['scheme'] . '${2}', $template );
+	};
+	add_filter( 'fortw_newsletter_template', $add );
+	$html = fortw_prepare_for_email( fortw_newsletter_html() );
+	remove_filter( 'fortw_newsletter_template', $add );
+	return $gmail ? preg_replace( '/<link\b[^>]*fonts\.googleapis\.com[^>]*>\s*/i', '', $html ) : $html;
+}
+
 if ( fort_style_preview_on() ) {
 	add_action(
 		'init',
 		function () {
 			add_rewrite_rule( '^style-preview/?$', 'index.php?fort_style_preview=1', 'top' );
+			add_rewrite_rule( '^style-preview/newsletter/?$', 'index.php?fort_style_preview=newsletter', 'top' );
 			// A flush from somewhere that doesn't know about this setting (e.g. WP-CLI) drops the
-			// address; put it back the next time the site loads.
+			// addresses; put them back the next time the site loads.
 			$rules = get_option( 'rewrite_rules' );
-			if ( is_array( $rules ) && ! isset( $rules['^style-preview/?$'] ) ) {
+			if ( is_array( $rules ) && ( ! isset( $rules['^style-preview/?$'] ) || ! isset( $rules['^style-preview/newsletter/?$'] ) ) ) {
 				flush_rewrite_rules( false );
 			}
 		}
@@ -82,6 +120,17 @@ if ( fort_style_preview_on() ) {
 			}
 			nocache_headers();
 			header( 'X-Robots-Tag: noindex, nofollow' );
+			// The newsletter in a style: /style-preview/newsletter/?style=N[&fonts=gmail].
+			if ( 'newsletter' === get_query_var( 'fort_style_preview' ) ) {
+				if ( ! fort_style_preview_has_newsletter() ) {
+					status_header( 404 );
+					exit;
+				}
+				$key = isset( $_GET['style'] ) ? sanitize_key( wp_unslash( $_GET['style'] ) ) : '0'; // phpcs:ignore WordPress.Security.NonceVerification -- read-only preview
+				header( 'Content-Type: text/html; charset=utf-8' );
+				echo fort_style_preview_newsletter( $key, isset( $_GET['fonts'] ) && 'gmail' === $_GET['fonts'] ); // phpcs:ignore WordPress.Security.EscapeOutput, WordPress.Security.NonceVerification -- built and escaped by Fort Weekly
+				exit;
+			}
 			return locate_template( 'preview-frame.php' ) ?: $template;
 		}
 	);
