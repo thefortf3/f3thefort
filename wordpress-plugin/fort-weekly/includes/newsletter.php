@@ -13,13 +13,17 @@ if ( file_exists( FORT_WEEKLY_DIR . '/vendor/autoload.php' ) ) {
 	require_once FORT_WEEKLY_DIR . '/vendor/autoload.php';
 }
 
-/** The issue as rendered (styles still in a <style> block — right for the browser preview). */
+/**
+ * The issue as rendered (styles still in a <style> block — right for the browser preview).
+ * The 'fortw_newsletter_template' filter gets the template (CSS and all) before it's filled; the
+ * theme's style preview uses it to try other styles.
+ */
 function fortw_newsletter_html( $today = null ) {
 	$today    = $today ? $today : fortw_today();
 	$site     = untrailingslashit( home_url() );
 	$template = file_get_contents( FORT_WEEKLY_DIR . '/templates/newsletter-agenda.html' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 	return fortw_render_agenda(
-		$template,
+		(string) apply_filters( 'fortw_newsletter_template', $template ),
 		fortw_list_entries( array( 'upcoming_only' => true, 'today' => $today ) ),
 		fort_weekly_region(),
 		$today,
@@ -36,12 +40,14 @@ function fortw_newsletter_html( $today = null ) {
 
 /**
  * The issue ready for email: every style inlined (email clients ignore most <style> blocks), the
- * @media rules kept in the head, and Impact dropped from the font stack (Gmail can't load the
- * web fonts and Impact is far heavier than Oswald). As the app's prepareForEmail() did with Juice.
+ * @media rules kept in the head, background colours repeated as bgcolor attributes (Outlook), and
+ * Impact dropped from the font stack (Gmail can't load the web fonts and Impact is far heavier
+ * than Oswald). As the app's prepareForEmail() did with Juice.
  */
 function fortw_prepare_for_email( $html ) {
 	if ( class_exists( '\Pelago\Emogrifier\CssInliner' ) ) {
 		$html = \Pelago\Emogrifier\CssInliner::fromHtml( $html )->inlineCss()->render();
+		$html = \Pelago\Emogrifier\HtmlProcessor\CssToAttributeConverter::fromHtml( $html )->convertCssToVisualAttributes()->render();
 	} else {
 		error_log( 'Fort Weekly: vendor/ is missing, so the email HTML was not inlined. Build the plugin with scripts/build-plugin-zip.sh.' );
 	}

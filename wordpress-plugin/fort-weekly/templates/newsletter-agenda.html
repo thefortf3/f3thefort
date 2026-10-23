@@ -3,12 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
 <title>{{TITLE}}</title>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <!--
   Agenda layout (design canvas "E3 · Agenda + featured item"). Body is built by
   includes/pure/agenda-render.php. Everything here is inlined for email (fortw_prepare_for_email);
   the @media block survives separately, so every override in it needs !important.
+
+  Email rules, from what the old newsletter had to give up (server.js prepareForEmail and the
+  template's history):
+    - literal colours only: no var() (Gmail), and solid hex rather than rgba() or gradients;
+    - layout in real <table>/<td> with width attributes: no grid or flex (Gmail Android keeps
+      inline display:table-cell over the @media rules);
+    - no ::before / ::after, position or negative margins: quote marks and badges are real text;
+    - px sizes only: no rem (Gmail Android's root size differs), clamp() or vw;
+    - 600px wide, phone layout at 480px;
+    - Gmail drops the web-font <link>, so every stack ends in a system font (no Impact: too heavy);
+    - Gmail drops <body> styles, so the background is on the .canvas table;
+    - capitals come from text-transform, so a restyle can turn them off;
+    - no line clamping or in-email anchors: summaries are cut when the issue is built.
+  scripts/build-style-previews.mjs checks its newsletter styles against the same list.
 -->
 <style>
 body { margin: 0; padding: 0; background: #0d0e10; color: #d8d6d0; font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif; -webkit-font-smoothing: antialiased; }
@@ -16,11 +32,13 @@ a { color: #e8b94a; text-decoration: none; }
 table { border-collapse: collapse; }
 td { padding: 0; }
 img { border: 0; display: block; }
+.canvas, .canvas-cell { background-color: #0d0e10; }
+.canvas { table-layout: fixed; }
 .wrap { max-width: 600px; margin: 0 auto; padding: 24px 16px 32px; }
 
 .mast { margin-bottom: 14px; }
-.brand { font-family: 'Oswald', 'Arial Narrow', Arial, sans-serif; font-size: 22px; font-weight: 700; letter-spacing: 1.2px; color: #f0ece4; }
-.issue { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 10px; letter-spacing: 1px; color: #8a8a82; }
+.brand { font-family: 'Oswald', 'Arial Narrow', Arial, sans-serif; font-size: 22px; font-weight: 700; letter-spacing: 1.2px; color: #f0ece4; text-transform: uppercase; }
+.issue { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 10px; letter-spacing: 1px; color: #8a8a82; text-transform: uppercase; }
 .amber { color: #e8b94a; }
 
 .chips { margin-bottom: 22px; line-height: 2.2; }
@@ -32,25 +50,25 @@ img { border: 0; display: block; }
 .qmark { font-family: 'Oswald', Arial, sans-serif; font-size: 44px; line-height: 0.7; color: #d4a03c; }
 .qtext { font-size: 18px; line-height: 1.5; font-style: italic; color: #f0ece4; }
 .qtext p { margin: 0 0 8px; }
-.qby { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 10px; letter-spacing: 1.4px; color: #8a8a82; margin-top: 6px; }
+.qby { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 10px; letter-spacing: 1.4px; color: #8a8a82; margin-top: 6px; text-transform: uppercase; }
 
 .featured { background: #181a1e; border: 1px solid #3a3d44; margin: 0 0 28px; }
 .hero { width: 100%; max-width: 100%; height: auto; }
 .featured-body { padding: 16px 18px 18px; }
-.badge { display: inline-block; font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 9px; letter-spacing: 1.2px; padding: 3px 7px; background: #d4a03c; color: #15130e; margin-right: 8px; }
-.fmeta { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 10px; letter-spacing: 0.8px; color: #8a8a82; }
+.badge { display: inline-block; font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 9px; letter-spacing: 1.2px; padding: 3px 7px; background: #d4a03c; color: #15130e; margin-right: 8px; text-transform: uppercase; }
+.fmeta { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 10px; letter-spacing: 0.8px; color: #8a8a82; text-transform: uppercase; }
 .ftitle { display: block; font-family: 'Oswald', 'Arial Narrow', Arial, sans-serif; font-size: 24px; font-weight: 600; line-height: 1.12; letter-spacing: 0.5px; color: #f0ece4; margin: 10px 0 8px; }
-.btn { display: inline-block; font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 11px; letter-spacing: 1px; padding: 10px 14px; background: #d4a03c; color: #15130e; }
+.btn { display: inline-block; font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 11px; letter-spacing: 1px; padding: 10px 14px; background: #d4a03c; color: #15130e; text-transform: uppercase; }
 
 .section { margin: 0 0 26px; }
 .sec-head { border-bottom: 2px solid #3a3d44; margin-bottom: 4px; }
 .sec-head--accent { border-bottom-color: #d4a03c; }
-.sec-title { font-family: 'Oswald', 'Arial Narrow', Arial, sans-serif; font-size: 22px; font-weight: 700; letter-spacing: 0.9px; color: #f0ece4; padding-bottom: 8px; }
-.sec-aside { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 11px; color: #8a8a82; padding-bottom: 8px; }
+.sec-title { font-family: 'Oswald', 'Arial Narrow', Arial, sans-serif; font-size: 22px; font-weight: 700; letter-spacing: 0.9px; color: #f0ece4; padding-bottom: 8px; text-transform: uppercase; }
+.sec-aside { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 11px; color: #8a8a82; padding-bottom: 8px; text-transform: uppercase; }
 
 .day { border-bottom: 1px solid #24272c; }
 .day-label { padding: 14px 10px 14px 0; text-align: center; }
-.dow { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 10px; color: #8a8a82; letter-spacing: 0.6px; }
+.dow { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 10px; color: #8a8a82; letter-spacing: 0.6px; text-transform: uppercase; }
 .dnum { font-family: 'Oswald', 'Arial Narrow', Arial, sans-serif; font-size: 24px; font-weight: 700; line-height: 1; color: #e8b94a; }
 .dnum--sm { font-size: 20px; color: #d8d6d0; }
 .day-items { padding: 14px 0; }
@@ -60,8 +78,8 @@ img { border: 0; display: block; }
 .thumb { width: 64px; height: auto; background: #24272c; }
 
 .when { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 11px; color: #8a8a82; margin-bottom: 4px; }
-.tag { display: inline-block; font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 9px; letter-spacing: 1px; padding: 1px 6px; border: 1px solid #6c7380; margin-left: 8px; }
-.new { display: inline-block; font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 9px; letter-spacing: 1px; padding: 1px 6px; background: #e8b94a; color: #15130e; margin-left: 6px; }
+.tag { display: inline-block; font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 9px; letter-spacing: 1px; padding: 1px 6px; border: 1px solid #6c7380; margin-left: 8px; text-transform: uppercase; }
+.new { display: inline-block; font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 9px; letter-spacing: 1px; padding: 1px 6px; background: #e8b94a; color: #15130e; margin-left: 6px; text-transform: uppercase; }
 .title { display: block; font-family: 'Oswald', 'Arial Narrow', Arial, sans-serif; font-size: 18px; font-weight: 600; letter-spacing: 0.4px; line-height: 1.2; color: #f0ece4; }
 .title--sm { display: inline; font-size: 16px; }
 .meta { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 11px; color: #a9a79f; margin-top: 3px; }
@@ -71,6 +89,7 @@ img { border: 0; display: block; }
 .also { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 11px; color: #8a8a82; margin-top: 4px; }
 .links { margin-top: 8px; }
 .lnk { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 11px; letter-spacing: 0.8px; color: #e8b94a; }
+.links .lnk, .small .lnk, .copy { text-transform: uppercase; }
 .sp { display: inline-block; width: 14px; }
 
 .row { border-bottom: 1px solid #24272c; }
@@ -81,7 +100,7 @@ img { border: 0; display: block; }
 .ongoing { padding: 12px 0; border-bottom: 1px solid #24272c; }
 
 .every { border-top: 1px solid #24272c; padding-top: 14px; margin-bottom: 22px; }
-.label { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 10px; letter-spacing: 1.4px; color: #8a8a82; }
+.label { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 10px; letter-spacing: 1.4px; color: #8a8a82; text-transform: uppercase; }
 .dim { color: #8a8a82; }
 .dim2 { color: #a9a79f; }
 .pills { margin-top: 12px; line-height: 2.6; }
@@ -100,8 +119,10 @@ img { border: 0; display: block; }
 </style>
 </head>
 <body>
+<table role="presentation" class="canvas" width="100%"><tr><td class="canvas-cell">
 <div class="wrap">
 {{BODY}}
 </div>
+</td></tr></table>
 </body>
 </html>

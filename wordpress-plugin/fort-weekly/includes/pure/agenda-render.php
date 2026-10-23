@@ -3,7 +3,9 @@
  * The Fort Weekly "agenda" issue (design canvas E3): masthead and stat chips, the Nan'tan's note,
  * one featured event, then every upcoming approved event as a dated agenda (This week / Coming
  * up / Ongoing), the Every-week line and the footer. Port of renderAgenda() and its helpers in
- * the newsletter app's lib/newsletter-agenda.js; the markup is the same.
+ * the newsletter app's lib/newsletter-agenda.js. Text is written in normal case and the template
+ * capitalizes it (text-transform), so a restyle can drop the capitals: email can't re-case text
+ * any other way.
  *
  * Pure: takes entry arrays and the region array (fort_weekly_region() shape) and returns HTML.
  *
@@ -46,13 +48,18 @@ function fortw_image_of( $entry ) {
 	return preg_match( '/<img[^>]+src="([^"]+)"/i', (string) ( $entry['description'] ?? '' ), $m ) ? $m[1] : null;
 }
 
+/** "TUE" / "OCT" (fortw_date_parts()) → "Tue" / "Oct". */
+function fortw_nl_word( $s ) {
+	return ucfirst( strtolower( (string) $s ) );
+}
+
 function fortw_nl_tag_chip( $e ) {
 	$t = $e['tags'][0] ?? null;
 	if ( ! $t ) {
 		return '';
 	}
 	$c = fortw_h( $t['color'] ? $t['color'] : '#9a9da5' );
-	return '<span class="tag" style="color:' . $c . ';border-color:' . $c . '">' . fortw_h( mb_strtoupper( $t['label'] ) ) . '</span>';
+	return '<span class="tag" style="color:' . $c . ';border-color:' . $c . '">' . fortw_h( $t['label'] ) . '</span>';
 }
 
 function fortw_nl_time( $occ ) {
@@ -69,7 +76,7 @@ function fortw_nl_also( $dates ) {
 	$shown = array_map(
 		function ( $d ) {
 			$p = fortw_date_parts( $d );
-			return ucfirst( strtolower( $p['mon'] ) ) . ' ' . $p['day'];
+			return fortw_nl_word( $p['mon'] ) . ' ' . $p['day'];
 		},
 		array_slice( $dates, 0, 3 )
 	);
@@ -77,12 +84,12 @@ function fortw_nl_also( $dates ) {
 }
 
 function fortw_nl_links( $e, $ctx ) {
-	$out = array( '<a class="lnk" href="' . fortw_h( $ctx['entry_url']( $e ) ) . '">DETAILS ↗</a>' );
+	$out = array( '<a class="lnk" href="' . fortw_h( $ctx['entry_url']( $e ) ) . '">Details ↗</a>' );
 	if ( ! empty( $e['preblast_url'] ) ) {
-		$out[] = '<a class="lnk" href="' . fortw_h( $e['preblast_url'] ) . '">PRE-BLAST ↗</a>';
+		$out[] = '<a class="lnk" href="' . fortw_h( $e['preblast_url'] ) . '">Pre-blast ↗</a>';
 	}
 	if ( fortw_is_http_url( $e['link'] ?? '' ) ) {
-		$out[] = '<a class="lnk" href="' . fortw_h( $e['link'] ) . '">LINK ↗</a>';
+		$out[] = '<a class="lnk" href="' . fortw_h( $e['link'] ) . '">Link ↗</a>';
 	}
 	return '<div class="links">' . implode( '<span class="sp"> </span>', $out ) . '</div>';
 }
@@ -96,7 +103,7 @@ function fortw_nl_week_entry( $e, $ctx ) {
 	$meta = fortw_nl_meta( array( (string) $e['location'], $e['leader'] ? 'Q: ' . $e['leader'] : '' ) );
 	$url  = fortw_h( $ctx['entry_url']( $e ) );
 	$body = '
-        <div class="when">' . fortw_h( fortw_nl_time( $e['next_occurrence'] ) ) . fortw_nl_tag_chip( $e ) . ( $e['is_new'] ? '<span class="new">NEW</span>' : '' ) . '</div>
+        <div class="when">' . fortw_h( fortw_nl_time( $e['next_occurrence'] ) ) . fortw_nl_tag_chip( $e ) . ( $e['is_new'] ? '<span class="new">New</span>' : '' ) . '</div>
         <a class="title" href="' . $url . '">' . fortw_h( $e['title'] ) . '</a>
         ' . ( '' !== $meta ? '<div class="meta">' . fortw_h( $meta ) . '</div>' : '' ) . '
         <p class="sum">' . fortw_h( fortw_summary_of( $e ) ) . '</p>
@@ -115,7 +122,7 @@ function fortw_nl_day( $day, $ctx ) {
 	$p = fortw_date_parts( $day['date'] );
 	return '
     <table role="presentation" class="day" width="100%"><tr>
-      <td class="day-label" valign="top" width="52"><div class="dow">' . $p['dow'] . '</div><div class="dnum">' . $p['day'] . '</div></td>
+      <td class="day-label" valign="top" width="52"><div class="dow">' . fortw_nl_word( $p['dow'] ) . '</div><div class="dnum">' . $p['day'] . '</div></td>
       <td class="day-items" valign="top">' . implode( '', array_map( function ( $e ) use ( $ctx ) { return fortw_nl_week_entry( $e, $ctx ); }, $day['entries'] ) ) . '</td>
     </tr></table>';
 }
@@ -126,9 +133,9 @@ function fortw_nl_coming( $e, $ctx ) {
 	$url  = fortw_h( $ctx['entry_url']( $e ) );
 	return '
     <table role="presentation" class="row" width="100%"><tr>
-      <td class="row-date" valign="top" width="52"><div class="dow">' . $p['mon'] . '</div><div class="dnum dnum--sm">' . $p['day'] . '</div></td>
+      <td class="row-date" valign="top" width="52"><div class="dow">' . fortw_nl_word( $p['mon'] ) . '</div><div class="dnum dnum--sm">' . $p['day'] . '</div></td>
       <td valign="top">
-        <div class="row-head"><a class="title title--sm" href="' . $url . '">' . fortw_h( $e['title'] ) . '</a>' . fortw_nl_tag_chip( $e ) . ( $e['is_new'] ? '<span class="new">NEW</span>' : '' ) . '</div>
+        <div class="row-head"><a class="title title--sm" href="' . $url . '">' . fortw_h( $e['title'] ) . '</a>' . fortw_nl_tag_chip( $e ) . ( $e['is_new'] ? '<span class="new">New</span>' : '' ) . '</div>
         <p class="sum sum--sm">' . fortw_h( fortw_summary_of( $e, 170 ) ) . ( '' !== $meta ? ' <span class="meta-inline">' . fortw_h( $meta ) . '</span>' : '' ) . ' <a class="lnk" href="' . $url . '">Details ↗</a></p>
         ' . fortw_nl_also( $e['also'] ) . '
       </td>
@@ -137,21 +144,21 @@ function fortw_nl_coming( $e, $ctx ) {
 
 function fortw_nl_featured( $e, $ctx ) {
 	$img  = fortw_image_of( $e );
-	$qs   = $e['leader'] ? ' · Q: ' . mb_strtoupper( $e['leader'] ) : '';
-	$when = 'ONGOING';
+	$qs   = $e['leader'] ? ' · Q: ' . $e['leader'] : '';
+	$when = 'Ongoing';
 	if ( $e['next_occurrence'] ) {
 		$p    = fortw_date_parts( $e['next_occurrence']['date'] );
-		$when = $p['dow'] . ' ' . $p['mon'] . ' ' . $p['day'];
+		$when = fortw_nl_word( $p['dow'] ) . ' ' . fortw_nl_word( $p['mon'] ) . ' ' . $p['day'];
 	}
 	$url = fortw_h( $ctx['entry_url']( $e ) );
 	return '
   <div class="featured">
     ' . ( $img ? '<a href="' . $url . '"><img class="hero" src="' . fortw_h( $img ) . '" width="568" alt="' . fortw_h( $e['title'] ) . '"></a>' : '' ) . '
     <div class="featured-body">
-      <div class="when"><span class="badge">FEATURED</span><span class="fmeta">' . fortw_h( $when . $qs ) . '</span></div>
+      <div class="when"><span class="badge">Featured</span><span class="fmeta">' . fortw_h( $when . $qs ) . '</span></div>
       <a class="ftitle" href="' . $url . '">' . fortw_h( $e['title'] ) . '</a>
       <p class="sum">' . fortw_h( fortw_summary_of( $e, 420 ) ) . '</p>
-      <div class="links"><a class="btn" href="' . $url . '">DETAILS ↗</a>' . ( fortw_is_http_url( $e['link'] ?? '' ) ? '<span class="sp"> </span><a class="lnk" href="' . fortw_h( $e['link'] ) . '">LINK ↗</a>' : '' ) . '</div>
+      <div class="links"><a class="btn" href="' . $url . '">Details ↗</a>' . ( fortw_is_http_url( $e['link'] ?? '' ) ? '<span class="sp"> </span><a class="lnk" href="' . fortw_h( $e['link'] ) . '">Link ↗</a>' : '' ) . '</div>
     </div>
   </div>';
 }
@@ -194,7 +201,7 @@ function fortw_nl_nantan( $n ) {
   <div class="quote">
     <div class="qmark">“</div>
     <div class="qtext">' . $n['text_html'] . '</div>
-    <div class="qby">— ' . fortw_h( mb_strtoupper( ( $n['author'] ? $n['author'] . ', ' : '' ) . "THE NAN'TAN" ) ) . '</div>
+    <div class="qby">— ' . fortw_h( ( $n['author'] ? $n['author'] . ', ' : '' ) . "the Nan'tan" ) . '</div>
   </div>';
 }
 
@@ -211,7 +218,7 @@ function fortw_nl_every_week( $region ) {
 	$line  = implode( ' · ', $items );
 	return '
   <div class="every">
-    ' . ( '' !== $line ? '<div class="label">EVERY WEEK</div><p class="sum sum--sm">' . $line . '</p>' : '' ) . '
+    ' . ( '' !== $line ? '<div class="label">Every week</div><p class="sum sum--sm">' . $line . '</p>' : '' ) . '
     ' . ( '' !== $pills ? '<div class="pills">' . $pills . '</div>' : '' ) . '
   </div>';
 }
@@ -221,8 +228,8 @@ function fortw_nl_footer( $region, $ctx ) {
 	return '
   <div class="footer">
     ' . ( '' !== $slt ? '<p class="sum sum--sm dim2">Your SLT: ' . $slt . '</p>' : '' ) . '
-    <p class="small"><a class="lnk" href="' . fortw_h( $ctx['submit_url'] ) . '">SUBMIT AN ENTRY ↗</a><span class="sp"> </span><a class="lnk" href="' . fortw_h( $ctx['site_url'] ) . '">F3THEFORT.COM ↗</a></p>
-    <p class="small dim">© ' . fortw_h( $ctx['year'] ) . ' THE FORT F3 · <a class="dim" href="mailto:thefort@f3nation.com">thefort@f3nation.com</a></p>
+    <p class="small"><a class="lnk" href="' . fortw_h( $ctx['submit_url'] ) . '">Submit an entry ↗</a><span class="sp"> </span><a class="lnk" href="' . fortw_h( $ctx['site_url'] ) . '">f3thefort.com ↗</a></p>
+    <p class="small dim">© ' . fortw_h( $ctx['year'] ) . ' <span class="copy">The Fort F3</span> · <a class="dim" href="mailto:thefort@f3nation.com">thefort@f3nation.com</a></p>
   </div>';
 }
 
@@ -232,23 +239,23 @@ function fortw_nl_footer( $region, $ctx ) {
  */
 function fortw_render_agenda( $template, $entries, $region, $today, $ctx ) {
 	$sel = fortw_select_agenda( $entries, $today );
-	$rp  = fortw_date_parts( $sel['range']['from'] );
-	$rq  = fortw_date_parts( $sel['range']['to'] );
+	$rp  = array_map( 'fortw_nl_word', fortw_date_parts( $sel['range']['from'] ) );
+	$rq  = array_map( 'fortw_nl_word', fortw_date_parts( $sel['range']['to'] ) );
 	$rng = $rp['mon'] === $rq['mon'] ? $rp['mon'] . ' ' . $rp['day'] . ' – ' . $rq['day'] : $rp['mon'] . ' ' . $rp['day'] . ' – ' . $rq['mon'] . ' ' . $rq['day'];
 	$n   = count( $sel['coming_up'] );
 
 	$parts = array(
 		'<table role="presentation" class="mast" width="100%"><tr>
-      <td class="brand">THE FORT <span class="amber">WEEKLY</span></td>
-      <td class="issue" align="right">WEEK OF ' . $rp['mon'] . ' ' . $rp['day'] . '</td>
+      <td class="brand">The Fort <span class="amber">Weekly</span></td>
+      <td class="issue" align="right">Week of ' . $rp['mon'] . ' ' . $rp['day'] . '</td>
     </tr></table>',
 		fortw_nl_chips( $region ),
 		fortw_nl_nantan( $region['nantan'] ?? null ),
 		$sel['featured'] ? fortw_nl_featured( $sel['featured'], $ctx ) : '',
-		$sel['this_week'] ? fortw_nl_section( 'THIS WEEK', $rng, implode( '', array_map( function ( $d ) use ( $ctx ) { return fortw_nl_day( $d, $ctx ); }, $sel['this_week'] ) ), true ) : '',
-		$n ? fortw_nl_section( 'COMING UP', $n . ' ' . ( 1 === $n ? 'EVENT' : 'EVENTS' ), implode( '', array_map( function ( $e ) use ( $ctx ) { return fortw_nl_coming( $e, $ctx ); }, $sel['coming_up'] ) ) ) : '',
+		$sel['this_week'] ? fortw_nl_section( 'This week', $rng, implode( '', array_map( function ( $d ) use ( $ctx ) { return fortw_nl_day( $d, $ctx ); }, $sel['this_week'] ) ), true ) : '',
+		$n ? fortw_nl_section( 'Coming up', $n . ' ' . ( 1 === $n ? 'event' : 'events' ), implode( '', array_map( function ( $e ) use ( $ctx ) { return fortw_nl_coming( $e, $ctx ); }, $sel['coming_up'] ) ) ) : '',
 		$sel['ongoing'] ? fortw_nl_section(
-			'ONGOING',
+			'Ongoing',
 			'',
 			implode(
 				'',
@@ -267,7 +274,7 @@ function fortw_render_agenda( $template, $entries, $region, $today, $ctx ) {
 		fortw_nl_footer( $region, $ctx ),
 	);
 	$body  = implode( "\n", array_filter( $parts, 'strlen' ) );
-	$title = 'The Fort Weekly — week of ' . ucfirst( strtolower( $rp['mon'] ) ) . ' ' . $rp['day'];
+	$title = 'The Fort Weekly — week of ' . $rp['mon'] . ' ' . $rp['day'];
 	return str_replace( array( '{{TITLE}}', '{{BODY}}' ), array( fortw_h( $title ), $body ), $template );
 }
 

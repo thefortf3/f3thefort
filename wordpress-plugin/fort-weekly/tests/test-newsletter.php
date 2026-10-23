@@ -29,7 +29,7 @@ fortw_test(
 		assert_true( false !== strpos( $html, 'Ruck &lt;script&gt;' ) && false === strpos( $html, '<script>' ), 'escaped title' );
 		assert_true( false !== strpos( $html, 'href="https://s/events/ruck/"' ), 'entry link' );
 		assert_true( false !== strpos( $html, 'A &amp; B' ), 'escaped summary' );
-		assert_true( false !== strpos( $html, 'THIS WEEK' ) && false !== strpos( $html, 'OCT 20 – 26' ), 'this week section' );
+		assert_true( false !== strpos( $html, 'This week' ) && false !== strpos( $html, 'Oct 20 – 26' ), 'this week section' );
 	}
 );
 
