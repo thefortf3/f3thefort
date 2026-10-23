@@ -18,6 +18,22 @@ add_action(
 		add_meta_box( 'fortw_approval', __( 'Approval', 'fort-weekly' ), 'fortw_box_approval', null, 'side', 'high' );
 		add_meta_box( 'fortw_preblast', __( 'Pre-blast', 'fort-weekly' ), 'fortw_box_preblast', null, 'side', 'default' );
 		add_meta_box( 'fortw_submitter', __( 'Submitted by (editors only)', 'fort-weekly' ), 'fortw_box_submitter', null, 'side', 'default' );
+
+		// The flyer: right under Publish, not at the bottom of the column where WordPress puts it.
+		global $wp_meta_boxes;
+		$side = &$wp_meta_boxes[ FORTW_POST_TYPE ]['side'];
+		if ( isset( $side['low']['postimagediv'], $side['core'] ) ) {
+			$box = $side['low']['postimagediv'];
+			unset( $side['low']['postimagediv'] );
+			$core = array();
+			foreach ( $side['core'] as $id => $b ) {
+				$core[ $id ] = $b;
+				if ( 'submitdiv' === $id ) {
+					$core['postimagediv'] = $box;
+				}
+			}
+			$side['core'] = $core + array( 'postimagediv' => $box );
+		}
 	}
 );
 
