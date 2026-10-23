@@ -150,17 +150,21 @@ function fortw_nl_featured( $e, $ctx ) {
 		$p    = fortw_date_parts( $e['next_occurrence']['date'] );
 		$when = fortw_nl_word( $p['dow'] ) . ' ' . fortw_nl_word( $p['mon'] ) . ' ' . $p['day'];
 	}
-	$url = fortw_h( $ctx['entry_url']( $e ) );
-	return '
-  <div class="featured">
-    ' . ( $img ? '<a href="' . $url . '"><img class="hero" src="' . fortw_h( $img ) . '" width="568" alt="' . fortw_h( $e['title'] ) . '"></a>' : '' ) . '
-    <div class="featured-body">
+	$url  = fortw_h( $ctx['entry_url']( $e ) );
+	// The flyer beside the write-up: two real cells, which the phone layout stacks (the old
+	// newsletter's way: Gmail Android lets @media override a <td>'s own layout, not inline CSS).
+	$body = '
+    <td class="featured-body" valign="top">
       <div class="when"><span class="badge">Featured</span><span class="fmeta">' . fortw_h( $when . $qs ) . '</span></div>
       <a class="ftitle" href="' . $url . '">' . fortw_h( $e['title'] ) . '</a>
       <p class="sum">' . fortw_h( fortw_summary_of( $e, 420 ) ) . '</p>
       <div class="links"><a class="btn" href="' . $url . '">Details ↗</a>' . ( fortw_is_http_url( $e['link'] ?? '' ) ? '<span class="sp"> </span><a class="lnk" href="' . fortw_h( $e['link'] ) . '">Link ↗</a>' : '' ) . '</div>
-    </div>
-  </div>';
+    </td>';
+	$media = $img ? '
+    <td class="feat-media" valign="top" width="256"><a href="' . $url . '"><img class="hero" src="' . fortw_h( $img ) . '" width="240" alt="' . fortw_h( $e['title'] ) . '"></a></td>' : '';
+	return '
+  <div class="featured"><table role="presentation" class="feat-split" width="100%"><tr>' . $media . $body . '
+  </tr></table></div>';
 }
 
 function fortw_nl_section( $title, $aside, $body, $accent = false ) {

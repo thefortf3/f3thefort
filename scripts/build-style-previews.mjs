@@ -288,11 +288,13 @@ ${E_LABELS}{font-size:14px;} .lg-value{font-size:15px;} .btn{font-size:15px;font
   if (o.sections === 'rules') out.push(`.sec-head,.sec-head--accent{border-bottom-width:0;border-top:1px solid ${p.bright};} .sec-title,.sec-aside{padding-top:10px;padding-bottom:6px;} .featured{border-width:0;} .ledger{border-top-color:${p.bright};}`);
   if (o.sections === 'dashed') out.push(`.sec-head{border-bottom:1px dashed ${line2};} .sec-head--accent{border-bottom:1px dashed ${p.amber};} .day,.row,.ongoing{border-bottom:1px dashed ${line2};} .every,.footer{border-top:1px dashed ${line2};} .featured{border:1px dashed ${line2};} .lg-label,.lg-value{border-bottom:1px dashed ${line2};} .ledger{border-top:1px dashed ${line2};}`);
   if (o.sections === 'cards') out.push(`.sec-head,.sec-head--accent{border-bottom-width:0;} .sec-title,.sec-aside{padding-bottom:4px;}
-.featured{background-color:${card};border:1px solid ${line2};border-radius:${R.c}px;} .hero{border-radius:${Math.max(R.c - 1, 0)}px ${Math.max(R.c - 1, 0)}px 0 0;}
+.featured{background-color:${card};border:1px solid ${line2};border-radius:${R.c}px;}
 .day,.row{background-color:${card};border:1px solid ${line};border-radius:${R.c}px;border-collapse:separate;border-spacing:0;margin-top:10px;}
 .ledger{background-color:${card};border:1px solid ${line};border-radius:${R.c}px;border-collapse:separate;border-spacing:0;} .lg-label{padding-left:14px;} .lg-value{padding-right:14px;} .lg-last{border-bottom-width:0;} .day-label,.row-date{padding-left:12px;} .day-items{padding-right:14px;} .row td{padding-right:14px;}
 .ongoing{background-color:${card};border:1px solid ${line};border-radius:${R.c}px;padding:12px 14px;margin-top:10px;}`);
-  else out.push(`.featured{border-radius:${R.c}px;} .hero{border-radius:${R.c}px ${R.c}px 0 0;}`);
+  else out.push(`.featured{border-radius:${R.c}px;}`);
+  // The flyer sits inside the featured card, so it rounds on its own rather than at the card's corners.
+  out.push(`.hero{border-radius:${Math.min(R.c, 8)}px;}`);
 
   // Flyers: a mat on the thumbnails (email has no image filters, so "matte" stays as is).
   if (o.flyers === 'mat') out.push(`.thumb{border:3px solid ${p.mat};}`);
