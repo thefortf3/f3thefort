@@ -59,7 +59,7 @@ services:
     env_file:
       - path: .local/stats-wp.env
         required: false
-      # Local-only secrets (git-ignored), e.g. FORT_GROQ_API_KEY=gsk_… for "Write one for me".
+      # Local-only secrets (git-ignored): FORT_GROQ_API_KEY ("Write one for me"), FORT_MAILCHIMP_* (drafts).
       - path: .local/wp-secrets.env
         required: false
     environment:
@@ -95,8 +95,12 @@ services:
         define( 'FORT_FNG_SHEET_URL', getenv( 'FNG_SHEET_URL' ) ?: '' );
         define( 'FORT_FNG_START', getenv( 'FNG_START' ) ?: '' );
         define( 'FORT_FNG_END', getenv( 'FNG_END' ) ?: '' );
-        // Fort Weekly's summary writer (.local/wp-secrets.env). Slack and Mailchimp stay unset here.
+        // Fort Weekly's summary writer and Mailchimp drafts (.local/wp-secrets.env). Slack stays unset here.
         define( 'FORT_GROQ_API_KEY', getenv( 'FORT_GROQ_API_KEY' ) ?: '' );
+        define( 'FORT_MAILCHIMP_API_KEY', getenv( 'FORT_MAILCHIMP_API_KEY' ) ?: '' );
+        define( 'FORT_MAILCHIMP_LIST_ID', getenv( 'FORT_MAILCHIMP_LIST_ID' ) ?: '' );
+        define( 'FORT_MAILCHIMP_FROM_NAME', getenv( 'FORT_MAILCHIMP_FROM_NAME' ) ?: 'The Fort Weekly' );
+        define( 'FORT_MAILCHIMP_FROM_EMAIL', getenv( 'FORT_MAILCHIMP_FROM_EMAIL' ) ?: 'newsletter@f3thefort.com' );
         define( 'FORT_STATS_ANON_KEY', getenv( 'FORT_STATS_ANON_KEY' ) ?: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6ImxvY2FsIn0.Ig_vcDhxzvoAaC7lpgcdFlrjFIgEkmw5WSZaV9X-NfM' );
     volumes:
       - wp:/var/www/html

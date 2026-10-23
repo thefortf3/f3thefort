@@ -8,7 +8,7 @@
  *   define( 'FORT_MAILCHIMP_API_KEY', '…-us10' );
  *   define( 'FORT_MAILCHIMP_LIST_ID', '…' );                    // the audience
  *   define( 'FORT_MAILCHIMP_FROM_NAME', 'The Fort Weekly' );    // optional
- *   define( 'FORT_MAILCHIMP_FROM_EMAIL', 'newsletter@thefort.org' ); // optional
+ *   define( 'FORT_MAILCHIMP_FROM_EMAIL', 'newsletter@f3thefort.com' ); // optional
  *
  * Campaigns are named like the newsletter app named them ("October 25, 2026" for the coming
  * Sunday), so an existing draft from either is found and updated rather than duplicated.
@@ -25,7 +25,7 @@ function fortw_mailchimp_configured() {
 function fortw_mc_from() {
 	return array(
 		'name'  => defined( 'FORT_MAILCHIMP_FROM_NAME' ) ? FORT_MAILCHIMP_FROM_NAME : 'The Fort Weekly',
-		'email' => defined( 'FORT_MAILCHIMP_FROM_EMAIL' ) ? FORT_MAILCHIMP_FROM_EMAIL : 'newsletter@thefort.org',
+		'email' => defined( 'FORT_MAILCHIMP_FROM_EMAIL' ) ? FORT_MAILCHIMP_FROM_EMAIL : 'newsletter@f3thefort.com',
 	);
 }
 

@@ -43,7 +43,7 @@ only administrators can import or delete. Give each approver their own account.
 |---|---|---|
 | `FORT_SLACK_BOT_TOKEN`, `FORT_SLACK_CHANNEL` | "New event needs approval" in Slack | Logs what it would have sent |
 | `FORT_MAILCHIMP_API_KEY` (`…-us10`), `FORT_MAILCHIMP_LIST_ID` | Save as Mailchimp draft | Button disabled |
-| `FORT_MAILCHIMP_FROM_NAME`, `FORT_MAILCHIMP_FROM_EMAIL` | Draft's sender | "The Fort Weekly", newsletter@thefort.org |
+| `FORT_MAILCHIMP_FROM_NAME`, `FORT_MAILCHIMP_FROM_EMAIL` | Draft's sender | "The Fort Weekly", newsletter@f3thefort.com |
 | `FORT_GROQ_API_KEY` | "Write one for me" summaries | Button disabled |
 | `FORT_SUBMITTER_EMAILS` (`true`) | Emailing submitters when their event (or their change) is approved | Logs what it would have sent |
 | `FORT_EMAIL_FROM` | Those emails' sender, e.g. `'The Fort Weekly <newsletter@f3thefort.com>'` | WordPress's default sender |
