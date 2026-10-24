@@ -132,7 +132,7 @@ html{background-color:${p.bg};${p.html || ''}} body{background:transparent;}
 }
 
 const NAMES = {
-  palette: { gloom: 'Gloom indigo', carolina: 'Carolina blue', brick: 'Brick & stone', trail: 'Olive & terracotta', volt: 'Graphite & lime', daylight: 'White & teal', circle: 'Graphite & lime, lifted cards' },
+  palette: { gloom: 'Gloom indigo', carolina: 'Carolina blue', brick: 'Brick & stone', trail: 'Olive & terracotta', volt: 'Graphite & lime', daylight: 'White & teal', circle: 'Graphite & lime' },
   shape: { square: 'Square corners', soft: 'Slightly softened corners', rounded: 'Softly rounded corners', round: 'Round corners' },
   headings: { bold: 'Original bold capitals', calm: 'Light, spaced capitals', serif: 'Serif headings', sentence: 'Sentence-case headings' },
   labels: { tracked: 'Tracked mono labels', italic: 'Italic labels', monoLower: 'Lower-case mono labels', plain: 'Plain labels' },
@@ -407,7 +407,7 @@ for (const v of VARIANTS) {
     name: v.name,
     summary: v.summary,
     why: v.why,
-    ingredients: [NAMES.palette[v.o.palette] + ' palette', NAMES.shape[v.o.shape], NAMES.headings[v.o.headings], NAMES.labels[v.o.labels], NAMES.sections[v.o.sections], NAMES.flyers[v.o.flyers], NAMES.buttons[v.o.buttons], NAMES.header[v.o.header]],
+    ingredients: [NAMES.palette[v.o.palette] + ' palette', NAMES.shape[v.o.shape], NAMES.headings[v.o.headings], NAMES.labels[v.o.labels], v.o.quiet ? 'Quiet cards' : NAMES.sections[v.o.sections], NAMES.flyers[v.o.flyers], NAMES.buttons[v.o.buttons], NAMES.header[v.o.header]],
   });
 }
 writeFileSync(resolve(assets, 'style-previews.css'), css);

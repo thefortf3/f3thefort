@@ -70,7 +70,7 @@ main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 10px; }
 .pane[hidden] { display: none; }
 .cap { color: #9aa0ab; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cap b { color: #f1efe8; }
-.view { flex: 1; min-height: 0; overflow: auto; display: flex; justify-content: center; align-items: flex-start; background: repeating-linear-gradient(45deg, #101216 0 10px, #0d0e11 10px 20px); border: 1px solid #23262c; border-radius: 10px; }
+.view { flex: 1; min-height: 0; overflow: hidden; display: flex; justify-content: center; align-items: flex-start; background: repeating-linear-gradient(45deg, #101216 0 10px, #0d0e11 10px 20px); border: 1px solid #23262c; border-radius: 10px; }
 .shell { flex: none; transform-origin: top left; }
 .shell iframe { display: block; border: 0; background: #fff; }
 .phone .shell iframe { border-radius: 0; }
@@ -218,14 +218,16 @@ main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 10px; }
       if (pane.hidden) return;
       var view = pane.querySelector('.view'), shell = pane.querySelector('.shell'), f = frames[which];
       var availW = view.clientWidth - 2, availH = view.clientHeight - 2;
-      var scale = Math.min(1, availW / W);
+      var scale = Math.min(1, availW / W), H = Math.floor(Math.max(200, availH / scale));
       f.style.width = W + 'px';
-      f.style.height = Math.max(200, availH / scale) + 'px';
+      f.style.height = H + 'px';
       shell.style.transform = 'scale(' + scale + ')';
       shell.style.width = W + 'px';
-      shell.style.height = Math.max(200, availH / scale) + 'px';
-      shell.style.marginRight = (W * scale - W) + 'px'; // The scaled box's layout size
-      shell.style.marginBottom = (availH - availH / scale * scale) + 'px';
+      shell.style.height = H + 'px';
+      // A transform doesn't change the layout size: pull the box in to its scaled size, so the
+      // pane doesn't scroll as well as the page inside it.
+      shell.style.marginRight = (W * scale - W) + 'px';
+      shell.style.marginBottom = (H * scale - H) + 'px';
       pane.classList.toggle('phone', state.w === 'phone');
     });
   }
