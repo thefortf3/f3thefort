@@ -216,12 +216,15 @@ function fortw_nl_coming( $e, $ctx ) {
 	$url  = fortw_h( $ctx['entry_url']( $e ) );
 	if ( ! empty( $e['featured'] ) ) { // In full in the Featured card: here just its title, time and place.
 		$chips = '<span class="new">Featured</span>';
-		$body  = '' !== $meta ? '<p class="sum sum--sm"><span class="meta-inline">' . $meta . '</span></p>' : '';
+		$body  = '' !== $meta ? '<div class="meta">' . $meta . '</div>' : '';
 	} else {
 		$chips = fortw_nl_tag_chip( $e ) . ( $e['is_new'] ? '<span class="new">New</span>' : '' );
 		$img   = fortw_image_of( $e );
-		$body  = '<p class="sum sum--sm">' . fortw_h( fortw_summary_of( $e, 170 ) ) . ( '' !== $meta ? ' <span class="meta-inline">' . $meta . '</span>' : '' ) . ' <a class="lnk" href="' . $url . '">Details ↗</a></p>
-        ' . fortw_nl_also( $e['also'] );
+		// The time, place and Q on their own line under the summary, then the link (as in This week).
+		$body  = '<p class="sum sum--sm">' . fortw_h( fortw_summary_of( $e, 170 ) ) . '</p>
+        ' . ( '' !== $meta ? '<div class="meta">' . $meta . '</div>' : '' ) . '
+        ' . fortw_nl_also( $e['also'] ) . '
+        <div class="links"><a class="lnk" href="' . $url . '">Details ↗</a></div>';
 	}
 	return '
     <table role="presentation" class="row" width="100%"><tr>

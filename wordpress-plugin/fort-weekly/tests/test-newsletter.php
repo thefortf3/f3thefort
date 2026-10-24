@@ -89,6 +89,17 @@ fortw_test(
 );
 
 fortw_test(
+	'coming up: the time, place and Q start their own line under the summary',
+	function () {
+		$ctx = array( 'entry_url' => function ( $e ) { return 'https://x/e/' . $e['id']; } );
+		$e   = array( 'id' => 1, 'title' => 'Gear-Head', 'location' => 'Catawba Ridge HS', 'leader' => 'Suplex', 'summary' => 'Each Tuesday at the Snake Pit.', 'description' => '', 'featured' => false, 'is_new' => false, 'tags' => array(), 'also' => array(), 'hero_image' => null, 'next_occurrence' => array( 'date' => '2026-11-03', 'start_time' => '0515', 'end_time' => '0615' ) );
+		$html = fortw_nl_coming( $e, $ctx );
+		assert_true( 1 === preg_match( '#<p class="sum sum--sm">Each Tuesday at the Snake Pit\.</p>\s*<div class="meta">0515–0615 · <a class="place"[^>]*>Catawba Ridge HS</a> · Q: Suplex</div>#u', $html ), 'summary, then its own meta line' );
+		assert_true( false === strpos( $html, 'meta-inline' ) );
+	}
+);
+
+fortw_test(
 	'places are links in the theme’s colour (so mail apps don’t make them blue): to the URL in them, else a Maps search',
 	function () {
 		assert_same(
