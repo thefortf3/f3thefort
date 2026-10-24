@@ -301,11 +301,16 @@ function fortw_nl_ledger( $region ) {
 	if ( $fngs ) {
 		$rows[] = array( 1 === count( $fngs ) ? 'FNG this week' : 'FNGs this week', implode( '<br>', $fngs ) );
 	}
+	return fortw_nl_ledger_table( $rows );
+}
+
+/** Rows of array( label, value HTML ) as the ledger's labelled table ('' for none). */
+function fortw_nl_ledger_table( $rows, $class = 'ledger' ) {
 	if ( ! $rows ) {
 		return '';
 	}
 	$last = count( $rows ) - 1;
-	return '<table role="presentation" class="ledger" width="100%">' . implode(
+	return '<table role="presentation" class="' . $class . '" width="100%">' . implode(
 		'',
 		array_map(
 			function ( $r, $i ) use ( $last ) {
@@ -330,29 +335,53 @@ function fortw_nl_nantan( $n ) {
   </div>';
 }
 
+/**
+ * Every week: the Fs' standing events, one a line (name, then time · day · place), each F in its
+ * own column (side by side, stacked on a phone) ending with its calendar link. An F with links but
+ * no events (the 1st F's workout list) adds them to the region's link pills instead.
+ */
 function fortw_nl_every_week( $region ) {
-	$items = array();
+	$names = array( 'fitness' => '1st F · Fitness', 'fellowship' => '2nd F · Fellowship', 'faith' => '3rd F · Faith' );
+	$cols  = array();
+	$extra = array();
 	foreach ( $region['three_fs'] ?? array() as $col ) {
+		$events = array();
+		$links  = array();
 		foreach ( $col['items'] as $i ) {
-			if ( 'link' !== $i['type'] && '' !== (string) $i['name'] ) {
-				$items[] = fortw_h( $i['name'] ) . ( $i['detail'] ? ' <span class="dim">' . fortw_h( $i['detail'] ) . '</span>' : '' );
+			if ( 'link' === $i['type'] ) {
+				if ( fortw_is_http_url( $i['url'] ?? '' ) && '' !== (string) $i['label'] ) {
+					$links[] = array( 'label' => $i['label'], 'url' => $i['url'] );
+				}
+			} elseif ( '' !== (string) $i['name'] ) {
+				$events[] = '<div class="ew-item"><span class="title title--sm">' . fortw_h( $i['name'] ) . '</span>' . ( $i['detail'] ? '<div class="meta">' . fortw_h( $i['detail'] ) . '</div>' : '' ) . '</div>';
 			}
 		}
+		if ( ! $events ) {
+			$extra = array_merge( $extra, $links );
+			continue;
+		}
+		$more   = implode( '<span class="sp"> </span>', array_map( function ( $l ) { return '<a class="lnk" href="' . fortw_h( $l['url'] ) . '">' . fortw_h( $l['label'] ) . ' ↗</a>'; }, $links ) );
+		$cols[] = '<div class="label ew-head">' . fortw_h( $names[ $col['column'] ] ?? ucfirst( (string) $col['column'] ) ) . '</div>' . implode( '', $events ) . ( '' !== $more ? '<p class="small">' . $more . '</p>' : '' );
 	}
-	$pills = implode( ' ', array_map( function ( $l ) { return '<a class="pill" href="' . fortw_h( $l['url'] ) . '">' . fortw_h( $l['label'] ) . ' ↗</a>'; }, $region['links'] ?? array() ) );
-	$line  = implode( ' · ', $items );
+	$width = $cols ? (int) floor( 100 / count( $cols ) ) : 100;
+	$table = $cols ? '<table role="presentation" class="ew" width="100%"><tr>' . implode( '', array_map( function ( $c ) use ( $width ) { return '<td class="ew-col" valign="top" width="' . $width . '%">' . $c . '</td>'; }, $cols ) ) . '</tr></table>' : '';
+	$pills = implode( ' ', array_map( function ( $l ) { return '<a class="pill" href="' . fortw_h( $l['url'] ) . '">' . fortw_h( $l['label'] ) . ' ↗</a>'; }, array_merge( $extra, $region['links'] ?? array() ) ) );
 	return '
   <div class="every">
-    ' . ( '' !== $line ? '<div class="label">Every week</div><p class="sum sum--sm">' . $line . '</p>' : '' ) . '
+    ' . ( '' !== $table ? '<div class="label">Every week</div>' . $table : '' ) . '
     ' . ( '' !== $pills ? '<div class="pills">' . $pills . '</div>' : '' ) . '
   </div>';
 }
 
 function fortw_nl_footer( $region, $ctx ) {
-	$slt = implode( ' · ', array_map( function ( $s ) { return fortw_h( $s['name'] ) . ' <span class="dim">(' . fortw_h( $s['role'] ) . ')</span>'; }, $region['slt'] ?? array() ) );
+	// Your SLT: role and name, one a row, as the ledger at the top shows the week.
+	$slt = fortw_nl_ledger_table(
+		array_map( function ( $s ) { return array( fortw_h( $s['role'] ), fortw_h( $s['name'] ) ); }, array_values( array_filter( $region['slt'] ?? array(), function ( $s ) { return '' !== (string) $s['name']; } ) ) ),
+		'ledger slt'
+	);
 	return '
   <div class="footer">
-    ' . ( '' !== $slt ? '<p class="sum sum--sm dim2">Your SLT: ' . $slt . '</p>' : '' ) . '
+    ' . ( '' !== $slt ? '<div class="label">Your SLT</div>' . $slt : '' ) . '
     <p class="small"><a class="lnk" href="' . fortw_h( $ctx['submit_url'] ) . '">Submit an entry ↗</a><span class="sp"> </span><a class="lnk" href="' . fortw_h( $ctx['site_url'] ) . '">f3thefort.com ↗</a></p>
     <p class="small dim">© ' . fortw_h( $ctx['year'] ) . ' <span class="copy">The Fort F3</span> · <a class="dim" href="mailto:thefort@f3nation.com">thefort@f3nation.com</a></p>
   </div>';

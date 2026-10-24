@@ -67,6 +67,28 @@ fortw_test(
 );
 
 fortw_test(
+	'every week: each F in a column, one event a line, its calendar under it; a links-only F joins the pills; the SLT as a table',
+	function () {
+		$region = array(
+			'three_fs' => array(
+				array( 'column' => 'fitness', 'items' => array( array( 'type' => 'link', 'label' => 'Workout List', 'url' => 'https://x/w' ) ) ),
+				array( 'column' => 'fellowship', 'items' => array( array( 'type' => 'event', 'name' => 'Pizza <&>', 'detail' => '1800 · Emilio’s' ), array( 'type' => 'link', 'label' => 'Fellowship Calendar', 'url' => 'https://x/c' ) ) ),
+				array( 'column' => 'faith', 'items' => array( array( 'type' => 'event', 'name' => 'McGospel', 'detail' => '' ) ) ),
+			),
+			'links'    => array( array( 'label' => 'Slack', 'url' => 'https://x/s' ) ),
+		);
+		$html = fortw_nl_every_week( $region );
+		assert_same( 2, substr_count( $html, 'class="ew-col"' ), 'a column per F with events' );
+		assert_true( false !== strpos( $html, 'width="50%"' ), 'split evenly' );
+		assert_true( false !== strpos( $html, '2nd F · Fellowship</div><div class="ew-item"><span class="title title--sm">Pizza &lt;&amp;&gt;</span><div class="meta">1800 · Emilio’s</div></div><p class="small"><a class="lnk" href="https://x/c">Fellowship Calendar ↗</a></p>' ), 'events then the calendar' );
+		assert_true( false !== strpos( $html, '<span class="title title--sm">McGospel</span></div>' ), 'no empty detail line' );
+		assert_true( strpos( $html, '>Workout List ↗</a>' ) < strpos( $html, '>Slack ↗</a>' ) && false !== strpos( $html, 'class="pill" href="https://x/w"' ), 'links-only F first in the pills' );
+		$foot = fortw_nl_footer( array( 'slt' => array( array( 'role' => 'Nan’tan', 'name' => 'Band Camp' ), array( 'role' => 'Comz', 'name' => '' ) ) ), array( 'submit_url' => 'https://x/submit', 'site_url' => 'https://x', 'year' => '2026' ) );
+		assert_true( false !== strpos( $foot, '<div class="label">Your SLT</div><table role="presentation" class="ledger slt"' ) && false !== strpos( $foot, '>Nan’tan</td><td class="lg-value lg-last" valign="top">Band Camp</td>' ), 'SLT rows; empty names left out' );
+	}
+);
+
+fortw_test(
 	'places are links in the theme’s colour (so mail apps don’t make them blue): to the URL in them, else a Maps search',
 	function () {
 		assert_same(
