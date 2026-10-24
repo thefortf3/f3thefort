@@ -155,12 +155,12 @@ function fortw_nl_place( $location ) {
 	return '<a class="place" href="' . fortw_h( $href ) . '">' . fortw_h( $text ) . '</a>';
 }
 
-/** An event's meta line as HTML: $before (plain text), then its place (a link, see above) and Q. */
+/** An event's details as HTML, one a line: $before (plain text, e.g. the time), its place (a link, see above) and Q. */
 function fortw_nl_meta_html( $e, $before = array() ) {
 	$parts   = array_map( 'fortw_h', array_filter( $before, 'strlen' ) );
 	$parts[] = fortw_nl_place( $e['location'] ?? '' );
 	$parts[] = ! empty( $e['leader'] ) ? fortw_h( 'Q: ' . $e['leader'] ) : '';
-	return implode( ' · ', array_filter( $parts, 'strlen' ) );
+	return implode( '<br>', array_filter( $parts, 'strlen' ) );
 }
 
 /** The featured entry in the date list: its time and title, linking to its page (it's in full above). */
@@ -220,7 +220,7 @@ function fortw_nl_coming( $e, $ctx ) {
 	} else {
 		$chips = fortw_nl_tag_chip( $e ) . ( $e['is_new'] ? '<span class="new">New</span>' : '' );
 		$img   = fortw_image_of( $e );
-		// The time, place and Q on their own line under the summary, then the link (as in This week).
+		// The time, place and Q under the summary, one a line, then the link (as in This week).
 		$body  = '<p class="sum sum--sm">' . fortw_h( fortw_summary_of( $e, 170 ) ) . '</p>
         ' . ( '' !== $meta ? '<div class="meta">' . $meta . '</div>' : '' ) . '
         ' . fortw_nl_also( $e['also'] ) . '

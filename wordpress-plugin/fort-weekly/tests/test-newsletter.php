@@ -89,12 +89,12 @@ fortw_test(
 );
 
 fortw_test(
-	'coming up: the time, place and Q start their own line under the summary',
+	'coming up: the time, place and Q under the summary, one a line',
 	function () {
 		$ctx = array( 'entry_url' => function ( $e ) { return 'https://x/e/' . $e['id']; } );
 		$e   = array( 'id' => 1, 'title' => 'Gear-Head', 'location' => 'Catawba Ridge HS', 'leader' => 'Suplex', 'summary' => 'Each Tuesday at the Snake Pit.', 'description' => '', 'featured' => false, 'is_new' => false, 'tags' => array(), 'also' => array(), 'hero_image' => null, 'next_occurrence' => array( 'date' => '2026-11-03', 'start_time' => '0515', 'end_time' => '0615' ) );
 		$html = fortw_nl_coming( $e, $ctx );
-		assert_true( 1 === preg_match( '#<p class="sum sum--sm">Each Tuesday at the Snake Pit\.</p>\s*<div class="meta">0515–0615 · <a class="place"[^>]*>Catawba Ridge HS</a> · Q: Suplex</div>#u', $html ), 'summary, then its own meta line' );
+		assert_true( 1 === preg_match( '#<p class="sum sum--sm">Each Tuesday at the Snake Pit\.</p>\s*<div class="meta">0515–0615<br><a class="place"[^>]*>Catawba Ridge HS</a><br>Q: Suplex</div>#u', $html ), 'summary, then its own meta line' );
 		assert_true( false === strpos( $html, 'meta-inline' ) );
 	}
 );
@@ -113,7 +113,7 @@ fortw_test(
 		);
 		assert_same( '', fortw_nl_place( '  ' ) );
 		assert_same(
-			'0530 · <a class="place" href="https://www.google.com/maps/search/?api=1&amp;query=The%20Hive">The Hive</a> · Q: Bam &amp; Bam',
+			'0530<br><a class="place" href="https://www.google.com/maps/search/?api=1&amp;query=The%20Hive">The Hive</a><br>Q: Bam &amp; Bam',
 			fortw_nl_meta_html( array( 'location' => 'The Hive', 'leader' => 'Bam & Bam' ), array( '0530' ) )
 		);
 		assert_same( 'Q: X', fortw_nl_meta_html( array( 'location' => '', 'leader' => 'X' ) ) );
