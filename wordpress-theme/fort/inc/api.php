@@ -1,78 +1,14 @@
 <?php
 /**
- * Where the theme's data comes from: events and region info from the Fort Weekly plugin (in this
- * WordPress), and workouts, backblasts and stats from the stats API.
- *
- * Stats responses are cached in a transient; the last good copy of each is also kept in an
- * option, so the site keeps showing data if the stats API is briefly unreachable.
+ * Where the theme's data comes from: events and region info from the Fort Weekly plugin, and
+ * workouts, backblasts, the schedule and stats from the Fort Stats plugin (which reads Supabase
+ * and keeps its own cache). Without a plugin, its parts of the site show as unavailable; the
+ * theme never fetches data from anywhere itself.
  *
  * @package Fort
  */
 
 defined( 'ABSPATH' ) || exit;
-
-function fort_cache_version() {
-	return (int) get_option( 'fort_cache_ver', 1 );
-}
-
-function fort_flush_cache() {
-	update_option( 'fort_cache_ver', fort_cache_version() + 1, false );
-}
-
-/**
- * GET {$base}{$path} as decoded JSON (array), cached for $ttl seconds.
- * Returns null when the API can't be reached and nothing was cached before, and
- * array( '__missing' => true ) for a 404 (so callers can tell "not found" from "down").
- *
- * $keep_last: also keep the last good copy for outages. Off for URLs with endless variations
- * (filters, pages), where it would leave a permanent row per URL. $ttl 0: no caching at all
- * (free-text searches).
- */
-function fort_remote_json( $base, $path, $ttl, $keep_last = true ) {
-	$id     = md5( $base . $path );
-	$key    = 'fort_' . $id . '_' . fort_cache_version();
-	$cached = $ttl > 0 ? get_transient( $key ) : false;
-	if ( false !== $cached ) {
-		return $cached;
-	}
-
-	$response = wp_remote_get(
-		untrailingslashit( $base ) . $path,
-		array(
-			'timeout' => 6,
-			'headers' => array( 'Accept' => 'application/json' ),
-		)
-	);
-
-	if ( is_wp_error( $response ) ) {
-		error_log( 'Fort theme: ' . $path . ' failed: ' . $response->get_error_message() );
-		return $keep_last ? get_option( 'fort_last_' . $id, null ) : null;
-	}
-
-	$code = (int) wp_remote_retrieve_response_code( $response );
-	if ( 404 === $code ) {
-		// Not cached: otherwise every made-up /events/<slug>/ URL would write a transient row.
-		return array( '__missing' => true );
-	}
-
-	$data = json_decode( wp_remote_retrieve_body( $response ), true );
-	if ( 200 !== $code || ! is_array( $data ) ) {
-		error_log( 'Fort theme: ' . $path . ' returned HTTP ' . $code );
-		return $keep_last ? get_option( 'fort_last_' . $id, null ) : null;
-	}
-
-	if ( $ttl > 0 ) {
-		set_transient( $key, $data, $ttl );
-	}
-	if ( $keep_last ) {
-		update_option( 'fort_last_' . $id, $data, false );
-	}
-	return $data;
-}
-
-function fort_is_missing( $data ) {
-	return ! is_array( $data ) || ! empty( $data['__missing'] );
-}
 
 /** Homepage data: featured, this week, coming up, ongoing, region info. Null without the plugin. */
 function fort_home() {
@@ -93,42 +29,30 @@ function fort_entries( $args = array() ) {
 	return function_exists( 'fort_weekly_entries' ) ? fort_weekly_entries( $args ) : array();
 }
 
-/** Recent workouts (backblasts) from the stats API, newest first. */
+/** Recent workouts (backblasts), newest first. */
 function fort_backblasts( $limit = 4 ) {
-	if ( function_exists( 'fort_stats_backblasts' ) ) {
-		return fort_stats_backblasts( 8, $limit )['items'] ?? array();
-	}
-	$data = fort_remote_json( FORT_STATS_API, '/api/backblasts?days=8&limit=' . (int) $limit, FORT_STATS_TTL );
-	return fort_is_missing( $data ) ? array() : ( $data['items'] ?? array() );
+	return function_exists( 'fort_stats_backblasts' ) ? ( fort_stats_backblasts( 8, $limit )['items'] ?? array() ) : array();
 }
 
-/** Upcoming workouts from GloomSchedule (via the stats API): $days days from today (2 = today and tomorrow, up to 14). */
+/** Upcoming workouts from GloomSchedule: $days days from today (2 = today and tomorrow, up to 14). */
 function fort_schedule( $days = 2 ) {
-	if ( function_exists( 'fort_stats_schedule' ) ) {
-		$data = fort_stats_schedule( $days );
-		return empty( $data['configured'] ) ? null : $data;
-	}
-	$data = fort_remote_json( FORT_STATS_API, '/api/schedule?days=' . max( 1, min( 14, (int) $days ) ), min( FORT_STATS_TTL, 900 ) );
-	if ( fort_is_missing( $data ) || empty( $data['configured'] ) ) {
+	if ( ! function_exists( 'fort_stats_schedule' ) ) {
 		return null;
 	}
-	return $data;
+	$data = fort_stats_schedule( $days );
+	return empty( $data['configured'] ) ? null : $data;
 }
 
 /** Last week's totals, the 8-week trend and the busiest AOs. */
 function fort_backblast_summary() {
-	if ( function_exists( 'fort_stats_backblast_summary' ) ) {
-		return fort_stats_backblast_summary();
-	}
-	$data = fort_remote_json( FORT_STATS_API, '/api/backblasts/summary', FORT_STATS_TTL );
-	return fort_is_missing( $data ) ? null : $data;
+	return function_exists( 'fort_stats_backblast_summary' ) ? fort_stats_backblast_summary() : null;
 }
 
-/**
- * A page of the Backblasts archive from the stats API. $args: page, ao, month (YYYY-MM), type, q.
- * Text searches aren't cached; other combinations for 15 minutes (no permanent copy).
- */
+/** A page of the Backblasts archive. $args: page, ao, month (YYYY-MM), type, q. */
 function fort_backblast_archive( $args ) {
+	if ( ! function_exists( 'fort_stats_backblast_archive' ) ) {
+		return null;
+	}
 	$query = array_filter(
 		array(
 			'page'     => max( 1, (int) ( $args['page'] ?? 1 ) ),
@@ -139,19 +63,10 @@ function fort_backblast_archive( $args ) {
 			'q'        => (string) ( $args['q'] ?? '' ),
 		)
 	);
-	if ( function_exists( 'fort_stats_backblast_archive' ) ) {
-		return fort_stats_backblast_archive( $query );
-	}
-	$data = fort_remote_json( FORT_STATS_API, '/api/backblasts/archive?' . http_build_query( $query ), empty( $query['q'] ) ? FORT_STATS_TTL : 0, false );
-	return fort_is_missing( $data ) ? null : $data;
+	return fort_stats_backblast_archive( $query );
 }
 
-/** One backblast (full write-up, Qs, PAX) from the stats API, or null. */
+/** One backblast (full write-up, Qs, PAX), or null. */
 function fort_backblast( $event_id ) {
-	if ( function_exists( 'fort_stats_backblast' ) ) {
-		return fort_stats_backblast( $event_id )['item'] ?? null;
-	}
-	$data = fort_remote_json( FORT_STATS_API, '/api/backblasts/' . (int) $event_id, FORT_STATS_TTL, false );
-	return fort_is_missing( $data ) || empty( $data['item'] ) ? null : $data['item'];
+	return function_exists( 'fort_stats_backblast' ) ? ( fort_stats_backblast( $event_id )['item'] ?? null ) : null;
 }
-

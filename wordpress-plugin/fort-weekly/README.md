@@ -9,7 +9,7 @@ f3thefort.com WordPress. It replaces the separate newsletter app (`server.js` in
 
 It works with the **Fort** theme (`wordpress-theme/fort/`), which handles the presentation. The
 plugin owns the data, so switching themes never loses events. Workouts, backblasts and FNG numbers
-still come from the stats site (stats.f3thefort.com).
+come from the **Fort Stats** plugin (`wordpress-plugin/fort-stats/`).
 
 ## What's in wp-admin
 
@@ -47,7 +47,6 @@ only administrators can import or delete. Give each approver their own account.
 | `FORT_GROQ_API_KEY` | "Write one for me" summaries | Button disabled |
 | `FORT_SUBMITTER_EMAILS` (`true`) | Emailing submitters when their event (or their change) is approved | Logs what it would have sent |
 | `FORT_EMAIL_FROM` | Those emails' sender, e.g. `'The Fort Weekly <newsletter@f3thefort.com>'` | WordPress's default sender |
-| `FORT_STATS_API` | FNG numbers | `https://stats.f3thefort.com` |
 | `FORT_CLIENT_IP_HEADER` | Per-visitor submit limit behind a proxy/CDN (e.g. `'HTTP_CF_CONNECTING_IP'`) | Uses the connecting address |
 | `FORT_WEEKLY_TZ` | What "today" is | `America/New_York` |
 

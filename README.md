@@ -39,9 +39,11 @@ FNG sign-up Google Sheet ──────────────────�
   copies of the stats and the schedule. Only searches and filtered views query Supabase on
   request.
 - **FNG numbers come only from the sign-up sheet**, never from backblast counts.
-- **The Supabase side lives in the stats repo, not this one.** That repo holds the tables and the
-  read-only `stats_api_*` functions the plugin calls (`analytics-sync/stats-api.sql`). The
-  plugin only uses the anon key.
+- **The Supabase side is in [`supabase/`](supabase/README.md):** the tables, the read-only
+  `stats_api_*` functions the plugin calls, and the Apps Script that loads the data each night.
+  The plugin only uses the anon key.
+- **No Python.** The old Flask stats site (stats.f3thefort.com) and its Slack jobs live in a
+  separate, private repo and retire with the VPS. Nothing in WordPress calls them.
 
 ## Requirements
 
@@ -73,7 +75,7 @@ bash scripts/local/seed-wordpress.sh              # first run only
 - **Optional profiles:**
   - `--profile stats` adds a local Postgres and PostgREST that stand in for Supabase.
     `bash scripts/local/seed-stats-db.sh` fills them with a read-only copy of the live data; it
-    needs the stats repo checked out (`STATS_REPO=…`).
+    needs a read-only database login in `STATS_ENV_FILE`.
   - `--profile legacy` runs the old Node app on port 3002 (admin password `test123`).
 - **Tear down** (keeps nothing): `docker compose -f docker-compose.local.yml down -v`
 

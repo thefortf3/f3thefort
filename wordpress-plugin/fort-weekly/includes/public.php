@@ -9,10 +9,6 @@
 
 defined( 'ABSPATH' ) || exit;
 
-if ( ! defined( 'FORT_STATS_API' ) ) {
-	define( 'FORT_STATS_API', 'https://stats.f3thefort.com' );
-}
-
 /**
  * Descriptions and the Nan'tan note: filtered like post content, with paragraphs added the way
  * WordPress displays posts (the classic editor saves text without <p> tags).
@@ -34,28 +30,9 @@ function fortw_region_settings() {
 	return $out;
 }
 
-/**
- * The stats API's FNG payload (/api/fng), cached for 15 minutes; the last good copy is kept so a
- * stats outage doesn't blank the numbers. Returns null if it has never been reachable.
- */
+/** The FNG numbers from the Fort Stats plugin (the sign-up sheet), or null without it. */
 function fortw_stats_fng() {
-	if ( function_exists( 'fort_stats_fng' ) ) {
-		return fort_stats_fng(); // The Fort Stats plugin, when active.
-	}
-	$cached = get_transient( 'fortw_stats_fng' );
-	if ( false !== $cached ) {
-		return $cached;
-	}
-	$response = wp_remote_get( untrailingslashit( FORT_STATS_API ) . '/api/fng', array( 'timeout' => 6, 'headers' => array( 'Accept' => 'application/json' ) ) );
-	$data     = is_wp_error( $response ) ? null : json_decode( wp_remote_retrieve_body( $response ), true );
-	if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) || ! is_array( $data ) ) {
-		$last = get_option( 'fortw_stats_fng_last', null );
-		set_transient( 'fortw_stats_fng', $last, 5 * MINUTE_IN_SECONDS ); // Don't retry on every page view.
-		return $last;
-	}
-	set_transient( 'fortw_stats_fng', $data, 15 * MINUTE_IN_SECONDS );
-	update_option( 'fortw_stats_fng_last', $data, false );
-	return $data;
+	return function_exists( 'fort_stats_fng' ) ? fort_stats_fng() : null;
 }
 
 /** Region info: Nan'tan note, FNG numbers, shovel flags, VQs, Three F's, SLT, links. */

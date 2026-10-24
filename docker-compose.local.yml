@@ -69,8 +69,6 @@ services:
       WORDPRESS_DB_NAME: wordpress
       DEV_HOST: ${DEV_HOST:-develop.lan}
       WP_PORT: ${WP_PORT:-8088}
-      # The live stats API. For the local stats container instead: FORT_STATS_API=http://stats:8080
-      FORT_STATS_API: ${FORT_STATS_API:-https://stats.f3thefort.com}
       WORDPRESS_CONFIG_EXTRA: |
         // Site address from the request, so it works directly and behind an https proxy.
         // (Doubled dollar signs are compose's escape for PHP's $.)
@@ -87,7 +85,6 @@ services:
         define( 'DISABLE_WP_CRON', true );
         // Style preview frame at /style-preview/ (try the alternative homepage styles). Local only.
         define( 'FORT_STYLE_PREVIEW', true );
-        define( 'FORT_STATS_API', getenv( 'FORT_STATS_API' ) ?: 'https://stats.f3thefort.com' );
         // Fort Stats plugin: the local PostgREST (profile "stats") and its local-only anon key.
         define( 'FORT_STATS_REST_URL', getenv( 'FORT_STATS_REST_URL' ) ?: 'http://postgrest:3000' );
         define( 'FORT_GS_API_ENDPOINT', getenv( 'GS_API_ENDPOINT' ) ?: '' );

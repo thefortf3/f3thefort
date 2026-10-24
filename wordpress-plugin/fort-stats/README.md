@@ -35,7 +35,7 @@ A theme without `fort-stats.php` gets a plain leaderboard (`templates/dashboard.
 
 f3thefort.com's host refuses outbound Postgres connections (ports 5432 and 6543). So the plugin reads the stats Supabase project over **HTTPS**, through Supabase's REST API:
 
-- **Supabase functions:** each query is a read-only function, `stats_api_*`, defined in the stats repo's `analytics-sync/stats-api.sql`. They are called with the **anon key**, which can only run these functions and read what it could already read. The plugin never holds the service_role key or a database password.
+- **Supabase functions:** each query is a read-only function, `stats_api_*`, defined in [`supabase/stats-api.sql`](../../supabase/stats-api.sql). They are called with the **anon key**, which can only run these functions and read what it could already read. The plugin never holds the service_role key or a database password.
 - **The page logic:** `includes/pure/` is a line-for-line port of the stats repo's `web/payload.py` and `web/fng_sheet.py`. For the same data it gives the same JSON as the Flask API.
 - **GloomSchedule** (the Q schedule) and the **FNG sign-up sheet** are fetched over HTTPS, as before.
 
@@ -53,7 +53,7 @@ Only what's opened on request is fetched live, and cached: archive pages and sea
 
 ## Setting it up
 
-1. **In Supabase** (SQL Editor): run `analytics-sync/stats-api.sql` from the stats repo.
+1. **In Supabase** (SQL Editor): run `supabase/stats-api.sql` from this repo.
    - It only adds functions; no table or data changes, and the Flask app and sync are unaffected.
    - It's safe to re-run. The file's header explains how to remove the functions.
 2. **In `wp-config.php`:**
@@ -78,7 +78,7 @@ Only what's opened on request is fetched live, and cached: archive pages and sea
 
    "Refresh now" fetches everything straight away.
 
-With the plugin active, the theme reads stats from it directly, and the nav's Stats link goes to /stats/. Deactivating the plugin switches the theme back to the remote stats API (`FORT_STATS_API`).
+The theme and Fort Weekly read stats only from this plugin, and the nav's Stats link goes to /stats/. Without it, those parts of the site show as unavailable; nothing falls back to stats.f3thefort.com.
 
 ## JSON
 
