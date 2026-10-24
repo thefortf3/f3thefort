@@ -44,11 +44,19 @@ const HEADS = '.fort-h2,.fort-h3,.fort-about__title,.fort-featured__title,.fort-
 const LABELS = '.fort-kicker,.fort-label,.fort-meta,.fort-when,.fort-mono-dim,.fort-day__dow';
 const CARDS = '.fort-featured,.fort-panel,.fort-card,.fort-bb,.fort-fs__tile,.fort-about__fng,.fort-notice,.fort-band';
 
+// $a mixed with $b, $t of the way to $b (solid hex).
+function mix(a, b, t) {
+  const x = parseInt(a.slice(1), 16), y = parseInt(b.slice(1), 16);
+  return '#' + [16, 8, 0].map(sh => Math.round(((x >> sh) & 255) * (1 - t) + ((y >> sh) & 255) * t).toString(16).padStart(2, '0')).join('');
+}
+// Links on mouse-over: the accent text colour, lighter on a dark style and deeper on a light one.
+function linkHover(p) { return p.dark ? mix(p.amberB, '#ffffff', 0.3) : mix(p.amberB, p.bright, 0.4); }
+
 function build(o) {
   const p = P[o.palette];
   const R = { square: { c: 0, b: 0, t: 0 }, soft: { c: 6, b: 4, t: 3 }, rounded: { c: 8, b: 6, t: 4 }, round: { c: 18, b: 999, t: 999 } }[o.shape];
   const out = [];
-  out.push(`:root{--bg:${p.bg};--bg-deep:${p.bgDeep};--panel:${p.panel};--panel-2:${p.panel2};--line:${p.line};--line-2:${p.line2};--text:${p.text};--text-dim:${p.dim};--text-mute:${p.mute};--text-bright:${p.bright};--amber:${p.amber};--amber-bright:${p.amberB};--accent2:${p.accent2};${p.dark ? '' : '--map-tiles:none;'}${o.headings === 'serif' ? "--display:'Source Serif 4',Georgia,serif;" : ''}}
+  out.push(`:root{--bg:${p.bg};--bg-deep:${p.bgDeep};--panel:${p.panel};--panel-2:${p.panel2};--line:${p.line};--line-2:${p.line2};--text:${p.text};--text-dim:${p.dim};--text-mute:${p.mute};--text-bright:${p.bright};--amber:${p.amber};--amber-bright:${p.amberB};--accent2:${p.accent2};--link-hover:${linkHover(p)};--on-accent:${p.btnText};${p.dark ? '' : '--map-tiles:none;'}${o.headings === 'serif' ? "--display:'Source Serif 4',Georgia,serif;" : ''}}
 html{background-color:${p.bg};${p.html || ''}} body{background:transparent;}
 .fort-header{border-bottom:1px solid ${p.line2};} .fort-footer{background:${p.dark ? 'rgba(0,0,0,0.2)' : p.bgDeep};border-top-color:${p.line2};}
 .fort-trend rect{fill:${p.dark ? 'rgba(255,255,255,0.14)' : p.line2};}`);
@@ -58,7 +66,6 @@ html{background-color:${p.bg};${p.html || ''}} body{background:transparent;}
 .fort-brand{font-family:var(--display);text-transform:none;font-weight:600;letter-spacing:0;font-size:26px;} .fort-h2{font-size:30px;} .fort-featured__title{font-size:42px;line-height:1.1;} .fort-about__title{font-size:38px;line-height:1.12;}
 .fort-day__num,.fort-coming__num,.fort-stat__num{font-weight:600;} .fort-quote__text{font-family:var(--display);}`);
   if (o.headings === 'sentence') out.push(`${HEADS}{text-transform:none;letter-spacing:0.01em;font-weight:500;color:${p.bright};} .fort-about__title{font-size:40px;line-height:1.1;} .fort-h2{font-size:30px;}`);
-  if (o.headings === 'strong') out.push(`${HEADS}{text-transform:none;letter-spacing:0.01em;font-weight:600;color:${p.bright};} .fort-about__title{font-size:40px;line-height:1.1;} .fort-h2{font-size:30px;}`);
   if (o.headings === 'calm') out.push(`${HEADS}{font-weight:400;letter-spacing:0.06em;color:${p.bright};} .fort-featured__title{font-weight:400;letter-spacing:0.04em;} .fort-brand{font-weight:500;} .fort-day__num,.fort-coming__num,.fort-stat__num{font-weight:400;}`);
 
   // Readable sizes for every style: members are mostly men in their 30s to 50s, reading on phones, so
@@ -75,10 +82,6 @@ html{background-color:${p.bg};${p.html || ''}} body{background:transparent;}
 .fort-tag,.fort-badge{font-family:var(--body);text-transform:none;letter-spacing:0.02em;font-size:12px;} .fort-js .fort-about__hide{font-family:var(--body);text-transform:none;letter-spacing:0.01em;font-size:13px;} .fort-about-bar__show{font-family:var(--body);letter-spacing:0.01em;font-size:15px;}`);
   if (o.labels === 'monoLower') out.push(`${LABELS}{text-transform:lowercase;letter-spacing:0.04em;color:${p.mute};} .fort-kicker{color:${p.accent2};}
 .fort-nav__list a,.fort-btn,.fort-tag,.fort-badge,.fort-more,.fort-js .fort-about__hide{text-transform:lowercase;letter-spacing:0.04em;} .fort-nav__list a{font-size:14px;} .fort-btn{font-size:14px;padding:13px 20px;}`);
-  // Mixed: the small labels stay tracked mono capitals; nav, buttons and links speak plainly.
-  if (o.labels === 'mixed') out.push(`${LABELS}{color:${p.mute};} .fort-kicker{color:${p.amber};}
-.fort-nav__list a{font-family:var(--body);text-transform:none;letter-spacing:0.02em;font-size:15px;} .fort-btn{font-family:var(--body);text-transform:none;letter-spacing:0.02em;font-size:15px;font-weight:600;padding:12px 22px;} .fort-more{font-family:var(--body);letter-spacing:0.01em;font-size:15px;}
-.fort-js .fort-about__hide{font-family:var(--body);text-transform:none;letter-spacing:0.01em;font-size:13px;} .fort-about-bar__show{font-family:var(--body);letter-spacing:0.01em;font-size:15px;}`);
   if (o.labels === 'tracked') out.push(`${LABELS}{color:${p.mute};} .fort-kicker{color:${p.amber};} .fort-nav__list a{letter-spacing:0.08em;} .fort-btn{letter-spacing:0.12em;font-weight:500;}`);
 
   // Buttons, tags, badges
@@ -87,7 +90,7 @@ html{background-color:${p.bg};${p.html || ''}} body{background:transparent;}
 .fort-btn--outline,.fort-nav .fort-btn{background:transparent;color:${o.buttons === 'ink' && !p.dark ? p.ink : p.amberB};border-color:${o.buttons === 'ink' && !p.dark ? p.ink : p.amber};}
 .fort-btn--outline:hover,.fort-nav .fort-btn:hover{background:${p.dark ? 'rgba(255,255,255,0.08)' : p.ink};color:${p.dark ? p.amberB : p.inkText};}
 .fort-tag{color:${p.dim} !important;border-color:${p.line2} !important;} .fort-badge{background:${p.dark ? p.amber : p.amberB};color:${p.dark ? p.btnText : '#fff'};}
-.fort-brand .fort-amber{color:${p.amberB};} .fort-more,a.fort-more{color:${p.amberB};} .fort-day__num,.fort-featured__date{color:${p.amberB};} .fort-coming__num{color:${p.dark ? p.accent2 : p.amberB};}
+.fort-brand .fort-amber{color:${p.amberB};} .fort-more,a.fort-more{color:${p.amberB};} .fort-more:hover,a.fort-more:hover{color:${linkHover(p)};} .fort-day__num,.fort-featured__date{color:${p.amberB};} .fort-coming__num{color:${p.dark ? p.accent2 : p.amberB};}
 .fort-chip.is-current{color:${onFill(p.accent2)};} .fort-pagination .current,.fort-skip{color:${onFill(p.amber)};}
 .fort-principles__head{color:${p.accent2};} .fort-principles__list li::before{color:${p.dark ? p.accent2 : p.amberB};}`);
 
@@ -120,15 +123,15 @@ html{background-color:${p.bg};${p.html || ''}} body{background:transparent;}
 
   // Header
   if (o.header === 'pill') out.push(`.fort-header{border-bottom:0;background:transparent;padding:14px 0 0;} .fort-header__inner{background:${p.dark ? 'rgba(255,255,255,0.045)' : p.card};border:1px solid ${p.line2};border-radius:${R.b === 999 ? 999 : R.c + 4}px;padding:12px 14px 12px 26px;max-width:calc(1200px - 64px);}
-.fort-nav__list a{padding:8px 12px;border-radius:${R.b}px;} @media (max-width:720px){.fort-header{padding:10px 12px 0;}.fort-header__inner{border-radius:${R.b === 999 ? 22 : R.c + 4}px;padding:14px 16px;}.fort-js .fort-about{padding:28px 20px 70px;}.fort-day{padding:16px;}}`);
+.fort-nav__list a{padding:8px 12px;border-radius:${R.b}px;} @media (max-width:720px){.fort-header{padding:10px 12px 0;}.fort-header__inner{border-radius:${R.b === 999 ? 22 : R.c + 4}px;padding:14px 12px;}.fort-nav__list a{padding:6px;}.fort-js .fort-about{padding:28px 20px 70px;}.fort-day{padding:16px;}}`);
   return out.join('\n');
 }
 
 const NAMES = {
   palette: { gloom: 'Gloom indigo', carolina: 'Carolina blue', brick: 'Brick & stone', trail: 'Olive & terracotta', volt: 'Graphite & lime', daylight: 'White & teal', circle: 'Graphite & lime, lifted cards' },
   shape: { square: 'Square corners', soft: 'Slightly softened corners', rounded: 'Softly rounded corners', round: 'Round corners' },
-  headings: { bold: 'Original bold capitals', calm: 'Light, spaced capitals', serif: 'Serif headings', sentence: 'Sentence-case headings', strong: 'Bold sentence-case headings' },
-  labels: { tracked: 'Tracked mono labels', italic: 'Italic labels', monoLower: 'Lower-case mono labels', plain: 'Plain labels', mixed: 'Mono labels, plain buttons and nav' },
+  headings: { bold: 'Original bold capitals', calm: 'Light, spaced capitals', serif: 'Serif headings', sentence: 'Sentence-case headings' },
+  labels: { tracked: 'Tracked mono labels', italic: 'Italic labels', monoLower: 'Lower-case mono labels', plain: 'Plain labels' },
   sections: { rules: 'Hairline rules', dashed: 'Dashed notebook rules', cards: 'Floating cards' },
   flyers: { mat: 'Matted flyers', matte: 'Matte flyers' },
   buttons: { accent: 'Accent buttons', ink: 'Solid ink buttons' },
@@ -164,9 +167,9 @@ const VARIANTS = [
   { key: '6', name: 'Fellowship', summary: 'Bright white and pale aqua with a deep teal accent and coral highlights; round cards and a floating pill header.',
     why: 'The friendliest first impression, for the FNG who finds the site before his first post: open, modern, welcoming, and calm rather than hardcore.',
     o: { palette: 'daylight', shape: 'round', headings: 'sentence', labels: 'plain', sections: 'cards', flyers: 'mat', buttons: 'accent', header: 'pill' } },
-  { key: '7', name: 'Circle', summary: 'Volt’s graphite, lime and ice blue with Fellowship’s feel: floating, softly rounded cards and header, sentence-case headings and plain buttons.',
-    why: 'The middle ground between the two favourites, named for the Circle of Trust: Volt’s energy and colour, Fellowship’s welcome.',
-    o: { palette: 'circle', shape: 'rounded', headings: 'strong', labels: 'mixed', sections: 'cards', flyers: 'mat', buttons: 'accent', header: 'pill', tint: 'accent2' } },
+  { key: '7', name: 'Circle', summary: 'Volt’s graphite, lime and ice blue and its bold condensed capitals, with Fellowship’s feel: floating, softly rounded cards and header, matted flyers.',
+    why: 'The middle ground between the two favourites, named for the Circle of Trust: Volt’s colour and type, Fellowship’s welcome.',
+    o: { palette: 'circle', shape: 'rounded', headings: 'bold', labels: 'tracked', sections: 'cards', flyers: 'mat', buttons: 'accent', header: 'pill', tint: 'accent2' } },
 ];
 
 // Scope every rule to html[data-fort-style="N"]. (.fort-js is a class on <html> itself, and :root
@@ -223,7 +226,7 @@ const problems = [];
 for (const v of VARIANTS) {
   const p = P[v.o.palette];
   const grounds = [p.bg, ...[p.panel, p.card].filter(c => c.startsWith('#'))];
-  const pairs = [['text', p.text], ['dim', p.dim], ['mute', p.mute], ['accent text', p.amberB], ['accent2', p.accent2]].flatMap(([n, c]) => grounds.map(g => [n, c, g]));
+  const pairs = [['text', p.text], ['dim', p.dim], ['mute', p.mute], ['accent text', p.amberB], ['accent2', p.accent2], ['link hover', linkHover(p)]].flatMap(([n, c]) => grounds.map(g => [n, c, g]));
   pairs.push(['selected chip', onFill(p.accent2), p.accent2], ['selected page', onFill(p.amber), p.amber]);
   pairs.push(['button', v.o.buttons === 'ink' ? p.inkText : p.btnText, v.o.buttons === 'ink' ? p.ink : p.amber]);
   for (const [n, c, g] of pairs) { const r = ratio(c, g); if (r < 4.5) problems.push(`${v.key} ${v.name}: ${n} ${c} on ${g} is ${r.toFixed(2)}:1`); }
@@ -287,7 +290,6 @@ ${E_LABELS}{font-size:12px;} .lg-value{font-size:13px;} .badge,.new,.tag{font-si
   // Headings
   if (o.headings === 'sentence') out.push(`${E_HEADS}{text-transform:none;font-weight:500;letter-spacing:0.2px;} .brand{font-size:25px;font-weight:600;} .sec-title{font-size:24px;} .ftitle{font-size:26px;}`);
   if (o.headings === 'serif') out.push(`${E_HEADS},.dnum,.qmark{font-family:${EF.serif};text-transform:none;letter-spacing:0;font-weight:600;} .brand{font-size:26px;} .sec-title{font-size:24px;} .ftitle{font-size:28px;line-height:1.15;}`);
-  if (o.headings === 'strong') out.push(`${E_HEADS}{text-transform:none;font-weight:600;letter-spacing:0.2px;} .brand{font-size:25px;text-transform:uppercase;} .sec-title{font-size:24px;} .ftitle{font-size:26px;}`);
   if (o.headings === 'calm') out.push(`${E_HEADS},.dnum{font-weight:400;letter-spacing:1.5px;}`);
 
   // Labels
@@ -297,7 +299,6 @@ ${E_LABELS}{font-size:14px;} .lg-value{font-size:15px;} .btn{font-size:15px;font
     // The brand and headings keep their own heading treatment.
     if (o.headings === 'bold' || o.headings === 'calm') out.push(`.brand,.sec-title{text-transform:uppercase;}`);
   }
-  if (o.labels === 'mixed') out.push(`.btn,.lnk{font-family:${EF.serif};text-transform:none;letter-spacing:0;} .btn{font-size:15px;font-weight:600;padding:11px 18px;}`);
   if (o.labels === 'italic') out.push(`.issue,.qby,.fmeta,.sec-aside,.when,.meta,.meta-inline,.also,.label,.dow,.lnk,.lg-label{font-style:italic;}`);
   // Lower-case labels, but not where people's and AOs' names appear (the week's names, bylines, the Q).
   if (o.labels === 'monoLower') out.push(`.issue,.badge,.btn,.sec-aside,.dow,.tag,.new,.label,.lg-label,.links .lnk,.small .lnk,.copy,.lnk{text-transform:lowercase;letter-spacing:0.4px;} .qby,.fmeta{text-transform:none;letter-spacing:0.4px;}`);
