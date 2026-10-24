@@ -183,13 +183,22 @@ function fortw_nl_week_entry( $e, $ctx ) {
         <p class="sum">' . fortw_h( fortw_summary_of( $e ) ) . '</p>
         ' . fortw_nl_also( $e['also'] ) . '
         ' . fortw_nl_links( $e, $ctx );
-	if ( ! $img ) {
-		return '<div class="item">' . $body . '</div>';
+	return '<div class="item">' . fortw_nl_with_flyer( $body, $img ? '<a href="' . $url . '"><img class="thumb" src="' . fortw_h( $img ) . '" width="120" alt="' . fortw_h( $e['title'] ) . ' flyer"></a>' : '', 132 ) . '</div>';
+}
+
+/**
+ * $body with its flyer ($flyer: the linked <img>, or '') to the right, as on the homepage: two
+ * real cells, which the phone layout stacks so the text keeps the width (the Featured card's way;
+ * Gmail Android lets @media override a <td>'s layout, not inline CSS).
+ */
+function fortw_nl_with_flyer( $body, $flyer, $width ) {
+	if ( '' === $flyer ) {
+		return $body;
 	}
-	return '<div class="item"><table role="presentation" class="split" width="100%"><tr>
+	return '<table role="presentation" class="split" width="100%"><tr>
         <td class="split-main" valign="top">' . $body . '</td>
-        <td class="split-thumb" valign="top" width="72"><a href="' . $url . '"><img class="thumb" src="' . fortw_h( $img ) . '" width="64" alt="' . fortw_h( $e['title'] ) . ' flyer"></a></td>
-      </tr></table></div>';
+        <td class="split-thumb" valign="top" width="' . (int) $width . '">' . $flyer . '</td>
+      </tr></table>';
 }
 
 function fortw_nl_day( $day, $ctx ) {
@@ -210,16 +219,19 @@ function fortw_nl_coming( $e, $ctx ) {
 		$body  = '' !== $meta ? '<p class="sum sum--sm"><span class="meta-inline">' . $meta . '</span></p>' : '';
 	} else {
 		$chips = fortw_nl_tag_chip( $e ) . ( $e['is_new'] ? '<span class="new">New</span>' : '' );
+		$img   = fortw_image_of( $e );
 		$body  = '<p class="sum sum--sm">' . fortw_h( fortw_summary_of( $e, 170 ) ) . ( '' !== $meta ? ' <span class="meta-inline">' . $meta . '</span>' : '' ) . ' <a class="lnk" href="' . $url . '">Details ↗</a></p>
         ' . fortw_nl_also( $e['also'] );
 	}
 	return '
     <table role="presentation" class="row" width="100%"><tr>
       <td class="row-date" valign="top" width="52"><div class="dow">' . fortw_nl_word( $p['mon'] ) . '</div><div class="dnum dnum--sm">' . $p['day'] . '</div></td>
-      <td valign="top">
-        <div class="row-head"><a class="title title--sm" href="' . $url . '">' . fortw_h( $e['title'] ) . '</a>' . $chips . '</div>
-        ' . $body . '
-      </td>
+      <td valign="top">' . fortw_nl_with_flyer(
+			'<div class="row-head"><a class="title title--sm" href="' . $url . '">' . fortw_h( $e['title'] ) . '</a>' . $chips . '</div>
+        ' . $body,
+			empty( $img ) ? '' : '<a href="' . $url . '"><img class="thumb thumb--sm" src="' . fortw_h( $img ) . '" width="96" alt="' . fortw_h( $e['title'] ) . ' flyer"></a>',
+			108
+		) . '</td>
     </tr></table>';
 }
 
