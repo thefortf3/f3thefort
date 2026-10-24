@@ -252,7 +252,7 @@ main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 10px; }
       r.appendChild(chips);
     } else {
       r.appendChild(el('b', {}, 'Current'));
-      r.appendChild(document.createTextNode(isEmail() ? ' — the newsletter as it goes out now. Pick a style above, or press 1–6 (0 for current, C to compare).' : ' — the site as it looks now. Pick a style above, or press 1–6 (0 for current, C to compare).'));
+      r.appendChild(document.createTextNode(isEmail() ? ' — the newsletter as it goes out now. Pick a style above, or press 1–' + CFG.styles.length + ' (0 for current, C to compare).' : ' — the site as it looks now. Pick a style above, or press 1–' + CFG.styles.length + ' (0 for current, C to compare).'));
     }
     applyStyle(frames.A, state.style);
     if (state.compare) applyStyle(frames.B, state.styleB);

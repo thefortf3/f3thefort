@@ -1,6 +1,6 @@
 <?php
 /**
- * Style preview: a frame around the site for trying the six alternative homepage styles live.
+ * Style preview: a frame around the site for trying the alternative homepage styles live.
  *
  * Off unless wp-config.php says so, so production never shows it:
  *
@@ -12,7 +12,7 @@
  *   - /style-preview/newsletter/?style=N is this week's newsletter in style N, inlined for email
  *     the way Fort Weekly sends it to Mailchimp (&fonts=gmail: without the web fonts);
  *   - the site loads assets/style-previews.css, whose rules apply only under
- *     html[data-fort-style="1".."6"];
+ *     html[data-fort-style="1".."N"];
  *   - an early script sets that attribute from the frame's name, ?fort_style=N, or the last choice
  *     (this browser only). Nothing is stored on the server.
  *

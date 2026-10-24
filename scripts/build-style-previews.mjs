@@ -2,7 +2,7 @@
 /**
  * build-style-previews.mjs — builds the theme's style-preview stylesheet.
  *
- * The six homepage style options (palette incl. accent colour · corner shape · heading and label type · section styling
+ * The homepage style options (palette incl. accent colour · corner shape · heading and label type · section styling
  * · flyer treatment · header) are assembled here from interchangeable ingredients, then every rule
  * is scoped to html[data-fort-style="N"] so the site can switch between them live. Output:
  *   wordpress-theme/fort/assets/style-previews.css    (loaded only when FORT_STYLE_PREVIEW is on)
@@ -37,6 +37,8 @@ const P = {
   // Fellowship: bright white and pale aqua, deep teal accent, coral second.
   daylight: { bg: '#fbfcfc', bgDeep: '#eef3f3', panel: '#eef4f4', panel2: '#e1ecec', line: '#dde6e6', line2: '#c3d3d3', text: '#29383a', dim: '#4c5f63', mute: '#5c6f72', bright: '#0e1c1e', amber: '#0b7a7a', amberB: '#0b6a6a', accent2: '#c2412e', btnText: '#ffffff', ink: '#0b6a6a', inkText: '#ffffff', card: '#ffffff', mat: '#ffffff', dark: false },
 };
+// Circle: Volt's colours, with cards a touch lighter so they float on the graphite.
+P.circle = { ...P.volt, card: 'rgba(255,255,255,0.055)', line2: '#3d464f' };
 
 const HEADS = '.fort-h2,.fort-h3,.fort-about__title,.fort-featured__title,.fort-featured__date,.fort-entry-title,.fort-coming__title,.fort-bb__title,.fort-fs__name,.fort-card__title,.fort-stat__line,.fort-lineup__ao,.fort-lineup__ao a,.fort-lineup__day';
 const LABELS = '.fort-kicker,.fort-label,.fort-meta,.fort-when,.fort-mono-dim,.fort-day__dow';
@@ -44,7 +46,7 @@ const CARDS = '.fort-featured,.fort-panel,.fort-card,.fort-bb,.fort-fs__tile,.fo
 
 function build(o) {
   const p = P[o.palette];
-  const R = { square: { c: 0, b: 0, t: 0 }, soft: { c: 6, b: 4, t: 3 }, round: { c: 18, b: 999, t: 999 } }[o.shape];
+  const R = { square: { c: 0, b: 0, t: 0 }, soft: { c: 6, b: 4, t: 3 }, rounded: { c: 12, b: 999, t: 999 }, round: { c: 18, b: 999, t: 999 } }[o.shape];
   const out = [];
   out.push(`:root{--bg:${p.bg};--bg-deep:${p.bgDeep};--panel:${p.panel};--panel-2:${p.panel2};--line:${p.line};--line-2:${p.line2};--text:${p.text};--text-dim:${p.dim};--text-mute:${p.mute};--text-bright:${p.bright};--amber:${p.amber};--amber-bright:${p.amberB};--accent2:${p.accent2};${p.dark ? '' : '--map-tiles:none;'}${o.headings === 'serif' ? "--display:'Source Serif 4',Georgia,serif;" : ''}}
 html{background-color:${p.bg};${p.html || ''}} body{background:transparent;}
@@ -56,6 +58,7 @@ html{background-color:${p.bg};${p.html || ''}} body{background:transparent;}
 .fort-brand{font-family:var(--display);text-transform:none;font-weight:600;letter-spacing:0;font-size:26px;} .fort-h2{font-size:30px;} .fort-featured__title{font-size:42px;line-height:1.1;} .fort-about__title{font-size:38px;line-height:1.12;}
 .fort-day__num,.fort-coming__num,.fort-stat__num{font-weight:600;} .fort-quote__text{font-family:var(--display);}`);
   if (o.headings === 'sentence') out.push(`${HEADS}{text-transform:none;letter-spacing:0.01em;font-weight:500;color:${p.bright};} .fort-about__title{font-size:40px;line-height:1.1;} .fort-h2{font-size:30px;}`);
+  if (o.headings === 'strong') out.push(`${HEADS}{text-transform:none;letter-spacing:0.01em;font-weight:600;color:${p.bright};} .fort-about__title{font-size:40px;line-height:1.1;} .fort-h2{font-size:30px;}`);
   if (o.headings === 'calm') out.push(`${HEADS}{font-weight:400;letter-spacing:0.06em;color:${p.bright};} .fort-featured__title{font-weight:400;letter-spacing:0.04em;} .fort-brand{font-weight:500;} .fort-day__num,.fort-coming__num,.fort-stat__num{font-weight:400;}`);
 
   // Readable sizes for every style: members are mostly men in their 30s to 50s, reading on phones, so
@@ -72,6 +75,10 @@ html{background-color:${p.bg};${p.html || ''}} body{background:transparent;}
 .fort-tag,.fort-badge{font-family:var(--body);text-transform:none;letter-spacing:0.02em;font-size:12px;} .fort-js .fort-about__hide{font-family:var(--body);text-transform:none;letter-spacing:0.01em;font-size:13px;} .fort-about-bar__show{font-family:var(--body);letter-spacing:0.01em;font-size:15px;}`);
   if (o.labels === 'monoLower') out.push(`${LABELS}{text-transform:lowercase;letter-spacing:0.04em;color:${p.mute};} .fort-kicker{color:${p.accent2};}
 .fort-nav__list a,.fort-btn,.fort-tag,.fort-badge,.fort-more,.fort-js .fort-about__hide{text-transform:lowercase;letter-spacing:0.04em;} .fort-nav__list a{font-size:14px;} .fort-btn{font-size:14px;padding:13px 20px;}`);
+  // Mixed: the small labels stay tracked mono capitals; nav, buttons and links speak plainly.
+  if (o.labels === 'mixed') out.push(`${LABELS}{color:${p.mute};} .fort-kicker{color:${p.amber};}
+.fort-nav__list a{font-family:var(--body);text-transform:none;letter-spacing:0.02em;font-size:15px;} .fort-btn{font-family:var(--body);text-transform:none;letter-spacing:0.02em;font-size:15px;font-weight:600;padding:12px 22px;} .fort-more{font-family:var(--body);letter-spacing:0.01em;font-size:15px;}
+.fort-js .fort-about__hide{font-family:var(--body);text-transform:none;letter-spacing:0.01em;font-size:13px;} .fort-about-bar__show{font-family:var(--body);letter-spacing:0.01em;font-size:15px;}`);
   if (o.labels === 'tracked') out.push(`${LABELS}{color:${p.mute};} .fort-kicker{color:${p.amber};} .fort-nav__list a{letter-spacing:0.08em;} .fort-btn{letter-spacing:0.12em;font-weight:500;}`);
 
   // Buttons, tags, badges
@@ -96,12 +103,15 @@ html{background-color:${p.bg};${p.html || ''}} body{background:transparent;}
   if (S === 'dashed') out.push(`.fort-section__head,.fort-section__head--amber,.fort-section__head--accent2,.fort-side-section__head{border-bottom:1px dashed ${p.line2};} .fort-day,.fort-coming{border-bottom:1px dashed ${p.line2};}
 .fort-featured{background:${p.dark ? p.card : p.panel};border:0;} .fort-fs__tile{background:transparent;border:1px dashed ${p.line2};} .fort-about__fng{background:${p.dark ? p.card : p.panel};border-left:3px solid ${p.amber};}
 .fort-js .fort-about{border:1px solid color-mix(in srgb, ${p.amber} 55%, transparent);} .fort-about-bar{background:${p.card};border:1px dashed ${p.line2};}`);
+  // tint: the colour of the tinted boxes (the first-timer box, the day's date); on graphite a lime
+  // tint turns olive, so Circle uses the ice blue.
+  const T = o.tint === 'accent2' ? p.accent2 : p.amber;
   if (S === 'cards') out.push(`.fort-section__head,.fort-section__head--amber,.fort-section__head--accent2{border-bottom:0;padding-bottom:6px;} .fort-side-section__head{border-bottom:1px solid ${p.line2};}
 .fort-featured{background:${p.dark ? 'linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03))' : p.card};border:1px solid ${p.line2};box-shadow:0 14px 40px rgba(${p.dark ? '0,0,0,0.35' : '70,55,30,0.12'});}
-.fort-fs__tile{background:${p.card};border:1px solid ${p.line};} .fort-about__fng{background:color-mix(in srgb, ${p.amber} 10%, transparent);border:1px solid color-mix(in srgb, ${p.amber} 28%, transparent);}
+.fort-fs__tile{background:${p.card};border:1px solid ${p.line};} .fort-about__fng{background:color-mix(in srgb, ${T} 10%, transparent);border:1px solid color-mix(in srgb, ${T} 28%, transparent);}
 .fort-about{background:${p.dark ? 'linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.025))' : p.card};border:1px solid ${p.line2};box-shadow:0 14px 40px rgba(${p.dark ? '0,0,0,0.3' : '70,55,30,0.1'});}
 .fort-js .fort-about{border:1px solid color-mix(in srgb, ${p.amber} 50%, transparent);} .fort-about-bar{background:${p.card};border:1px solid ${p.line2};}
-.fort-day{background:${p.card};border:1px solid ${p.line};border-radius:${R.c}px;padding:22px 24px;margin-top:12px;} .fort-day__date{border-radius:${Math.min(R.c, 14)}px;background:color-mix(in srgb, ${p.amber} 12%, transparent);padding:8px 0;}
+.fort-day{background:${p.card};border:1px solid ${p.line};border-radius:${R.c}px;padding:22px 24px;margin-top:12px;} .fort-day__date{border-radius:${Math.min(R.c, 14)}px;background:color-mix(in srgb, ${T} 12%, transparent);padding:8px 0;}
 .fort-coming{background:${p.card};border:1px solid ${p.line};border-radius:${Math.max(R.c - 4, 0)}px;padding:16px 18px;margin:6px 0;}`);
 
   // Flyers
@@ -115,10 +125,10 @@ html{background-color:${p.bg};${p.html || ''}} body{background:transparent;}
 }
 
 const NAMES = {
-  palette: { gloom: 'Gloom indigo', carolina: 'Carolina blue', brick: 'Brick & stone', trail: 'Olive & terracotta', volt: 'Graphite & lime', daylight: 'White & teal' },
-  shape: { square: 'Square corners', soft: 'Slightly softened corners', round: 'Round corners' },
-  headings: { bold: 'Original bold capitals', calm: 'Light, spaced capitals', serif: 'Serif headings', sentence: 'Sentence-case headings' },
-  labels: { tracked: 'Tracked mono labels', italic: 'Italic labels', monoLower: 'Lower-case mono labels', plain: 'Plain labels' },
+  palette: { gloom: 'Gloom indigo', carolina: 'Carolina blue', brick: 'Brick & stone', trail: 'Olive & terracotta', volt: 'Graphite & lime', daylight: 'White & teal', circle: 'Graphite & lime, lifted cards' },
+  shape: { square: 'Square corners', soft: 'Slightly softened corners', rounded: 'Rounded corners, pill buttons', round: 'Round corners' },
+  headings: { bold: 'Original bold capitals', calm: 'Light, spaced capitals', serif: 'Serif headings', sentence: 'Sentence-case headings', strong: 'Bold sentence-case headings' },
+  labels: { tracked: 'Tracked mono labels', italic: 'Italic labels', monoLower: 'Lower-case mono labels', plain: 'Plain labels', mixed: 'Mono labels, plain buttons and nav' },
   sections: { rules: 'Hairline rules', dashed: 'Dashed notebook rules', cards: 'Floating cards' },
   flyers: { mat: 'Matted flyers', matte: 'Matte flyers' },
   buttons: { accent: 'Accent buttons', ink: 'Solid ink buttons' },
@@ -154,6 +164,9 @@ const VARIANTS = [
   { key: '6', name: 'Fellowship', summary: 'Bright white and pale aqua with a deep teal accent and coral highlights; round cards and a floating pill header.',
     why: 'The friendliest first impression, for the FNG who finds the site before his first post: open, modern, welcoming, and calm rather than hardcore.',
     o: { palette: 'daylight', shape: 'round', headings: 'sentence', labels: 'plain', sections: 'cards', flyers: 'mat', buttons: 'accent', header: 'pill' } },
+  { key: '7', name: 'Circle', summary: 'Volt’s graphite, lime and ice blue with Fellowship’s feel: floating rounded cards, a pill header, sentence-case headings and plain buttons.',
+    why: 'The middle ground between the two favourites, named for the Circle of Trust: Volt’s energy and colour, Fellowship’s welcome.',
+    o: { palette: 'circle', shape: 'rounded', headings: 'strong', labels: 'mixed', sections: 'cards', flyers: 'mat', buttons: 'accent', header: 'pill', tint: 'accent2' } },
 ];
 
 // Scope every rule to html[data-fort-style="N"]. (.fort-js is a class on <html> itself, and :root
@@ -251,7 +264,7 @@ const E_HEADS = '.brand,.fdate,.ftitle,.sec-title,.title';
 function buildEmail(o) {
   const p = P[o.palette], s = c => solid(c, p.bg);
   const panel = s(p.panel), panel2 = s(p.panel2), card = s(p.card), line = s(p.line), line2 = s(p.line2);
-  const R = { square: { c: 0, b: 0, t: 0 }, soft: { c: 6, b: 4, t: 3 }, round: { c: 16, b: 999, t: 999 } }[o.shape];
+  const R = { square: { c: 0, b: 0, t: 0 }, soft: { c: 6, b: 4, t: 3 }, rounded: { c: 12, b: 999, t: 999 }, round: { c: 16, b: 999, t: 999 } }[o.shape];
   const bBg = o.buttons === 'ink' ? p.ink : p.amber, bText = o.buttons === 'ink' ? p.inkText : p.btnText;
   const out = [];
 
@@ -274,6 +287,7 @@ ${E_LABELS}{font-size:12px;} .lg-value{font-size:13px;} .badge,.new,.tag{font-si
   // Headings
   if (o.headings === 'sentence') out.push(`${E_HEADS}{text-transform:none;font-weight:500;letter-spacing:0.2px;} .brand{font-size:25px;font-weight:600;} .sec-title{font-size:24px;} .ftitle{font-size:26px;}`);
   if (o.headings === 'serif') out.push(`${E_HEADS},.dnum,.qmark{font-family:${EF.serif};text-transform:none;letter-spacing:0;font-weight:600;} .brand{font-size:26px;} .sec-title{font-size:24px;} .ftitle{font-size:28px;line-height:1.15;}`);
+  if (o.headings === 'strong') out.push(`${E_HEADS}{text-transform:none;font-weight:600;letter-spacing:0.2px;} .brand{font-size:25px;text-transform:uppercase;} .sec-title{font-size:24px;} .ftitle{font-size:26px;}`);
   if (o.headings === 'calm') out.push(`${E_HEADS},.dnum{font-weight:400;letter-spacing:1.5px;}`);
 
   // Labels
@@ -283,6 +297,7 @@ ${E_LABELS}{font-size:14px;} .lg-value{font-size:15px;} .btn{font-size:15px;font
     // The brand and headings keep their own heading treatment.
     if (o.headings === 'bold' || o.headings === 'calm') out.push(`.brand,.sec-title{text-transform:uppercase;}`);
   }
+  if (o.labels === 'mixed') out.push(`.btn,.lnk{font-family:${EF.serif};text-transform:none;letter-spacing:0;} .btn{font-size:15px;font-weight:600;padding:11px 18px;}`);
   if (o.labels === 'italic') out.push(`.issue,.qby,.fmeta,.sec-aside,.when,.meta,.meta-inline,.also,.label,.dow,.lnk,.lg-label{font-style:italic;}`);
   // Lower-case labels, but not where people's and AOs' names appear (the week's names, bylines, the Q).
   if (o.labels === 'monoLower') out.push(`.issue,.badge,.btn,.sec-aside,.dow,.tag,.new,.label,.lg-label,.links .lnk,.small .lnk,.copy,.lnk{text-transform:lowercase;letter-spacing:0.4px;} .qby,.fmeta{text-transform:none;letter-spacing:0.4px;}`);
@@ -299,7 +314,7 @@ ${E_LABELS}{font-size:14px;} .lg-value{font-size:15px;} .btn{font-size:15px;font
   if (o.sections === 'cards') out.push(`.sec-head,.sec-head--accent{border-bottom-width:0;} .sec-title,.sec-aside{padding-bottom:4px;}
 .featured{background-color:${card};border:1px solid ${line2};border-radius:${R.c}px;}
 .day{background-color:${card};border:1px solid ${line};border-radius:${R.c}px;border-collapse:separate;border-spacing:8px;margin-top:10px;}
-.day-label{background-color:${tint(p.amber, card, 0.14)};border-radius:${Math.min(R.c, 10)}px;padding:12px 0;} .day-label .dow{color:${p.dim};} .day-items{padding:6px 8px 6px 6px;}
+.day-label{background-color:${tint(o.tint === 'accent2' ? p.accent2 : p.amber, card, 0.14)};border-radius:${Math.min(R.c, 10)}px;padding:12px 0;} .day-label .dow{color:${p.dim};} .day-items{padding:6px 8px 6px 6px;}
 .row{background-color:${card};border:1px solid ${line};border-radius:${R.c}px;border-collapse:separate;border-spacing:0;margin-top:10px;}
 .ledger{background-color:${card};border:1px solid ${line};border-radius:${R.c}px;border-collapse:separate;border-spacing:0;} .lg-label{padding-left:14px;} .lg-value{padding-right:14px;} .lg-last{border-bottom-width:0;} .row-date{padding-left:12px;} .row td{padding-right:14px;}
 .ongoing{background-color:${card};border:1px solid ${line};border-radius:${R.c}px;padding:12px 14px;margin-top:10px;}`);
@@ -369,7 +384,7 @@ for (const v of VARIANTS) {
   }
   // The day's date on its tinted column (the card styles).
   if (v.o.sections === 'cards') {
-    const col = tint(p.amber, solid(p.card, p.bg), 0.14);
+    const col = tint(v.o.tint === 'accent2' ? p.accent2 : p.amber, solid(p.card, p.bg), 0.14);
     for (const [n, c] of [['date', p.amberB], ['weekday', p.dim]]) {
       const r = ratio(c, col); if (r < 4.5) emailIssues.push(`${v.key} ${v.name}: ${n} ${c} on the date column ${col} is ${r.toFixed(2)}:1`);
     }
