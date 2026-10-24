@@ -37,8 +37,8 @@ const P = {
   // Fellowship: bright white and pale aqua, deep teal accent, coral second.
   daylight: { bg: '#fbfcfc', bgDeep: '#eef3f3', panel: '#eef4f4', panel2: '#e1ecec', line: '#dde6e6', line2: '#c3d3d3', text: '#29383a', dim: '#4c5f63', mute: '#5c6f72', bright: '#0e1c1e', amber: '#0b7a7a', amberB: '#0b6a6a', accent2: '#c2412e', btnText: '#ffffff', ink: '#0b6a6a', inkText: '#ffffff', card: '#ffffff', mat: '#ffffff', dark: false },
 };
-// Circle: Volt's colours, with cards a touch lighter so they float on the graphite.
-P.circle = { ...P.volt, card: 'rgba(255,255,255,0.055)', line2: '#3d464f' };
+// Circle: Volt's colours; its cards sit just off the page (see quiet in build()).
+P.circle = { ...P.volt, card: 'rgba(255,255,255,0.03)' };
 
 const HEADS = '.fort-h2,.fort-h3,.fort-about__title,.fort-featured__title,.fort-featured__date,.fort-entry-title,.fort-coming__title,.fort-bb__title,.fort-fs__name,.fort-card__title,.fort-stat__line,.fort-lineup__ao,.fort-lineup__ao a,.fort-lineup__day';
 const LABELS = '.fort-kicker,.fort-label,.fort-meta,.fort-when,.fort-mono-dim,.fort-day__dow';
@@ -116,6 +116,10 @@ html{background-color:${p.bg};${p.html || ''}} body{background:transparent;}
 .fort-js .fort-about{border:1px solid color-mix(in srgb, ${p.amber} 50%, transparent);} .fort-about-bar{background:${p.card};border:1px solid ${p.line2};}
 .fort-day{background:${p.card};border:1px solid ${p.line};border-radius:${R.c}px;padding:22px 24px;margin-top:12px;} .fort-day__date{border-radius:${Math.min(R.c, 14)}px;background:color-mix(in srgb, ${T} 12%, transparent);padding:8px 0;}
 .fort-coming{background:${p.card};border:1px solid ${p.line};border-radius:${Math.max(R.c - 4, 0)}px;padding:16px 18px;margin:6px 0;}`);
+  // quiet: low-contrast cards, all the same flat surface with no shadows, and tighter padding.
+  if (S === 'cards' && o.quiet) out.push(`.fort-featured,.fort-about{background:${p.card};border:1px solid ${p.line};box-shadow:none;}
+.fort-day{padding:16px 20px;margin-top:10px;} .fort-coming{padding:12px 16px;margin:5px 0;}
+@media (max-width:720px){.fort-day{padding:14px;} .fort-coming{padding:12px 14px;}}`);
 
   // Flyers
   if (o.flyers === 'mat') out.push(`.fort-featured__media{background:transparent;padding:24px;} .fort-featured__media img,.fort-thumb img{border:7px solid ${p.mat};box-shadow:0 3px 12px rgba(0,0,0,${p.dark ? '0.4' : '0.2'});} .fort-thumb img{border-width:4px;}`);
@@ -167,9 +171,9 @@ const VARIANTS = [
   { key: '6', name: 'Fellowship', summary: 'Bright white and pale aqua with a deep teal accent and coral highlights; round cards and a floating pill header.',
     why: 'The friendliest first impression, for the FNG who finds the site before his first post: open, modern, welcoming, and calm rather than hardcore.',
     o: { palette: 'daylight', shape: 'round', headings: 'sentence', labels: 'plain', sections: 'cards', flyers: 'mat', buttons: 'accent', header: 'pill' } },
-  { key: '7', name: 'Circle', summary: 'Volt’s graphite, lime and ice blue and its bold condensed capitals, with Fellowship’s feel: floating, softly rounded cards and header, matted flyers.',
+  { key: '7', name: 'Circle', summary: 'Volt’s graphite, lime and ice blue and its bold condensed capitals, with Fellowship’s feel: quiet, softly rounded cards and matted flyers, under Volt’s header bar.',
     why: 'The middle ground between the two favourites, named for the Circle of Trust: Volt’s colour and type, Fellowship’s welcome.',
-    o: { palette: 'circle', shape: 'rounded', headings: 'bold', labels: 'tracked', sections: 'cards', flyers: 'mat', buttons: 'accent', header: 'pill', tint: 'accent2' } },
+    o: { palette: 'circle', shape: 'rounded', headings: 'bold', labels: 'tracked', sections: 'cards', flyers: 'mat', buttons: 'accent', header: 'bar', tint: 'accent2', quiet: true } },
 ];
 
 // Scope every rule to html[data-fort-style="N"]. (.fort-js is a class on <html> itself, and :root
