@@ -133,6 +133,36 @@ function fortw_nl_meta( $parts ) {
 	return implode( ' · ', array_filter( $parts, 'strlen' ) );
 }
 
+/**
+ * A location as a link in the newsletter's own link colour, so mail apps (Gmail, Apple Mail) don't
+ * turn the address into their own blue link; it opens the place in Maps. To the URL in the
+ * location if it has one (the URL isn't shown: "Print Shop: https://maps.app…" reads "Print
+ * Shop"), else a Google Maps search for it. HTML, escaped.
+ */
+function fortw_nl_place( $location ) {
+	$location = trim( (string) $location );
+	if ( '' === $location ) {
+		return '';
+	}
+	if ( preg_match( '#https?://[^\s<>"]+#i', $location, $m ) ) {
+		$href = rtrim( $m[0], '.,;)' );
+		$text = trim( preg_replace( '/\s+/', ' ', str_replace( $m[0], ' ', $location ) ), " \t-:–—,;" );
+		$text = '' === $text ? 'Map' : $text;
+	} else {
+		$href = 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode( $location );
+		$text = $location;
+	}
+	return '<a class="place" href="' . fortw_h( $href ) . '">' . fortw_h( $text ) . '</a>';
+}
+
+/** An event's meta line as HTML: $before (plain text), then its place (a link, see above) and Q. */
+function fortw_nl_meta_html( $e, $before = array() ) {
+	$parts   = array_map( 'fortw_h', array_filter( $before, 'strlen' ) );
+	$parts[] = fortw_nl_place( $e['location'] ?? '' );
+	$parts[] = ! empty( $e['leader'] ) ? fortw_h( 'Q: ' . $e['leader'] ) : '';
+	return implode( ' · ', array_filter( $parts, 'strlen' ) );
+}
+
 /** The featured entry in the date list: its time and title, linking to its page (it's in full above). */
 function fortw_nl_featured_line( $e, $ctx, $time ) {
 	return '<div class="item"><div class="when">' . fortw_h( $time ) . '<span class="new">Featured</span></div>
@@ -144,12 +174,12 @@ function fortw_nl_week_entry( $e, $ctx ) {
 		return fortw_nl_featured_line( $e, $ctx, fortw_nl_time( $e['next_occurrence'] ) );
 	}
 	$img  = fortw_image_of( $e );
-	$meta = fortw_nl_meta( array( (string) $e['location'], $e['leader'] ? 'Q: ' . $e['leader'] : '' ) );
+	$meta = fortw_nl_meta_html( $e );
 	$url  = fortw_h( $ctx['entry_url']( $e ) );
 	$body = '
         <div class="when">' . fortw_h( fortw_nl_time( $e['next_occurrence'] ) ) . fortw_nl_tag_chip( $e ) . ( $e['is_new'] ? '<span class="new">New</span>' : '' ) . '</div>
         <a class="title" href="' . $url . '">' . fortw_h( $e['title'] ) . '</a>
-        ' . ( '' !== $meta ? '<div class="meta">' . fortw_h( $meta ) . '</div>' : '' ) . '
+        ' . ( '' !== $meta ? '<div class="meta">' . $meta . '</div>' : '' ) . '
         <p class="sum">' . fortw_h( fortw_summary_of( $e ) ) . '</p>
         ' . fortw_nl_also( $e['also'] ) . '
         ' . fortw_nl_links( $e, $ctx );
@@ -173,14 +203,14 @@ function fortw_nl_day( $day, $ctx ) {
 
 function fortw_nl_coming( $e, $ctx ) {
 	$p    = fortw_date_parts( $e['next_occurrence']['date'] );
-	$meta = fortw_nl_meta( array( fortw_nl_time( $e['next_occurrence'] ), (string) $e['location'], $e['leader'] ? 'Q: ' . $e['leader'] : '' ) );
+	$meta = fortw_nl_meta_html( $e, array( fortw_nl_time( $e['next_occurrence'] ) ) );
 	$url  = fortw_h( $ctx['entry_url']( $e ) );
 	if ( ! empty( $e['featured'] ) ) { // In full in the Featured card: here just its title, time and place.
 		$chips = '<span class="new">Featured</span>';
-		$body  = '' !== $meta ? '<p class="sum sum--sm"><span class="meta-inline">' . fortw_h( $meta ) . '</span></p>' : '';
+		$body  = '' !== $meta ? '<p class="sum sum--sm"><span class="meta-inline">' . $meta . '</span></p>' : '';
 	} else {
 		$chips = fortw_nl_tag_chip( $e ) . ( $e['is_new'] ? '<span class="new">New</span>' : '' );
-		$body  = '<p class="sum sum--sm">' . fortw_h( fortw_summary_of( $e, 170 ) ) . ( '' !== $meta ? ' <span class="meta-inline">' . fortw_h( $meta ) . '</span>' : '' ) . ' <a class="lnk" href="' . $url . '">Details ↗</a></p>
+		$body  = '<p class="sum sum--sm">' . fortw_h( fortw_summary_of( $e, 170 ) ) . ( '' !== $meta ? ' <span class="meta-inline">' . $meta . '</span>' : '' ) . ' <a class="lnk" href="' . $url . '">Details ↗</a></p>
         ' . fortw_nl_also( $e['also'] );
 	}
 	return '
@@ -195,7 +225,7 @@ function fortw_nl_coming( $e, $ctx ) {
 
 function fortw_nl_featured( $e, $ctx ) {
 	$img  = fortw_image_of( $e );
-	$meta = fortw_nl_meta( array( (string) $e['location'], $e['leader'] ? 'Q: ' . $e['leader'] : '' ) );
+	$meta = fortw_nl_meta_html( $e );
 	$when = '';
 	if ( $e['next_occurrence'] ) {
 		// The day, date and time large above the title (the flyer may not say them).
@@ -210,7 +240,7 @@ function fortw_nl_featured( $e, $ctx ) {
       <div class="when"><span class="badge">Featured</span>' . ( '' === $when ? '<span class="fmeta">Ongoing</span>' : '' ) . '</div>
       ' . ( '' !== $when ? '<div class="fdate">' . fortw_h( $when ) . '</div>' : '' ) . '
       <a class="ftitle" href="' . $url . '">' . fortw_h( $e['title'] ) . '</a>
-      ' . ( '' !== $meta ? '<div class="fmeta">' . fortw_h( $meta ) . '</div>' : '' ) . '
+      ' . ( '' !== $meta ? '<div class="fmeta">' . $meta . '</div>' : '' ) . '
       ' . fortw_nl_also( $e['also'] ) . '
       ' . implode( '', array_map( function ( $p ) { return '<p class="sum">' . fortw_h( $p ) . '</p>'; }, fortw_writeup_of( $e ) ) ) . '
       <div class="links"><a class="btn" href="' . $url . '">Details ↗</a>' . ( fortw_is_http_url( $e['link'] ?? '' ) ? '<span class="sp"> </span><a class="lnk" href="' . fortw_h( $e['link'] ) . '">Link ↗</a>' : '' ) . '</div>

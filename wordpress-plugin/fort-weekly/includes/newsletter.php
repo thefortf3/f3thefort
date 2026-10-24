@@ -51,6 +51,11 @@ function fortw_prepare_for_email( $html ) {
 	} else {
 		error_log( 'Fort Weekly: vendor/ is missing, so the email HTML was not inlined. Build the plugin with scripts/build-plugin-zip.sh.' );
 	}
+	// Apple Mail turns addresses, times and phone numbers it finds in the text into links in its own
+	// blue; this keeps any it still adds in the surrounding text's colour. Added after inlining,
+	// which drops rules that match nothing in the HTML. (Places are real links already: see
+	// fortw_nl_place().)
+	$html = str_replace( '</head>', "<style>a[x-apple-data-detectors]{color:inherit !important;text-decoration:none !important;font-size:inherit !important;font-family:inherit !important;font-weight:inherit !important;line-height:inherit !important;}</style>\n</head>", $html );
 	return preg_replace( '/,\s*Impact/i', '', $html );
 }
 

@@ -67,6 +67,27 @@ fortw_test(
 );
 
 fortw_test(
+	'places are links in the theme’s colour (so mail apps don’t make them blue): to the URL in them, else a Maps search',
+	function () {
+		assert_same(
+			'<a class="place" href="https://maps.app.goo.gl/Y8SQ7Nnr1nftUVzs5">Print Shop</a>',
+			fortw_nl_place( 'Print Shop: https://maps.app.goo.gl/Y8SQ7Nnr1nftUVzs5' )
+		);
+		assert_same( '<a class="place" href="https://maps.app.goo.gl/x">Map</a>', fortw_nl_place( 'https://maps.app.goo.gl/x' ) );
+		assert_same(
+			'<a class="place" href="https://www.google.com/maps/search/?api=1&amp;query=Casa%20de%20%3Cb%3EOrder%3C%2Fb%3E%2C%20Tega%20Cay">Casa de &lt;b&gt;Order&lt;/b&gt;, Tega Cay</a>',
+			fortw_nl_place( 'Casa de <b>Order</b>, Tega Cay' )
+		);
+		assert_same( '', fortw_nl_place( '  ' ) );
+		assert_same(
+			'0530 · <a class="place" href="https://www.google.com/maps/search/?api=1&amp;query=The%20Hive">The Hive</a> · Q: Bam &amp; Bam',
+			fortw_nl_meta_html( array( 'location' => 'The Hive', 'leader' => 'Bam & Bam' ), array( '0530' ) )
+		);
+		assert_same( 'Q: X', fortw_nl_meta_html( array( 'location' => '', 'leader' => 'X' ) ) );
+	}
+);
+
+fortw_test(
 	'the region’s week: one labelled row each, the FNG bar to scale, FNGs with who EH’d them, names escaped',
 	function () {
 		$html = fortw_nl_ledger(
