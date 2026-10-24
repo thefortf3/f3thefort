@@ -127,7 +127,8 @@ function fortw_build_entry_page( $entry, $others, $today, $sanitize ) {
 
 /**
  * The FNG numbers for this year, from the stats API's /api/fng payload.
- * weekly: the F3 names of FNGs whose first post was this week (Monday–Sunday).
+ * weekly: the FNGs whose first post was this week (Monday–Sunday), each array( name, eh ): eh is
+ * who brought him out (the sheet's EH'ed By column), or ''.
  */
 function fortw_fng_stats( $fng, $goal, $today ) {
 	if ( ! is_array( $fng ) || ! isset( $fng['ytd'] ) ) {
@@ -140,7 +141,7 @@ function fortw_fng_stats( $fng, $goal, $today ) {
 	foreach ( (array) ( $fng['recent'] ?? array() ) as $r ) {
 		$d = substr( (string) ( $r['date'] ?? '' ), 0, 10 );
 		if ( $d >= $monday && $d <= $sunday && ! empty( $r['f3_name'] ) ) {
-			$weekly[] = (string) $r['f3_name'];
+			$weekly[] = array( 'name' => (string) $r['f3_name'], 'eh' => trim( (string) ( $r['eh'] ?? '' ) ) );
 		}
 	}
 	return array(

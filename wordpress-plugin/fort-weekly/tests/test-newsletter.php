@@ -67,20 +67,22 @@ fortw_test(
 );
 
 fortw_test(
-	'the region’s week: one labelled row each, the FNG bar to scale, names escaped',
+	'the region’s week: one labelled row each, the FNG bar to scale, FNGs with who EH’d them, names escaped',
 	function () {
 		$html = fortw_nl_ledger(
 			array(
 				'fng_stats'    => array( 'total' => 82, 'goal' => 226, 'days_elapsed' => 295 ),
 				'shovel_flags' => array( array( 'from' => 'Boogie <b>', 'to' => 'Bam Bam', 'ao' => 'The Armory' ) ),
 				'vqs'          => array( array( 'name' => 'A', 'ao' => '' ), array( 'name' => 'B', 'ao' => 'Hive' ) ),
-				'weekly_fngs'  => array( 'Teflon', '' ),
+				'weekly_fngs'  => array( array( 'name' => 'Teflon', 'eh' => 'Band <i>Camp' ), array( 'name' => 'Fudd', 'eh' => '' ), array( 'name' => '', 'eh' => 'X' ) ),
 			)
 		);
 		assert_true( false !== strpos( $html, '<b class="amber">82</b> of 226 · day 295 of 365' ), 'FNG line' );
 		assert_true( false !== strpos( $html, 'class="bar-fill" width="36%"' ), 'bar to scale' );
 		assert_true( false !== strpos( $html, 'Boogie &lt;b&gt; → Bam Bam' ), 'escaped' );
 		assert_true( false !== strpos( $html, '>VQs</td>' ) && false !== strpos( $html, 'A<br>B' ), 'VQs in one row' );
+		assert_true( false !== strpos( $html, '>FNGs this week</td>' ) && false !== strpos( $html, 'Teflon <span class="dim">EH’d by Band &lt;i&gt;Camp</span><br>Fudd</td>' ), 'FNGs one a line, with their EH' );
+		assert_true( false !== strpos( fortw_nl_ledger( array( 'weekly_fngs' => array( array( 'name' => 'Solo', 'eh' => 'Q' ) ) ) ), '>FNG this week</td>' ), 'one FNG' );
 		assert_same( 4, substr_count( $html, 'class="lg-label' ) );
 		assert_same( 1, substr_count( $html, 'lg-last' ) / 2 );
 		$full = fortw_nl_ledger( array( 'fng_stats' => array( 'total' => 300, 'goal' => 226, 'days_elapsed' => 1 ) ) );

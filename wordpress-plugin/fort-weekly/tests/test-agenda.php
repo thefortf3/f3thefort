@@ -198,14 +198,14 @@ fortw_test(
 		$fng = array(
 			'ytd'    => 82,
 			'recent' => array(
-				array( 'date' => '2026-10-19', 'f3_name' => 'Teflon' ),     // Monday this week.
+				array( 'date' => '2026-10-19', 'f3_name' => 'Teflon', 'eh' => 'Band Camp' ), // Monday this week.
 				array( 'date' => '2026-10-25', 'f3_name' => 'Sunday guy' ), // Sunday this week.
 				array( 'date' => '2026-10-18', 'f3_name' => 'Last week' ),
 			),
 		);
 		$out = fortw_fng_stats( $fng, 226, FORTW_T_TODAY );
 		assert_same( array( 'total' => 82, 'goal' => 226, 'days_elapsed' => 293, 'year' => 2026 ), $out['stats'] );
-		assert_same( array( 'Teflon', 'Sunday guy' ), $out['weekly'] );
+		assert_same( array( array( 'name' => 'Teflon', 'eh' => 'Band Camp' ), array( 'name' => 'Sunday guy', 'eh' => '' ) ), $out['weekly'] );
 		assert_same( array( 'stats' => null, 'weekly' => array() ), fortw_fng_stats( null, 226, FORTW_T_TODAY ) );
 	}
 );

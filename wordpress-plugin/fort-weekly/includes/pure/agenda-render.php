@@ -260,9 +260,16 @@ function fortw_nl_ledger( $region ) {
 	if ( $vqs ) {
 		$rows[] = array( 1 === count( $vqs ) ? 'VQ' : 'VQs', implode( '<br>', $vqs ) );
 	}
-	$fngs = array_filter( $region['weekly_fngs'] ?? array(), 'strlen' );
+	// One a line, with who EH'd him (as the VQs show their AO).
+	$fngs = array();
+	foreach ( $region['weekly_fngs'] ?? array() as $f ) {
+		$f = is_array( $f ) ? $f : array( 'name' => (string) $f, 'eh' => '' );
+		if ( '' !== (string) $f['name'] ) {
+			$fngs[] = fortw_h( $f['name'] ) . ( '' !== (string) ( $f['eh'] ?? '' ) ? ' <span class="dim">EH’d by ' . fortw_h( $f['eh'] ) . '</span>' : '' );
+		}
+	}
 	if ( $fngs ) {
-		$rows[] = array( 'FNGs this week', fortw_h( implode( ', ', $fngs ) ) );
+		$rows[] = array( 1 === count( $fngs ) ? 'FNG this week' : 'FNGs this week', implode( '<br>', $fngs ) );
 	}
 	if ( ! $rows ) {
 		return '';
