@@ -46,7 +46,7 @@ const CARDS = '.fort-featured,.fort-panel,.fort-card,.fort-bb,.fort-fs__tile,.fo
 
 function build(o) {
   const p = P[o.palette];
-  const R = { square: { c: 0, b: 0, t: 0 }, soft: { c: 6, b: 4, t: 3 }, rounded: { c: 12, b: 999, t: 999 }, round: { c: 18, b: 999, t: 999 } }[o.shape];
+  const R = { square: { c: 0, b: 0, t: 0 }, soft: { c: 6, b: 4, t: 3 }, rounded: { c: 8, b: 6, t: 4 }, round: { c: 18, b: 999, t: 999 } }[o.shape];
   const out = [];
   out.push(`:root{--bg:${p.bg};--bg-deep:${p.bgDeep};--panel:${p.panel};--panel-2:${p.panel2};--line:${p.line};--line-2:${p.line2};--text:${p.text};--text-dim:${p.dim};--text-mute:${p.mute};--text-bright:${p.bright};--amber:${p.amber};--amber-bright:${p.amberB};--accent2:${p.accent2};${p.dark ? '' : '--map-tiles:none;'}${o.headings === 'serif' ? "--display:'Source Serif 4',Georgia,serif;" : ''}}
 html{background-color:${p.bg};${p.html || ''}} body{background:transparent;}
@@ -119,20 +119,20 @@ html{background-color:${p.bg};${p.html || ''}} body{background:transparent;}
   if (o.flyers === 'matte') out.push(`.fort-featured__media{background:rgba(0,0,0,0.12);} .fort-featured__media img,.fort-thumb img{filter:saturate(0.88) brightness(0.97);outline:1px solid rgba(255,255,255,0.12);outline-offset:-1px;}`);
 
   // Header
-  if (o.header === 'pill') out.push(`.fort-header{border-bottom:0;background:transparent;padding:14px 0 0;} .fort-header__inner{background:${p.dark ? 'rgba(255,255,255,0.045)' : p.card};border:1px solid ${p.line2};border-radius:${R.c ? 999 : 0}px;padding:12px 14px 12px 26px;max-width:calc(1200px - 64px);}
-.fort-nav__list a{padding:8px 12px;border-radius:999px;} @media (max-width:720px){.fort-header{padding:10px 12px 0;}.fort-header__inner{border-radius:22px;padding:14px 16px;}.fort-js .fort-about{padding:28px 20px 70px;}.fort-day{padding:16px;}}`);
+  if (o.header === 'pill') out.push(`.fort-header{border-bottom:0;background:transparent;padding:14px 0 0;} .fort-header__inner{background:${p.dark ? 'rgba(255,255,255,0.045)' : p.card};border:1px solid ${p.line2};border-radius:${R.b === 999 ? 999 : R.c + 4}px;padding:12px 14px 12px 26px;max-width:calc(1200px - 64px);}
+.fort-nav__list a{padding:8px 12px;border-radius:${R.b}px;} @media (max-width:720px){.fort-header{padding:10px 12px 0;}.fort-header__inner{border-radius:${R.b === 999 ? 22 : R.c + 4}px;padding:14px 16px;}.fort-js .fort-about{padding:28px 20px 70px;}.fort-day{padding:16px;}}`);
   return out.join('\n');
 }
 
 const NAMES = {
   palette: { gloom: 'Gloom indigo', carolina: 'Carolina blue', brick: 'Brick & stone', trail: 'Olive & terracotta', volt: 'Graphite & lime', daylight: 'White & teal', circle: 'Graphite & lime, lifted cards' },
-  shape: { square: 'Square corners', soft: 'Slightly softened corners', rounded: 'Rounded corners, pill buttons', round: 'Round corners' },
+  shape: { square: 'Square corners', soft: 'Slightly softened corners', rounded: 'Softly rounded corners', round: 'Round corners' },
   headings: { bold: 'Original bold capitals', calm: 'Light, spaced capitals', serif: 'Serif headings', sentence: 'Sentence-case headings', strong: 'Bold sentence-case headings' },
   labels: { tracked: 'Tracked mono labels', italic: 'Italic labels', monoLower: 'Lower-case mono labels', plain: 'Plain labels', mixed: 'Mono labels, plain buttons and nav' },
   sections: { rules: 'Hairline rules', dashed: 'Dashed notebook rules', cards: 'Floating cards' },
   flyers: { mat: 'Matted flyers', matte: 'Matte flyers' },
   buttons: { accent: 'Accent buttons', ink: 'Solid ink buttons' },
-  header: { bar: 'Plain header', pill: 'Floating pill header' },
+  header: { bar: 'Plain header', pill: 'Floating header' },
 };
 
 // What the six are built from (shown in the preview frame under "Why these six").
@@ -164,7 +164,7 @@ const VARIANTS = [
   { key: '6', name: 'Fellowship', summary: 'Bright white and pale aqua with a deep teal accent and coral highlights; round cards and a floating pill header.',
     why: 'The friendliest first impression, for the FNG who finds the site before his first post: open, modern, welcoming, and calm rather than hardcore.',
     o: { palette: 'daylight', shape: 'round', headings: 'sentence', labels: 'plain', sections: 'cards', flyers: 'mat', buttons: 'accent', header: 'pill' } },
-  { key: '7', name: 'Circle', summary: 'Volt’s graphite, lime and ice blue with Fellowship’s feel: floating rounded cards, a pill header, sentence-case headings and plain buttons.',
+  { key: '7', name: 'Circle', summary: 'Volt’s graphite, lime and ice blue with Fellowship’s feel: floating, softly rounded cards and header, sentence-case headings and plain buttons.',
     why: 'The middle ground between the two favourites, named for the Circle of Trust: Volt’s energy and colour, Fellowship’s welcome.',
     o: { palette: 'circle', shape: 'rounded', headings: 'strong', labels: 'mixed', sections: 'cards', flyers: 'mat', buttons: 'accent', header: 'pill', tint: 'accent2' } },
 ];
@@ -264,7 +264,7 @@ const E_HEADS = '.brand,.fdate,.ftitle,.sec-title,.title';
 function buildEmail(o) {
   const p = P[o.palette], s = c => solid(c, p.bg);
   const panel = s(p.panel), panel2 = s(p.panel2), card = s(p.card), line = s(p.line), line2 = s(p.line2);
-  const R = { square: { c: 0, b: 0, t: 0 }, soft: { c: 6, b: 4, t: 3 }, rounded: { c: 12, b: 999, t: 999 }, round: { c: 16, b: 999, t: 999 } }[o.shape];
+  const R = { square: { c: 0, b: 0, t: 0 }, soft: { c: 6, b: 4, t: 3 }, rounded: { c: 8, b: 6, t: 4 }, round: { c: 16, b: 999, t: 999 } }[o.shape];
   const bBg = o.buttons === 'ink' ? p.ink : p.amber, bText = o.buttons === 'ink' ? p.inkText : p.btnText;
   const out = [];
 
@@ -326,7 +326,7 @@ ${E_LABELS}{font-size:14px;} .lg-value{font-size:15px;} .btn{font-size:15px;font
   if (o.flyers === 'mat') out.push(`.thumb{border:3px solid ${p.mat};}`);
 
   // Header
-  if (o.header === 'pill') out.push(`.mast{background-color:${card};border:1px solid ${line2};border-radius:999px;border-collapse:separate;border-spacing:0;} .brand{padding:12px 0 12px 20px;} .issue{padding:12px 20px 12px 0;}`);
+  if (o.header === 'pill') out.push(`.mast{background-color:${card};border:1px solid ${line2};border-radius:${R.b === 999 ? 999 : R.c + 4}px;border-collapse:separate;border-spacing:0;} .brand{padding:12px 0 12px 20px;} .issue{padding:12px 20px 12px 0;}`);
   return out.join('\n');
 }
 
