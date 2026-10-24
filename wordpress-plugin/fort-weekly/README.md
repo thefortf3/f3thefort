@@ -56,6 +56,17 @@ named like the old app named them ("October 25, 2026"). It never sends, schedule
 and its request helper refuses every Mailchimp `/actions/` endpoint. A campaign that is already
 scheduled or sent in Mailchimp is left alone. Review, schedule and send in Mailchimp.
 
+## Times and "Add to calendar"
+
+- **Times are stored in F3's 24-hour form** (`0530`, `1730`), whatever was typed: "6:30am",
+  "6-7pm" (1800–1900), "17:30", "0900 Hours (Race Begins)". The submit form converts them as
+  they're typed and says so under the boxes; the server converts again on every save
+  (`fortw_normalize_occurrences()`), and events saved before this were converted once. A time
+  that can't be read ("TBD") is kept as typed, and the form warns about it.
+- **Add to calendar:** each event page has *iPhone · Outlook* (`/events/<slug>/?calendar=ics`,
+  every upcoming date) and *Google · Android* (its next date). The newsletter's "Add to calendar"
+  links go to those buttons. No time: an all-day event; no end: an hour.
+
 ## Submitters editing their events
 
 Every event sent through the form gets a **private edit link** (`/submit/?edit=…`). It shows on

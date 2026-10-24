@@ -42,7 +42,7 @@ function fortw_box_dates( $post ) {
 	$occ = fortw_get_occurrences( $post->ID );
 	$occ[] = array( 'date' => '', 'start_time' => '', 'end_time' => '' ); // One blank row to add a date.
 	?>
-	<p class="description"><?php esc_html_e( 'One row per date. No dates at all = an ongoing item. Times are free text like 0530 or 1730–1930.', 'fort-weekly' ); ?></p>
+	<p class="description"><?php esc_html_e( 'One row per date. No dates at all = an ongoing item. Times are saved in 24-hour form: 6:30am becomes 0630, 6-7pm becomes 1800–1900.', 'fort-weekly' ); ?></p>
 	<table class="fortw-rows widefat striped" data-fortw-rows="occ">
 		<thead><tr><th><?php esc_html_e( 'Date', 'fort-weekly' ); ?></th><th><?php esc_html_e( 'Start', 'fort-weekly' ); ?></th><th><?php esc_html_e( 'End', 'fort-weekly' ); ?></th><th></th></tr></thead>
 		<tbody>

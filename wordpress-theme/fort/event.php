@@ -65,6 +65,22 @@ get_header();
 			<?php endif; ?>
 		</div>
 
+		<?php $cal = function_exists( 'fortw_calendar_links' ) ? fortw_calendar_links( $e ) : null; ?>
+		<?php if ( $cal ) : ?>
+			<?php // iPhone, Mac and Outlook open the .ics as "add event"; Android goes through Google Calendar. The newsletter links here (#add-to-calendar). ?>
+			<section class="fort-cal" id="add-to-calendar" aria-labelledby="fort-cal-title">
+				<h2 class="fort-label" id="fort-cal-title"><?php esc_html_e( 'Add to calendar', 'fort' ); ?></h2>
+				<div class="fort-actions fort-actions--full">
+					<a class="fort-btn fort-btn--outline" href="<?php echo esc_url( $cal['ics'] ); ?>"><?php esc_html_e( 'iPhone · Outlook', 'fort' ); ?></a>
+					<a class="fort-btn fort-btn--outline" href="<?php echo esc_url( $cal['google'] ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Google · Android ↗', 'fort' ); ?></a>
+				</div>
+				<?php if ( $cal['dates'] > 1 ) : ?>
+					<?php /* translators: %d: number of dates */ ?>
+					<p class="fort-dim fort-hint"><?php echo esc_html( sprintf( __( 'iPhone · Outlook adds all %d dates; Google adds the next one.', 'fort' ), (int) $cal['dates'] ) ); ?></p>
+				<?php endif; ?>
+			</section>
+		<?php endif; ?>
+
 		<div class="fort-prose">
 			<?php echo wp_kses_post( $e['description_html'] ); ?>
 		</div>

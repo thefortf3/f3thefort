@@ -25,6 +25,7 @@ foreach ( glob( __DIR__ . '/includes/pure/*.php' ) as $fortw_file ) {
 require_once __DIR__ . '/includes/model.php';
 require_once __DIR__ . '/includes/entries.php';
 require_once __DIR__ . '/includes/public.php';
+require_once __DIR__ . '/includes/calendar.php';
 require_once __DIR__ . '/includes/import.php';
 require_once __DIR__ . '/includes/workflow.php';
 require_once __DIR__ . '/includes/integrations.php';

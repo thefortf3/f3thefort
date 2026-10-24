@@ -47,6 +47,7 @@ add_action(
 		wp_add_inline_style( 'fort', ':root{--accent2:' . esc_attr( fort_accent2() ) . ';}' );
 		if ( get_query_var( 'fort_submit' ) ) {
 			wp_enqueue_script( 'fort-submit-preview', get_template_directory_uri() . '/assets/submit-preview.js', array(), FORT_THEME_VERSION, true );
+			wp_enqueue_script( 'fort-submit-times', get_template_directory_uri() . '/assets/submit-times.js', array(), FORT_THEME_VERSION, true );
 		}
 		if ( is_front_page() ) {
 			wp_enqueue_script( 'fort-home', get_template_directory_uri() . '/assets/home.js', array(), FORT_THEME_VERSION, true );

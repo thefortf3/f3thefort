@@ -50,9 +50,64 @@ function fortw_date_parts( $iso ) {
 }
 
 /**
+ * A typed time in F3's 24-hour form, "HHMM" ("0530", "1730"), or null if it can't be read.
+ * Reads 0530, 05:30, 530, 5:30am, 5 AM, 5:30 p.m., noon, midnight, and a time with words after
+ * it ("0900 Hours (Race Begins)"). Without am/pm it's already 24-hour: "5:30" is 0530.
+ */
+function fortw_parse_time( $text ) {
+	$s = strtolower( trim( (string) $text ) );
+	if ( preg_match( '/^noon\b/', $s ) ) {
+		return '1200';
+	}
+	if ( preg_match( '/^midnight\b/', $s ) ) {
+		return '0000';
+	}
+	if ( ! preg_match( '/^(\d{1,2})(?::?(\d{2}))?\s*(?:([ap])\.?\s*m?\.?(?![a-z]))?(?![\d:])/', $s, $m ) ) {
+		return null;
+	}
+	$h   = (int) $m[1];
+	$min = isset( $m[2] ) && '' !== $m[2] ? (int) $m[2] : 0;
+	$mer = $m[3] ?? '';
+	if ( $min > 59 || ( '' !== $mer && ( $h < 1 || $h > 12 ) ) || ( '' === $mer && $h > 24 ) || ( 24 === $h && $min > 0 ) ) {
+		return null;
+	}
+	if ( 'p' === $mer && $h < 12 ) {
+		$h += 12;
+	} elseif ( ( 'a' === $mer && 12 === $h ) || 24 === $h ) {
+		$h = 0;
+	}
+	return sprintf( '%02d%02d', $h, $min );
+}
+
+/**
+ * A typed start and end as array( start, end ) in 24-hour "HHMM" form (or null). The start can
+ * hold the whole range ("1730–1930", "6-7pm", "5:30 to 6:30am"), and an am/pm given only once
+ * applies to both ("6-7pm" is 1800–1900; "11-1pm" is 1100–1300) when the start is written the
+ * 12-hour way ("5:30", "11"; never "0530", which is already 24-hour).
+ */
+function fortw_parse_time_range( $start, $end = '' ) {
+	$start = trim( (string) $start );
+	$end   = trim( (string) $end );
+	$bits  = preg_split( '/\s*(?:–|—|-|\bto\b|\buntil\b)\s*/u', $start, 2 );
+	if ( '' === $end && count( $bits ) > 1 ) {
+		list( $start, $end ) = $bits;
+	}
+	$mer = '/([ap])\.?\s*m?\.?\s*$/i';
+	$a   = fortw_parse_time( $start );
+	$b   = '' === $end ? null : fortw_parse_time( $end );
+	if ( null !== $a && null !== $b && preg_match( $mer, $end, $em ) && preg_match( '/^(?:(?:1[0-2]|[1-9])(?::[0-5]\d)?|[1-9][0-5]\d)$/', $start ) ) {
+		$with = fortw_parse_time( preg_replace( '/\s+$/', '', $start ) . ' ' . $em[1] . 'm' );
+		$a    = null !== $with && $with <= $b ? $with : fortw_parse_time( $start . ' ' . ( 'p' === strtolower( $em[1] ) ? 'a' : 'p' ) . 'm' );
+	}
+	return array( $a, $b );
+}
+
+/**
  * Validates and normalises a list of occurrences (arrays with date, start_time, end_time):
- * trims, caps times at 40 characters, drops exact duplicates (same date and start time) and
- * sorts by date then start time. Throws InvalidArgumentException on a bad date.
+ * times become 24-hour "HHMM" (fortw_parse_time_range(); one that can't be read is kept as
+ * typed, capped at 40 characters; "0000" alone or 0000–2359 means no time), exact duplicates
+ * (same date and start time) are dropped, and the list is sorted by date then start time.
+ * Throws InvalidArgumentException on a bad date.
  */
 function fortw_normalize_occurrences( $list ) {
 	if ( ! is_array( $list ) ) {
@@ -66,10 +121,19 @@ function fortw_normalize_occurrences( $list ) {
 		if ( ! fortw_is_iso_date( $date ) ) {
 			throw new InvalidArgumentException( 'Invalid occurrence date: ' . ( is_scalar( $o['date'] ?? null ) ? $o['date'] : '' ) );
 		}
-		$start = substr( trim( (string) ( $o['start_time'] ?? '' ) ), 0, 40 );
-		$end   = substr( trim( (string) ( $o['end_time'] ?? '' ) ), 0, 40 );
-		$start = '' === $start ? null : $start;
-		$end   = '' === $end ? null : $end;
+		$raw_s = substr( trim( (string) ( $o['start_time'] ?? '' ) ), 0, 40 );
+		$raw_e = substr( trim( (string) ( $o['end_time'] ?? '' ) ), 0, 40 );
+		list( $a, $b ) = fortw_parse_time_range( $raw_s, $raw_e );
+		// Read times are 24-hour; one that can't be read stays as typed.
+		$start = null !== $a ? $a : ( '' === $raw_s ? null : $raw_s );
+		$end   = null !== $b ? $b : ( '' === $raw_e ? null : $raw_e );
+		if ( null !== $end && $end === $start ) {
+			$end = null; // "1800–1800": no end given, really.
+		}
+		if ( '0000' === $start && ( null === $end || '2359' === $end ) ) {
+			$start = null; // A placeholder for "all day".
+			$end   = null;
+		}
 		$key   = $date . '|' . $start;
 		if ( isset( $seen[ $key ] ) ) {
 			continue;

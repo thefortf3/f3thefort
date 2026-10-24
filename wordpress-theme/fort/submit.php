@@ -129,6 +129,7 @@ get_header();
 				<div class="fort-field"><label for="f-start"><?php esc_html_e( 'Start', 'fort' ); ?></label><input id="f-start" name="start_time" placeholder="0530" maxlength="40" value="<?php echo esc_attr( $v( 'start_time' ) ); ?>"></div>
 				<div class="fort-field"><label for="f-end"><?php esc_html_e( 'End', 'fort' ); ?></label><input id="f-end" name="end_time" placeholder="0630" maxlength="40" value="<?php echo esc_attr( $v( 'end_time' ) ); ?>"></div>
 			</div>
+			<p class="fort-dim fort-hint fort-time-note" id="f-time-note" role="status"><?php esc_html_e( 'Times are in 24-hour form, like 0530 or 1730. Type them any way you like: they’re converted for you.', 'fort' ); ?></p>
 		<?php endif; ?>
 		<div class="fort-field-row">
 			<div class="fort-field fort-field--grow"><label for="f-location"><?php esc_html_e( 'Where', 'fort' ); ?></label><input id="f-location" name="location" maxlength="200" value="<?php echo esc_attr( $v( 'location' ) ); ?>"></div>

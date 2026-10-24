@@ -47,6 +47,27 @@ function fortw_set_occurrences( $post_id, $occurrences ) {
 	return $occ;
 }
 
+// Once: the events saved before times were converted take the 24-hour form too (every save
+// converts them from now on, in fortw_normalize_occurrences()).
+add_action(
+	'init',
+	function () {
+		if ( '1' === get_option( 'fortw_times_24h' ) ) {
+			return;
+		}
+		$ids = get_posts( array( 'post_type' => FORTW_POST_TYPE, 'post_status' => array_keys( get_post_stati() ), 'numberposts' => -1, 'fields' => 'ids' ) );
+		foreach ( $ids as $id ) {
+			try {
+				fortw_set_occurrences( $id, fortw_get_occurrences( $id ) );
+			} catch ( InvalidArgumentException $e ) {
+				continue; // A bad date: left as it is.
+			}
+		}
+		update_option( 'fortw_times_24h', '1' );
+	},
+	20
+);
+
 /** Tags in display order (term meta fort_order, then name), with colours. */
 function fortw_all_tags() {
 	$terms = get_terms( array( 'taxonomy' => FORTW_TAX, 'hide_empty' => false ) );
