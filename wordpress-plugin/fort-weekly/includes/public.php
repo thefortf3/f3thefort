@@ -64,7 +64,15 @@ function fort_weekly_region() {
 	$image_id = (int) $settings['nantan']['image_id'];
 	$image    = $image_id ? wp_get_attachment_image_url( $image_id, 'large' ) : null;
 	$today    = fortw_today();
-	return fortw_build_region( $settings, $image ? $image : null, fortw_fng_stats( fortw_stats_fng(), $settings['fng_goal'], $today ), 'fortw_sanitize_html' );
+	$region   = fortw_build_region( $settings, $image ? $image : null, fortw_fng_stats( fortw_stats_fng(), $settings['fng_goal'], $today ), 'fortw_sanitize_html' );
+	// Every week's 2nd F / 3rd F events as GloomSchedule has them (Fort Stats' stored copy, kept
+	// fresh in the background; never fetched while a page loads).
+	$map = function_exists( 'fort_stats_map' ) ? fort_stats_map() : null;
+	if ( ! empty( $map['configured'] ) ) {
+		$aos = array_merge( $map['unplaced'] ?? array(), ...array_map( function ( $s ) { return $s['aos']; }, $map['sites'] ?? array() ) );
+		$region['three_fs'] = fortw_every_week_from_schedule( $region['three_fs'], $aos );
+	}
+	return $region;
 }
 
 /** Homepage data: featured, this week, coming up, ongoing, tags, region. */

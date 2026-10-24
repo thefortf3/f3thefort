@@ -193,6 +193,40 @@ fortw_test(
 );
 
 fortw_test(
+	'every week: 2nd F / 3rd F events as GloomSchedule has them; ones it doesn’t have stay, links last',
+	function () {
+		$three = array(
+			array( 'column' => 'fitness', 'items' => array( array( 'type' => 'link', 'label' => 'Q Calendar', 'url' => 'https://x/q' ) ) ),
+			array( 'column' => 'fellowship', 'items' => array(
+				array( 'type' => 'event', 'name' => 'Pizza in Fort Mill', 'detail' => '1800 · 3rd Thursday · Emilio’s' ),
+				array( 'type' => 'event', 'name' => 'Coffeteria — East', 'detail' => '0730 · Every Sat · Humble Cup' ),
+				array( 'type' => 'event', 'name' => 'ISS - Happy Hour', 'detail' => '1430-1530 · Every Fri · Amor Artis' ),
+				array( 'type' => 'link', 'label' => 'Fellowship Calendar', 'url' => 'https://x/f' ),
+			) ),
+			array( 'column' => 'faith', 'items' => array( array( 'type' => 'event', 'name' => 'The Testament', 'detail' => '0630–0715 · Wed · Waffle House' ) ) ),
+		);
+		$aos = array(
+			array( 'name' => 'The Testament', 'kind' => '3rd', 'days' => array( 1 ), 'time' => '0630', 'venue' => 'Peach Stand @ 1325 HWY 160' ),
+			array( 'name' => 'Q Source', 'kind' => '3rd', 'days' => array( 3 ), 'time' => '0620', 'venue' => 'Panera Bread (Kingsley)' ),
+			array( 'name' => 'Coffeeteria - East', 'kind' => '2nd', 'days' => array( 6 ), 'time' => '0745', 'venue' => 'Humble Cup' ),
+			array( 'name' => 'ISS', 'kind' => '2nd', 'days' => array( 5 ), 'time' => '1430', 'venue' => 'Amor Artis' ),
+			array( 'name' => 'Two days', 'kind' => '2nd', 'days' => array( 2, 4 ), 'time' => '', 'venue' => null ),
+			array( 'name' => 'A workout', 'kind' => '1st', 'days' => array( 1 ), 'time' => '0515', 'venue' => 'The Yard' ),
+		);
+		$out  = fortw_every_week_from_schedule( $three, $aos );
+		$line = function ( $col ) { return array_map( function ( $i ) { return 'link' === $i['type'] ? 'link: ' . $i['label'] : $i['name'] . ' | ' . $i['detail']; }, $col['items'] ); };
+		assert_same( array( 'link: Q Calendar' ), $line( $out[0] ), 'fitness untouched' );
+		assert_same(
+			array( 'Two days | Tue & Thu', 'ISS | 1430 · Fri · Amor Artis', 'Coffeeteria - East | 0745 · Sat · Humble Cup', 'Pizza in Fort Mill | 1800 · 3rd Thursday · Emilio’s', 'link: Fellowship Calendar' ),
+			$line( $out[1] ),
+			'GloomSchedule’s, by day; the typed copies replaced (spelling aside); Pizza kept; the link last'
+		);
+		assert_same( array( 'The Testament | 0630 · Mon · Peach Stand @ 1325 HWY 160', 'Q Source | 0620 · Wed · Panera Bread (Kingsley)' ), $line( $out[2] ) );
+		assert_same( $three, fortw_every_week_from_schedule( $three, array() ), 'unchanged without GloomSchedule' );
+	}
+);
+
+fortw_test(
 	'FNG numbers: year-to-date vs goal, and this week (Mon–Sun) names',
 	function () {
 		$fng = array(

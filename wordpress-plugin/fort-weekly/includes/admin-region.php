@@ -36,7 +36,7 @@ function fortw_region_lists() {
 	return array(
 		'three_fs'     => array(
 			__( 'Every week (Three F’s)', 'fort-weekly' ),
-			__( 'Regular fellowship and faith events, and calendar links. Shown as “Every week” on the site and in the newsletter.', 'fort-weekly' ),
+			__( 'Calendar links, and regular fellowship and faith events that aren’t in GloomSchedule (like a monthly pizza night). Shown as “Every week” on the site and in the newsletter. The 2nd F and 3rd F events in GloomSchedule are added from there automatically, so their times and places always match it; an event typed here with the same name is replaced by GloomSchedule’s.', 'fort-weekly' ),
 			array(
 				'column' => array( __( 'Column', 'fort-weekly' ), array( 'fitness' => __( 'Fitness', 'fort-weekly' ), 'fellowship' => __( 'Fellowship', 'fort-weekly' ), 'faith' => __( 'Faith', 'fort-weekly' ) ) ),
 				'type'   => array( __( 'Kind', 'fort-weekly' ), array( 'event' => __( 'Event', 'fort-weekly' ), 'link' => __( 'Link', 'fort-weekly' ) ) ),

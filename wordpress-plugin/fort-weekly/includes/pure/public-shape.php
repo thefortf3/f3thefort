@@ -156,6 +156,57 @@ function fortw_fng_stats( $fng, $goal, $today ) {
 }
 
 /**
+ * Every week's 2nd F and 3rd F events from GloomSchedule, so they can't drift from it: $three is
+ * fortw_build_region()'s three_fs (columns of items), $aos GloomSchedule's AOs as Fort Stats' map
+ * has them (name, kind '2nd' / '3rd', days 1–7, time 'HHMM', venue). In the Fellowship and Faith
+ * columns the events become that F's AOs, by day then time ("0630 · Mon · Peach Stand"); an event
+ * typed in Region that GloomSchedule doesn't have (Pizza in Fort Mill) is kept after them, and the
+ * calendar links stay last. Without GloomSchedule's AOs ($aos empty) $three is returned as it is.
+ */
+function fortw_every_week_from_schedule( $three, $aos ) {
+	if ( ! $aos ) {
+		return $three;
+	}
+	// "Coffeteria — East" and "Coffeeteria - East", "ISS - Happy Hour" and "ISS" are the same.
+	$key  = function ( $name ) { return preg_replace( '/[^a-z0-9]+/', '', strtolower( (string) $name ) ); };
+	$same = function ( $a, $b ) {
+		$squash = function ( $s ) { return preg_replace( '/(.)\1+/', '$1', $s ); }; // Doubled letters: a spelling slip.
+		return $squash( $a ) === $squash( $b ) || ( strlen( $a ) >= 3 && strlen( $b ) >= 3 && ( 0 === strpos( $a, $b ) || 0 === strpos( $b, $a ) ) );
+	};
+	$dow  = array( 1 => 'Mon', 2 => 'Tue', 3 => 'Wed', 4 => 'Thu', 5 => 'Fri', 6 => 'Sat', 7 => 'Sun' );
+	$kind = array( 'fellowship' => '2nd', 'faith' => '3rd' );
+	foreach ( $three as &$col ) {
+		if ( ! isset( $kind[ $col['column'] ] ) ) {
+			continue;
+		}
+		$mine = array_values( array_filter( $aos, function ( $a ) use ( $kind, $col ) { return ( $a['kind'] ?? '' ) === $kind[ $col['column'] ]; } ) );
+		usort( $mine, function ( $a, $b ) { return ( ( $a['days'][0] ?? 8 ) <=> ( $b['days'][0] ?? 8 ) ) ?: strcmp( (string) $a['time'], (string) $b['time'] ) ?: strcasecmp( $a['name'], $b['name'] ); } );
+		$events = array_map(
+			function ( $a ) use ( $dow ) {
+				$days = array_map( function ( $d ) use ( $dow ) { return $dow[ $d ] ?? ''; }, (array) ( $a['days'] ?? array() ) );
+				$last = array_pop( $days );
+				$when = $days ? implode( ', ', $days ) . ' & ' . $last : (string) $last;
+				return array( 'type' => 'event', 'name' => $a['name'], 'detail' => implode( ' · ', array_filter( array( (string) ( $a['time'] ?? '' ), $when, (string) ( $a['venue'] ?? '' ) ), 'strlen' ) ) );
+			},
+			$mine
+		);
+		$keys  = array_map( function ( $a ) use ( $key ) { return $key( $a['name'] ); }, $mine );
+		$extra = array();
+		$links = array();
+		foreach ( $col['items'] as $i ) {
+			if ( 'link' === $i['type'] ) {
+				$links[] = $i;
+			} elseif ( ! array_filter( $keys, function ( $k ) use ( $same, $key, $i ) { return $same( $k, $key( $i['name'] ) ); } ) ) {
+				$extra[] = $i; // Not in GloomSchedule.
+			}
+		}
+		$col['items'] = array_merge( $events, $extra, $links );
+	}
+	unset( $col );
+	return $three;
+}
+
+/**
  * Region info for the site and newsletter. $settings: the stored region option (see
  * fortw_region_defaults()); $nantan_image: the note's image URL or null; $fng: fortw_fng_stats().
  */
