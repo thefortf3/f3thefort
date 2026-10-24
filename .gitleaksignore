@@ -1,3 +1,3 @@
 # The local PostgREST stand-in's anon key (docker-compose.local.yml): signed with a local-only
 # secret ({"role":"anon","iss":"local"}); it opens nothing outside the local stack.
-c089853eb80751e583de06d4f76fb1dfa64ee6b2:docker-compose.local.yml:jwt:84
+00a4962d98341e813464bebb3bdd5ca89429a796:docker-compose.local.yml:jwt:84
