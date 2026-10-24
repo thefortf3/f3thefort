@@ -24,6 +24,8 @@ License: GNU General Public License v2 or later
 	--amber: #d4a03c;
 	--amber-bright: #e8b94a;
 	--accent2: #8fb4d8;
+	--link-hover: #f3cf74; /* Links on mouse-over: a lighter amber. */
+	--on-accent: #15130e; /* Text on an amber fill. */
 	--display: 'Oswald', 'Arial Narrow', Arial, sans-serif;
 	--mono: 'JetBrains Mono', 'Courier New', monospace;
 	--body: 'Source Serif 4', Georgia, 'Times New Roman', serif;
@@ -36,10 +38,10 @@ html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--body); font-size: 17px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
 img { max-width: 100%; height: auto; display: block; }
 a { color: var(--amber-bright); text-decoration: none; }
-a:hover { color: #f3cf74; }
+a:hover { color: var(--link-hover); }
 :focus-visible { outline: 2px solid var(--amber-bright); outline-offset: 2px; }
 
-.fort-skip { position: absolute; left: -9999px; top: 0; background: var(--amber); color: #15130e; padding: 10px 14px; z-index: 100; }
+.fort-skip { position: absolute; left: -9999px; top: 0; background: var(--amber); color: var(--on-accent); padding: 10px 14px; z-index: 100; }
 .fort-skip:focus { left: 12px; top: 12px; }
 
 .fort-wrap { max-width: 1200px; margin: 0 auto; padding-left: 32px; padding-right: 32px; }
@@ -58,11 +60,11 @@ a:hover { color: #f3cf74; }
 .fort-tag { display: inline-block; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; padding: 2px 7px; border: 1px solid currentColor; margin-left: 8px; vertical-align: 1px; }
 .fort-entry__tags .fort-tag:first-child { margin-left: 0; }
 .fort-tag--muted { color: var(--text-mute); }
-.fort-badge { align-self: flex-start; font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; padding: 4px 9px; background: var(--amber); color: #15130e; }
-.fort-btn { display: inline-block; font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; padding: 14px 20px; background: var(--amber); color: #15130e; border: 1px solid var(--amber); cursor: pointer; }
-.fort-btn:hover { background: var(--amber-bright); color: #15130e; }
+.fort-badge { align-self: flex-start; font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; padding: 4px 9px; background: var(--amber); color: var(--on-accent); }
+.fort-btn { display: inline-block; font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; padding: 14px 20px; background: var(--amber); color: var(--on-accent); border: 1px solid var(--amber); cursor: pointer; }
+.fort-btn:hover { background: var(--amber-bright); color: var(--on-accent); }
 .fort-btn--outline { background: transparent; color: var(--amber-bright); }
-.fort-btn--outline:hover { background: rgba(212, 160, 60, 0.1); color: var(--amber-bright); }
+.fort-btn--outline:hover { background: color-mix(in srgb, var(--amber) 10%, transparent); color: var(--amber-bright); }
 .fort-actions { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin-top: 8px; }
 .fort-actions--full .fort-btn { flex: 1 1 220px; text-align: center; }
 .fort-empty { padding: 28px 0; }
@@ -112,7 +114,7 @@ a:hover { color: #f3cf74; }
 .fort-about-hidden .fort-about { display: none; }
 .fort-about-hidden .fort-about-bar { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; margin: 0; padding: 12px 16px; border: 1px solid var(--line-2); font-size: 15px; color: var(--text-dim); }
 .fort-about-bar__show { background: none; border: 0; padding: 0; color: var(--amber-bright); font: inherit; font-family: var(--mono); font-size: 13px; letter-spacing: 0.06em; cursor: pointer; }
-.fort-about-bar__show:hover { color: #f3cf74; }
+.fort-about-bar__show:hover { color: var(--link-hover); }
 .fort-about__intro { flex: 1 1 420px; display: flex; flex-direction: column; gap: 16px; }
 .fort-about__intro p { margin: 0; font-size: 18px; line-height: 1.65; }
 .fort-about__title { margin: 0; font-family: var(--display); font-size: 40px; font-weight: 700; line-height: 1.08; letter-spacing: 0.02em; text-transform: uppercase; color: var(--text-bright); }
@@ -247,7 +249,7 @@ a.fort-bb:hover .fort-bb__title { color: var(--amber-bright); }
 .fort-archive .search-form { display: flex; gap: 8px; }
 .fort-pagination .nav-links { display: flex; flex-wrap: wrap; gap: 12px; font-family: var(--mono); font-size: 13px; }
 .fort-pagination .page-numbers { padding: 8px 12px; background: var(--panel); color: var(--text); }
-.fort-pagination .current { background: var(--amber); color: #15130e; }
+.fort-pagination .current { background: var(--amber); color: var(--on-accent); }
 
 /* Forms */
 .search-form label { flex: 1; }
@@ -362,12 +364,12 @@ button.fort-st-seg__opt { background: none; border: 0; border-bottom: 1px solid 
 .fort-pin.is-other .fort-pin__tag { color: var(--accent2); border-color: var(--accent2); }
 .fort-pin.is-other .fort-pin__tag::after { border-top-color: var(--accent2); }
 .fort-pin:hover .fort-pin__tag { background: var(--panel-2); }
-.fort-pin.is-selected .fort-pin__tag { color: #15130e; background: var(--amber); }
+.fort-pin.is-selected .fort-pin__tag { color: var(--on-accent); background: var(--amber); }
 .fort-pin.is-selected.is-other .fort-pin__tag { background: var(--accent2); }
 .fort-pin.is-selected .fort-pin__more { color: inherit; opacity: 0.7; }
 /* Zoomed out, dots (the selected pin stays a tag). */
 .fort-loc__map:not(.is-far) .fort-pin__dot, .fort-pin.is-selected .fort-pin__dot, .fort-loc__map.is-far .fort-pin:not(.is-selected) .fort-pin__tag { display: none; }
-.fort-pin__dot { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; width: 12px; height: 12px; font-family: var(--mono); font-size: 9px; font-weight: 700; line-height: 1; color: #15130e; background: var(--amber); border: 2px solid var(--bg); border-radius: 50%; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.5); }
+.fort-pin__dot { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; width: 12px; height: 12px; font-family: var(--mono); font-size: 9px; font-weight: 700; line-height: 1; color: var(--on-accent); background: var(--amber); border: 2px solid var(--bg); border-radius: 50%; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.5); }
 .fort-pin__dot:not(:empty) { width: 18px; height: 18px; }
 .fort-pin.is-other .fort-pin__dot { background: var(--accent2); }
 .fort-pin:hover .fort-pin__dot { box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 45%, transparent); }
