@@ -258,7 +258,7 @@ function buildEmail(o, p = P[o.palette]) {
 .qmark{color:${p.amber};} .qtext,.ftitle,.sec-title,.title{color:${p.bright};} .fdate{color:${p.amberB};}
 .badge{background-color:${p.amber};color:${p.btnText};} .btn{background-color:${bBg};color:${bText};} .new{background-color:${p.amberB};color:${onFill(p.amberB)};}
 .tag{color:${p.dim} !important;border-color:${line2} !important;} .lnk{color:${p.amberB};} .pill{background-color:${panel2};color:${p.amberB};}
-.sec-head{border-bottom-color:${line2};} .sec-head--accent{border-bottom-color:${p.amber};} .dnum{color:${p.amberB};} .dnum--sm{color:${p.text};} .thumb{background-color:${line};}
+.sec-head{border-bottom-color:${line2};} .sec-head--accent{border-bottom-color:${p.amber};} .dnum,.dnum--sm{color:${p.amberB};} .row-date .dow{color:${p.dim};} .thumb{background-color:${line};}
 .day,.row,.ongoing{border-bottom-color:${line};} .every,.footer{border-top-color:${line};}
 .featured{background-color:${p.dark ? card : panel};border-color:${line2};}`);
 
