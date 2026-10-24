@@ -9,8 +9,11 @@
  * When on:
  *   - /style-preview/ is a page with a toolbar (style, page, width, side-by-side compare) around
  *     the real site in a frame (preview-frame.php);
+ *   - /style-preview/colors/ is the same frame for one style in other colours (preview-colors.php):
+ *     the style is rebuilt in the browser by assets/style-builder.js;
  *   - /style-preview/newsletter/?style=N is this week's newsletter in style N, inlined for email
- *     the way Fort Weekly sends it to Mailchimp (&fonts=gmail: without the web fonts);
+ *     the way Fort Weekly sends it to Mailchimp (&fonts=gmail: without the web fonts; &raw=1: the
+ *     template's CSS left in a <style> block, for the colours page to add its own after it);
  *   - the site loads assets/style-previews.css, whose rules apply only under
  *     html[data-fort-style="1".."N"];
  *   - an early script sets that attribute from the frame's name, ?fort_style=N, or the last choice
@@ -51,6 +54,31 @@ function fort_style_preview_email_data() {
 	);
 }
 
+/**
+ * The pages both preview frames can show: only addresses built here, never anything from the
+ * request. key => array( label, url ).
+ */
+function fort_style_preview_pages() {
+	$pages = array( 'home' => array( 'Home', home_url( '/' ) ) );
+	$home  = function_exists( 'fort_home' ) ? fort_home() : null;
+	$event = $home['featured'] ?? ( $home['this_week'][0]['entries'][0] ?? null );
+	if ( $event ) {
+		$pages['event'] = array( 'An event page', fort_event_url( $event ) );
+	}
+	$pages['schedule']   = array( 'Schedule', fort_page_url( 'schedule', home_url( '/schedule/' ) ) );
+	$pages['backblasts'] = array( 'Backblasts', fort_backblasts_url() );
+	$bbs                 = function_exists( 'fort_backblasts' ) ? fort_backblasts( 1 ) : array();
+	if ( ! empty( $bbs[0]['event_id'] ) ) {
+		$pages['backblast'] = array( 'A backblast', fort_backblast_url( $bbs[0] ) );
+	}
+	$pages['submit'] = array( 'Submit an event', fort_submit_url() );
+	// This week's newsletter, as the email (each style is built on the server, see below).
+	if ( fort_style_preview_has_newsletter() ) {
+		$pages['newsletter'] = array( 'Newsletter (email)', home_url( '/style-preview/newsletter/' ) );
+	}
+	return $pages;
+}
+
 /** Whether this site can build the newsletter (Fort Weekly is active). */
 function fort_style_preview_has_newsletter() {
 	return function_exists( 'fortw_newsletter_html' ) && function_exists( 'fortw_prepare_for_email' );
@@ -82,10 +110,11 @@ if ( fort_style_preview_on() ) {
 		function () {
 			add_rewrite_rule( '^style-preview/?$', 'index.php?fort_style_preview=1', 'top' );
 			add_rewrite_rule( '^style-preview/newsletter/?$', 'index.php?fort_style_preview=newsletter', 'top' );
+			add_rewrite_rule( '^style-preview/colors/?$', 'index.php?fort_style_preview=colors', 'top' );
 			// A flush from somewhere that doesn't know about this setting (e.g. WP-CLI) drops the
 			// addresses; put them back the next time the site loads.
 			$rules = get_option( 'rewrite_rules' );
-			if ( is_array( $rules ) && ( ! isset( $rules['^style-preview/?$'] ) || ! isset( $rules['^style-preview/newsletter/?$'] ) ) ) {
+			if ( is_array( $rules ) && ( ! isset( $rules['^style-preview/?$'] ) || ! isset( $rules['^style-preview/newsletter/?$'] ) || ! isset( $rules['^style-preview/colors/?$'] ) ) ) {
 				flush_rewrite_rules( false );
 			}
 		}
@@ -126,10 +155,20 @@ if ( fort_style_preview_on() ) {
 					status_header( 404 );
 					exit;
 				}
-				$key = isset( $_GET['style'] ) ? sanitize_key( wp_unslash( $_GET['style'] ) ) : '0'; // phpcs:ignore WordPress.Security.NonceVerification -- read-only preview
+				$key   = isset( $_GET['style'] ) ? sanitize_key( wp_unslash( $_GET['style'] ) ) : '0'; // phpcs:ignore WordPress.Security.NonceVerification -- read-only preview
+				$gmail = isset( $_GET['fonts'] ) && 'gmail' === $_GET['fonts']; // phpcs:ignore WordPress.Security.NonceVerification
 				header( 'Content-Type: text/html; charset=utf-8' );
-				echo fort_style_preview_newsletter( $key, isset( $_GET['fonts'] ) && 'gmail' === $_GET['fonts'] ); // phpcs:ignore WordPress.Security.EscapeOutput, WordPress.Security.NonceVerification -- built and escaped by Fort Weekly
+				if ( ! empty( $_GET['raw'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+					// Not inlined, so the colours page can add a style's CSS after the template's.
+					$html = fortw_newsletter_html();
+					echo $gmail ? preg_replace( '/<link\b[^>]*fonts\.googleapis\.com[^>]*>\s*/i', '', $html ) : $html; // phpcs:ignore WordPress.Security.EscapeOutput -- built and escaped by Fort Weekly
+					exit;
+				}
+				echo fort_style_preview_newsletter( $key, $gmail ); // phpcs:ignore WordPress.Security.EscapeOutput -- built and escaped by Fort Weekly
 				exit;
+			}
+			if ( 'colors' === get_query_var( 'fort_style_preview' ) ) {
+				return locate_template( 'preview-colors.php' ) ?: $template;
 			}
 			return locate_template( 'preview-frame.php' ) ?: $template;
 		}

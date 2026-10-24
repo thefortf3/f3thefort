@@ -5,35 +5,19 @@
  * Choices live in the address (?style=3&w=phone&page=schedule&b=5) so a view can be shared; nothing
  * is saved. The "Newsletter (email)" page loads /style-preview/newsletter/?style=N instead: email
  * can't switch styles live, so each style is a fresh load (&fonts=gmail drops the web fonts).
+ * /style-preview/colors/ (preview-colors.php) tries a style in other colours.
  *
  * @package Fort
  */
 
 defined( 'ABSPATH' ) || exit;
 
-// The pages that can be previewed: only addresses built here, never anything from the request.
-$pages = array( 'home' => array( 'Home', home_url( '/' ) ) );
-$home  = function_exists( 'fort_home' ) ? fort_home() : null;
-$event = $home['featured'] ?? ( $home['this_week'][0]['entries'][0] ?? null );
-if ( $event ) {
-	$pages['event'] = array( 'An event page', fort_event_url( $event ) );
-}
-$pages['schedule']   = array( 'Schedule', fort_page_url( 'schedule', home_url( '/schedule/' ) ) );
-$pages['backblasts'] = array( 'Backblasts', fort_backblasts_url() );
-$bbs                 = function_exists( 'fort_backblasts' ) ? fort_backblasts( 1 ) : array();
-if ( ! empty( $bbs[0]['event_id'] ) ) {
-	$pages['backblast'] = array( 'A backblast', fort_backblast_url( $bbs[0] ) );
-}
-$pages['submit'] = array( 'Submit an event', fort_submit_url() );
-// This week's newsletter, as the email (each style is built on the server, see inc/style-preview.php).
-if ( fort_style_preview_has_newsletter() ) {
-	$pages['newsletter'] = array( 'Newsletter (email)', home_url( '/style-preview/newsletter/' ) );
-}
-
+$pages = fort_style_preview_pages();
 $preview = fort_style_preview_data();
 $config  = array(
 	'styles' => $preview['styles'],
 	'pages'  => array_map( function ( $p ) { return array( 'label' => $p[0], 'url' => $p[1] ); }, $pages ),
+	'colors' => home_url( '/style-preview/colors/' ),
 );
 ?><!doctype html>
 <html lang="en">
@@ -61,6 +45,7 @@ label { display: inline-flex; align-items: center; gap: 6px; color: #b4b9c2; }
 select { background: #1f2329; border: 1px solid #3a3f48; border-radius: 6px; padding: 6px 8px; }
 .recipe { color: #aab0bb; font-size: 13px; }
 .recipe b { color: #f1efe8; }
+.bar .recipe a { margin-left: 8px; white-space: nowrap; }
 .cap .size { color: #9fc3e6; }
 .cap .size.is-big { color: #ff9c8a; }
 .chips { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-top: 4px; }
@@ -249,6 +234,7 @@ main { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 10px; }
       var b = el('b', {}, s.key + ' · ' + s.name);
       r.appendChild(b);
       r.appendChild(document.createTextNode(' — ' + s.summary));
+      r.appendChild(el('a', { href: CFG.colors + '?style=' + encodeURIComponent(s.key) + (state.page !== 'home' ? '&page=' + encodeURIComponent(state.page) : '') + (state.w !== 'desktop' ? '&w=' + state.w : '') }, 'Try it in other colors →'));
       var chips = el('div', { 'class': 'chips' });
       s.ingredients.forEach(function (i) { chips.appendChild(el('span', {}, i)); });
       r.appendChild(chips);
