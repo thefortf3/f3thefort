@@ -8,6 +8,8 @@
  * helpers below. Exits non-zero if anything fails.
  */
 
+PHP_SAPI === 'cli' || exit; // Never from a web server (the tests folder is left out of the zip too).
+
 define( 'FSTATS_TESTING', true );
 define( 'ABSPATH', __DIR__ . '/' ); // Lets the includes load; nothing below calls WordPress.
 

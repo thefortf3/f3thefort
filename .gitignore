@@ -7,6 +7,13 @@ dist/
 coverage/
 fng-data.csv
 .env
+.env.*
+*.env
+# Secrets and member data that must never reach the (public) repo: WordPress exports (they hold
+# members' emails), MCP configs with API keys, and per-machine Claude settings.
+*.WordPress.*.xml
+.mcp.json
+.claude/settings.local.json
 # Generated newsletter output
 newsletter-dark.html
 newsletter-agenda.html
