@@ -220,14 +220,27 @@ function fort_render_schedule( $schedule, $today ) {
 	echo '</div>';
 }
 
-/** "Every week" (the Three F's) list for the sidebar. */
-function fort_render_every_week( $region ) {
+/** The "Every week" (Three F's) columns that have something in them, minus the $skip ones ('fitness'…). */
+function fort_every_week_columns( $region, $skip = array() ) {
+	$cols = array();
 	foreach ( $region['three_fs'] ?? array() as $col ) {
-		$events = array_filter( $col['items'], fn( $i ) => 'event' === $i['type'] && ! empty( $i['name'] ) );
-		$links  = array_filter( $col['items'], fn( $i ) => 'link' === $i['type'] && ! empty( $i['url'] ) );
-		if ( ! $events && ! $links ) {
+		if ( in_array( $col['column'], $skip, true ) ) {
 			continue;
 		}
+		$col['events'] = array_filter( $col['items'], fn( $i ) => 'event' === $i['type'] && ! empty( $i['name'] ) );
+		$col['links']  = array_filter( $col['items'], fn( $i ) => 'link' === $i['type'] && ! empty( $i['url'] ) );
+		if ( $col['events'] || $col['links'] ) {
+			$cols[] = $col;
+		}
+	}
+	return $cols;
+}
+
+/** "Every week" (the Three F's) list: the sidebar's, or (with $skip) the stacked layout's. */
+function fort_render_every_week( $region, $skip = array() ) {
+	foreach ( fort_every_week_columns( $region, $skip ) as $col ) {
+		$events = $col['events'];
+		$links  = $col['links'];
 		?>
 		<div class="fort-every__col">
 			<div class="fort-label fort-accent2"><?php echo esc_html( strtoupper( $col['column'] ) ); ?></div>

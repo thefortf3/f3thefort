@@ -145,6 +145,20 @@ $principles = array(
 			</section>
 		<?php endif; ?>
 
+		<?php
+		// "Every week" again, for when the sidebar stacks under everything (phones, small tablets):
+		// the 2nd and 3rd F belong next to the workouts, not eight screens down. Fitness is left out
+		// here, since its links repeat "Full schedule". CSS shows this copy or the sidebar's, never both.
+		if ( fort_every_week_columns( $region, array( 'fitness' ) ) ) :
+			?>
+			<section class="fort-section fort-every-stacked" aria-labelledby="fort-every-stacked-title">
+				<header class="fort-section__head fort-section__head--accent2">
+					<h2 id="fort-every-stacked-title" class="fort-h2"><span class="fort-kicker fort-accent2"><?php esc_html_e( '2nd F · 3rd F', 'fort' ); ?></span><?php esc_html_e( 'Every week', 'fort' ); ?></h2>
+				</header>
+				<div class="fort-every-stacked__cols"><?php fort_render_every_week( $region, array( 'fitness' ) ); ?></div>
+			</section>
+		<?php endif; ?>
+
 		<?php if ( ! empty( $home['coming_up'] ) ) : ?>
 			<section id="coming-up" class="fort-section">
 				<header class="fort-section__head fort-section__head--amber">
@@ -242,7 +256,7 @@ $principles = array(
 		<?php endif; ?>
 
 		<?php if ( ! empty( $region['three_fs'] ) ) : ?>
-			<section id="every-week" class="fort-side-section">
+			<section id="every-week" class="fort-side-section fort-every-side">
 				<h2 class="fort-h3 fort-side-section__head"><?php esc_html_e( 'Every week', 'fort' ); ?></h2>
 				<?php fort_render_every_week( $region ); ?>
 			</section>

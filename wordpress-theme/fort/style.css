@@ -220,6 +220,14 @@ a.fort-bb:hover .fort-bb__title { color: var(--amber-bright); }
 .fort-trend rect.is-last { fill: var(--accent2); }
 .fort-every__col { display: flex; flex-direction: column; gap: 8px; }
 .fort-every__item { font-size: 16px; line-height: 1.5; color: var(--text-bright); }
+/* "Every week" moves up under the workouts once the sidebar stacks below the main column, which
+   happens under 996px (560px main + 300px side + 72px gap + 64px padding). */
+.fort-every-stacked { display: none; }
+.fort-every-stacked__cols { display: flex; flex-direction: column; gap: 28px; margin-top: 20px; }
+@media (max-width: 995px) {
+	.fort-every-stacked { display: block; }
+	.fort-every-side { display: none; }
+}
 
 /* Entry / post / page */
 .fort-entry { padding: 32px 0 80px; }
