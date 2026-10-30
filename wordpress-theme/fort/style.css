@@ -2,7 +2,7 @@
 Theme Name: Fort
 Theme URI: https://f3thefort.com
 Description: F3 The Fort — the site The Fort Weekly newsletter summarizes. Events and region info come from the Fort Weekly plugin; workouts and backblast stats come from the stats API; posts and pages work as usual.
-Version: 0.4.0
+Version: 0.5.0
 Requires at least: 6.0
 Requires PHP: 8.3
 Author: F3 The Fort
@@ -10,22 +10,25 @@ Text Domain: fort
 License: GNU General Public License v2 or later
 */
 
+/* The Volt look (style 5 in the style previews): graphite, an electric lime accent and an ice-blue
+   second. The "amber" names date from the first, amber-only palette: --amber is the accent fill,
+   --amber-bright the accent for text. The rest of Volt is at the end of this file. */
 :root {
-	--bg: #0d0e10;
-	--bg-deep: #090a0b;
-	--panel: #15171a;
-	--panel-2: #1e2025;
-	--line: #1c1e22;
-	--line-2: #2e3136;
-	--text: #d8d6d0;
-	--text-dim: #a9a79f;
-	--text-mute: #8a8a82;
-	--text-bright: #f0ece4;
-	--amber: #d4a03c;
-	--amber-bright: #e8b94a;
-	--accent2: #8fb4d8;
-	--link-hover: #f3cf74; /* Links on mouse-over: a lighter amber. */
-	--on-accent: #15130e; /* Text on an amber fill. */
+	--bg: #14171a;
+	--bg-deep: #0f1214;
+	--panel: #1c2024;
+	--panel-2: #242a2f;
+	--line: #262c31;
+	--line-2: #38414a;
+	--text: #d3d9de;
+	--text-dim: #aab3bb;
+	--text-mute: #8f99a2;
+	--text-bright: #f6f9fb;
+	--amber: #c6f432;
+	--amber-bright: #d8ff55;
+	--accent2: #9fe8ff;
+	--link-hover: #e4ff88; /* Links on mouse-over: a lighter lime. */
+	--on-accent: #12160a; /* Text on an accent fill. */
 	--display: 'Oswald', 'Arial Narrow', Arial, sans-serif;
 	--mono: 'JetBrains Mono', 'Courier New', monospace;
 	--body: 'Source Serif 4', Georgia, 'Times New Roman', serif;
@@ -705,3 +708,89 @@ button.fort-st-seg__opt { background: none; border: 0; border-bottom: 1px solid 
 }
 
 .fort-st-note { margin: -14px 0 26px; font-size: 15px; color: var(--text-dim); }
+
+/* ── The Volt look ─────────────────────────────────────────────────────────────
+   Generated from style 5 (Volt) in assets/style-builder.js: readable sizes (18px body, 13px labels),
+   tracked mono labels, lime buttons and badges, square corners, hairline rules over the section
+   heads and matte flyers. The colours are the :root tokens at the top of this file.
+   :root:not([data-fort-style]) lets the style previews (FORT_STYLE_PREVIEW) still show the other
+   styles as they are; it also keeps these rules ahead of the theme's own, as in the preview. */
+:root:not([data-fort-style]) .fort-header{border-bottom:1px solid #38414a;}
+:root:not([data-fort-style]) .fort-footer{background:rgba(0,0,0,0.2);border-top-color:#38414a;}
+:root:not([data-fort-style]) .fort-trend rect{fill:rgba(255,255,255,0.14);}
+:root:not([data-fort-style]) body{font-size:18px;}
+:root:not([data-fort-style]) .fort-label,
+:root:not([data-fort-style]) .fort-meta,
+:root:not([data-fort-style]) .fort-mono-dim,
+:root:not([data-fort-style]) .fort-when,
+:root:not([data-fort-style]) .fort-day__dow,
+:root:not([data-fort-style]) .fort-kicker{font-size:13px;}
+:root:not([data-fort-style]) .fort-more,
+:root:not([data-fort-style]) .fort-nav__list a,
+:root:not([data-fort-style]) .fort-btn{font-size:14px;}
+:root:not([data-fort-style]) .fort-tag,
+:root:not([data-fort-style]) .fort-badge,
+:root:not([data-fort-style]).fort-js .fort-about__hide{font-size:12px;}
+:root:not([data-fort-style]) .fort-kicker,
+:root:not([data-fort-style]) .fort-label,
+:root:not([data-fort-style]) .fort-meta,
+:root:not([data-fort-style]) .fort-when,
+:root:not([data-fort-style]) .fort-mono-dim,
+:root:not([data-fort-style]) .fort-day__dow{color:#8f99a2;}
+:root:not([data-fort-style]) .fort-kicker{color:#c6f432;}
+:root:not([data-fort-style]) .fort-nav__list a{letter-spacing:0.08em;}
+:root:not([data-fort-style]) .fort-btn{letter-spacing:0.12em;font-weight:500;}
+:root:not([data-fort-style]) .fort-btn{background:#c6f432;border-color:#c6f432;color:#12160a;}
+:root:not([data-fort-style]) .fort-btn:hover{background:#d8ff55;border-color:#d8ff55;color:#12160a;}
+:root:not([data-fort-style]) .fort-btn--outline,
+:root:not([data-fort-style]) .fort-nav .fort-btn{background:transparent;color:#d8ff55;border-color:#c6f432;}
+:root:not([data-fort-style]) .fort-btn--outline:hover,
+:root:not([data-fort-style]) .fort-nav .fort-btn:hover{background:rgba(255,255,255,0.08);color:#d8ff55;}
+:root:not([data-fort-style]) .fort-tag{color:#aab3bb !important;border-color:#38414a !important;}
+:root:not([data-fort-style]) .fort-badge{background:#c6f432;color:#12160a;}
+:root:not([data-fort-style]) .fort-brand .fort-amber{color:#d8ff55;}
+:root:not([data-fort-style]) .fort-more,
+:root:not([data-fort-style]) a.fort-more{color:#d8ff55;}
+:root:not([data-fort-style]) .fort-more:hover,
+:root:not([data-fort-style]) a.fort-more:hover{color:#e4ff88;}
+:root:not([data-fort-style]) .fort-day__num,
+:root:not([data-fort-style]) .fort-featured__date{color:#d8ff55;}
+:root:not([data-fort-style]) .fort-coming__num{color:#9fe8ff;}
+:root:not([data-fort-style]) .fort-chip.is-current{color:#0d0e10;}
+:root:not([data-fort-style]) .fort-pagination .current,
+:root:not([data-fort-style]) .fort-skip{color:#0d0e10;}
+:root:not([data-fort-style]) .fort-principles__head{color:#9fe8ff;}
+:root:not([data-fort-style]) .fort-principles__list li::before{color:#9fe8ff;}
+:root:not([data-fort-style]) .fort-featured,
+:root:not([data-fort-style]) .fort-panel,
+:root:not([data-fort-style]) .fort-card,
+:root:not([data-fort-style]) .fort-bb,
+:root:not([data-fort-style]) .fort-fs__tile,
+:root:not([data-fort-style]) .fort-about__fng,
+:root:not([data-fort-style]) .fort-notice,
+:root:not([data-fort-style]) .fort-band{border-radius:0px;overflow:hidden;}
+:root:not([data-fort-style]) .fort-about,
+:root:not([data-fort-style]).fort-js .fort-about{border-radius:0px;}
+:root:not([data-fort-style]) .fort-btn,
+:root:not([data-fort-style]) .fort-btn--outline,
+:root:not([data-fort-style]) .fort-nav .fort-btn,
+:root:not([data-fort-style]).fort-js .fort-about__hide{border-radius:0px;}
+:root:not([data-fort-style]) .fort-tag,
+:root:not([data-fort-style]) .fort-badge{border-radius:0px;}
+:root:not([data-fort-style]) .fort-about-bar{border-radius:0px;}
+:root:not([data-fort-style]) .fort-thumb img,
+:root:not([data-fort-style]) .fort-entry__hero img,
+:root:not([data-fort-style]) .fort-featured__media img{border-radius:0px;}
+:root:not([data-fort-style]) .fort-section__head,
+:root:not([data-fort-style]) .fort-side-section__head{border-bottom:0;border-top:1px solid #f6f9fb;padding-top:12px;}
+:root:not([data-fort-style]) .fort-day,
+:root:not([data-fort-style]) .fort-coming{border-bottom-color:#262c31;}
+:root:not([data-fort-style]) .fort-featured{background:rgba(255,255,255,0.035);border:0;}
+:root:not([data-fort-style]) .fort-fs__tile{background:rgba(255,255,255,0.035);border:0;}
+:root:not([data-fort-style]) .fort-about__fng{background:rgba(255,255,255,0.035);border-left:3px solid #c6f432;}
+:root:not([data-fort-style]) .fort-about{background:transparent;}
+:root:not([data-fort-style]).fort-js .fort-about{background:transparent;border:1px solid color-mix(in srgb, #c6f432 55%, transparent);}
+:root:not([data-fort-style]) .fort-about-bar{background:rgba(255,255,255,0.035);border:1px solid #38414a;}
+:root:not([data-fort-style]) .fort-featured__media{background:rgba(0,0,0,0.12);}
+:root:not([data-fort-style]) .fort-featured__media img,
+:root:not([data-fort-style]) .fort-thumb img{filter:saturate(0.88) brightness(0.97);outline:1px solid rgba(255,255,255,0.12);outline-offset:-1px;}

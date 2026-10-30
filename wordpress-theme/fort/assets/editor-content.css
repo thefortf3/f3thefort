@@ -2,13 +2,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap');
 body.fort-editor-body {
 	margin: 12px 14px;
-	background: #090a0b;
-	color: #f0ece4;
+	background: #0f1214;
+	color: #f6f9fb;
 	font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif;
 	font-size: 16px;
 	line-height: 1.6;
 }
 .fort-editor-body p { margin: 0 0 12px; }
 .fort-editor-body ul, .fort-editor-body ol { margin: 0 0 12px; padding-left: 1.5em; }
-.fort-editor-body a { color: #e8b94a; text-decoration: underline; text-underline-offset: 3px; }
+.fort-editor-body a { color: #d8ff55; text-decoration: underline; text-underline-offset: 3px; }
 .fort-editor-body strong, .fort-editor-body b { color: #fff; }

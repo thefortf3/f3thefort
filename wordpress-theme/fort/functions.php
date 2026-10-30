@@ -11,7 +11,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FORT_THEME_VERSION', '0.4.0' );
+define( 'FORT_THEME_VERSION', '0.5.0' );
 
 require_once __DIR__ . '/inc/config.php';
 require_once __DIR__ . '/inc/api.php';
@@ -83,7 +83,7 @@ add_action(
 		$wp_customize->add_setting(
 			'fort_accent2',
 			array(
-				'default'           => '#8fb4d8',
+				'default'           => '#9fe8ff',
 				'sanitize_callback' => 'sanitize_hex_color',
 			)
 		);

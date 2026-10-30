@@ -46,8 +46,8 @@ function fort_submit_url() {
 
 /** The second accent color (Customizer → Colors). */
 function fort_accent2() {
-	$c = get_theme_mod( 'fort_accent2', '#8fb4d8' );
-	return sanitize_hex_color( $c ) ? $c : '#8fb4d8';
+	$c = get_theme_mod( 'fort_accent2', '#9fe8ff' );
+	return sanitize_hex_color( $c ) ? $c : '#9fe8ff';
 }
 
 /** First tag as a small outlined chip. */
