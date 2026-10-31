@@ -99,6 +99,7 @@ function fortw_box_newsletter( $post ) {
 		<span id="fortw-generate-status" class="description" role="status"></span>
 	</p>
 	<p><label><input type="checkbox" name="_fort_featured" value="1" <?php checked( (bool) get_post_meta( $post->ID, '_fort_featured', true ) ); ?>> <?php esc_html_e( 'Featured — the big card at the top of the site and the newsletter (only one event at a time)', 'fort-weekly' ); ?></label></p>
+	<p><label><input type="checkbox" name="_fort_callout" value="1" <?php checked( (bool) get_post_meta( $post->ID, '_fort_callout', true ) ); ?>> <?php esc_html_e( 'Don’t miss — shown in full above This week (on the site and in the newsletter) until it reaches This week, for things that need more than a week’s notice. Several can be on at once.', 'fort-weekly' ); ?></label></p>
 	<p><label><input type="checkbox" name="_fort_hold" value="1" <?php checked( (bool) get_post_meta( $post->ID, '_fort_hold', true ) ); ?>> <?php esc_html_e( 'Hold from the newsletter — still shown on the site', 'fort-weekly' ); ?></label></p>
 	<?php
 }
@@ -199,6 +200,7 @@ add_action(
 		if ( ! fortw_is_change( $post_id ) ) { // A proposal has no Newsletter box (see admin-changes.php).
 			fortw_set_featured( $post_id, ! empty( $post['_fort_featured'] ) );
 			fortw_set_hold( $post_id, ! empty( $post['_fort_hold'] ) );
+			fortw_set_callout( $post_id, ! empty( $post['_fort_callout'] ) );
 		}
 		if ( ! get_post_meta( $post_id, '_fort_preblast_post_id', true ) ) {
 			fortw_update_or_delete( $post_id, '_fort_preblast_requested', empty( $post['_fort_preblast_requested'] ) ? '' : '1' );

@@ -70,6 +70,8 @@ function fortw_newsletter_counts( $today ) {
 		'coming_up' => count( $sel['coming_up'] ),
 		'ongoing'   => count( $sel['ongoing'] ),
 		'held'      => $held,
+		'dont_miss' => count( $sel['dont_miss'] ),
+		'now'       => count( $sel['happening_now'] ),
 	);
 }
 
@@ -112,8 +114,8 @@ function fortw_render_newsletter_page() {
 		<?php endif; ?>
 		<p>
 			<?php
-			/* translators: 1: number this week, 2: number coming up, 3: number ongoing */
-			echo esc_html( sprintf( __( 'This week’s issue: %1$d this week, %2$d coming up, %3$d ongoing.', 'fort-weekly' ), $c['this_week'], $c['coming_up'], $c['ongoing'] ) );
+			/* translators: 1: number in Don't miss, 2: this week, 3: happening now, 4: coming up, 5: ongoing */
+			echo esc_html( sprintf( __( 'This week’s issue: %1$d don’t miss, %2$d this week, %3$d happening now, %4$d coming up, %5$d ongoing.', 'fort-weekly' ), $c['dont_miss'], $c['this_week'], $c['now'], $c['coming_up'], $c['ongoing'] ) );
 			if ( $c['featured'] ) {
 				/* translators: %s: event title */
 				echo ' ' . esc_html( sprintf( __( 'Featured: %s.', 'fort-weekly' ), $c['featured'] ) );
@@ -228,6 +230,7 @@ add_action(
 					array_merge(
 						$sel['featured'] ? array( $sel['featured']['id'] ) : array(),
 						array_merge( array(), ...array_map( function ( $d ) { return array_column( $d['entries'], 'id' ); }, $sel['this_week'] ) ),
+						array_column( $sel['happening_now'], 'id' ),
 						array_column( $sel['coming_up'], 'id' ),
 						array_column( $sel['ongoing'], 'id' )
 					)

@@ -28,6 +28,10 @@ function fortw_select_issue( $entries, $today ) {
  * - Excluded: not approved, archived, held from the newsletter, or every date already passed.
  * - featured: the (single) featured entry, shown in the Featured card and again in the lists
  *   below with 'featured' => true (the renderers show it there as a short line).
+ * - dont_miss: entries an editor flagged (callout) that haven't reached $week yet: things that
+ *   need more than a week's notice, shown in full above This week, soonest first (undated last).
+ *   Like the featured entry they're also in the lists below, marked 'called_out' (a short line
+ *   there). Once one's date is within $week (or it's running) it's only in its usual place.
  * - this_week: next date within $week (default: the next 7 days from $today), grouped by date.
  * - happening_now: things running over several days that started before $week (a month's theme,
  *   a week-long drive), ending soonest first. Until then they sit at their start date like any
@@ -80,11 +84,26 @@ function fortw_select_agenda( $entries, $today, $week = null ) {
 	}
 	// Everything, the featured entry included, also goes in the date list; 'featured' marks the one
 	// in the Featured card (shown there in full, in the list as a short line that links to it).
-	$rest = array();
+	$rest      = array();
+	$dont_miss = array();
 	foreach ( $eligible as $e ) {
-		$e['featured'] = $featured && $e['id'] === $featured['id'];
-		$rest[]        = $decorate( $e );
+		$e['featured']   = $featured && $e['id'] === $featured['id'];
+		$e               = $decorate( $e );
+		$next            = $e['next_occurrence'];
+		$e['called_out'] = ! empty( $e['callout'] ) && ! $e['featured'] && ( ! $next || ( ! $e['running'] && $next['date'] > $week_end ) );
+		if ( $e['called_out'] ) {
+			$dont_miss[] = $e;
+		}
+		$rest[] = $e;
 	}
+	usort(
+		$dont_miss,
+		function ( $a, $b ) {
+			$ad = $a['next_occurrence']['date'] ?? '9999-12-31';
+			$bd = $b['next_occurrence']['date'] ?? '9999-12-31';
+			return strcmp( $ad, $bd ) ?: strcmp( $a['title'], $b['title'] );
+		}
+	);
 
 	$dated = array_values( array_filter( $rest, function ( $e ) { return (bool) $e['next_occurrence']; } ) );
 	usort(
@@ -124,6 +143,7 @@ function fortw_select_agenda( $entries, $today, $week = null ) {
 
 	return array(
 		'featured'  => $featured ? $decorate( $featured ) : null,
+		'dont_miss'     => $dont_miss,
 		'this_week'     => $this_week,
 		'happening_now' => $now,
 		'coming_up'     => $coming_up,

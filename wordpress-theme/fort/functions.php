@@ -11,7 +11,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FORT_THEME_VERSION', '0.5.2' );
+define( 'FORT_THEME_VERSION', '0.5.3' );
 
 require_once __DIR__ . '/inc/config.php';
 require_once __DIR__ . '/inc/api.php';

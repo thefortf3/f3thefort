@@ -51,6 +51,15 @@ function fortw_restore( $post_id ) {
 	return wp_update_post( array( 'ID' => $post_id, 'post_status' => $status ), true );
 }
 
+/** "Don't miss": called out between Featured and This week until it reaches This week. */
+function fortw_set_callout( $post_id, $on ) {
+	if ( $on ) {
+		update_post_meta( $post_id, '_fort_callout', '1' );
+	} else {
+		delete_post_meta( $post_id, '_fort_callout' );
+	}
+}
+
 function fortw_set_hold( $post_id, $on ) {
 	if ( $on ) {
 		update_post_meta( $post_id, '_fort_hold', '1' );

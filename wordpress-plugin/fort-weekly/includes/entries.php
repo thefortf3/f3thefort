@@ -191,6 +191,7 @@ function fortw_entry( $post, $today = null ) {
 		'preblast_url'         => $pre_url ? $pre_url : null,
 		'featured'             => (bool) fortw_meta( $id, '_fort_featured' ),
 		'hold_from_newsletter' => (bool) fortw_meta( $id, '_fort_hold' ),
+		'callout'              => (bool) fortw_meta( $id, '_fort_callout' ),
 		'preblast_requested'   => (bool) fortw_meta( $id, '_fort_preblast_requested' ),
 		'approved_at'          => fortw_meta( $id, '_fort_approved_at' ) ?: null,
 		'reject_reason'        => fortw_meta( $id, '_fort_reject_reason' ) ?: null,

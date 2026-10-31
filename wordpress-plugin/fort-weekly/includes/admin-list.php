@@ -375,7 +375,9 @@ add_filter(
 		if ( 'publish' === $status ) {
 			$featured             = (bool) get_post_meta( $post->ID, '_fort_featured', true );
 			$held                 = (bool) get_post_meta( $post->ID, '_fort_hold', true );
+			$called               = (bool) get_post_meta( $post->ID, '_fort_callout', true );
 			$out['fortw_feature'] = sprintf( '<a href="%s">%s</a>', esc_url( fortw_action_url( $featured ? 'unfeature' : 'feature', $post->ID ) ), $featured ? esc_html__( 'Unfeature', 'fort-weekly' ) : esc_html__( 'Feature', 'fort-weekly' ) );
+			$out['fortw_callout'] = sprintf( '<a href="%s">%s</a>', esc_url( fortw_action_url( $called ? 'uncallout' : 'callout', $post->ID ) ), $called ? esc_html__( 'Remove from Don’t miss', 'fort-weekly' ) : esc_html__( 'Don’t miss', 'fort-weekly' ) );
 			$out['fortw_hold']    = sprintf( '<a href="%s">%s</a>', esc_url( fortw_action_url( $held ? 'unhold' : 'hold', $post->ID ) ), $held ? esc_html__( 'Put back in newsletter', 'fort-weekly' ) : esc_html__( 'Hold from newsletter', 'fort-weekly' ) );
 		}
 		if ( 'fort_archived' === $status ) {
@@ -413,6 +415,11 @@ add_action(
 			case 'feature':
 			case 'unfeature':
 				fortw_set_featured( $post_id, 'feature' === $do );
+				fortw_clear_page_cache();
+				break;
+			case 'callout':
+			case 'uncallout':
+				fortw_set_callout( $post_id, 'callout' === $do );
 				fortw_clear_page_cache();
 				break;
 			case 'hold':
@@ -490,6 +497,10 @@ add_action(
 			'feature'      => sprintf( __( '“%s” is now the featured event.', 'fort-weekly' ), $title ),
 			/* translators: %s: event title */
 			'unfeature'    => sprintf( __( '“%s” is no longer featured.', 'fort-weekly' ), $title ),
+			/* translators: %s: event title */
+			'callout'      => sprintf( __( '“%s” is under Don’t miss until it reaches This week.', 'fort-weekly' ), $title ),
+			/* translators: %s: event title */
+			'uncallout'    => sprintf( __( '“%s” is no longer under Don’t miss.', 'fort-weekly' ), $title ),
 			/* translators: %s: event title */
 			'hold'         => sprintf( __( '“%s” stays on the site but is held out of the newsletter.', 'fort-weekly' ), $title ),
 			/* translators: %s: event title */
@@ -659,6 +670,9 @@ function fortw_render_event_cell( $e, $post ) {
 				<?php endforeach; ?>
 				<?php if ( $e['featured'] ) : ?>
 					<span class="fortw-flag fortw-flag--featured">★ <?php esc_html_e( 'Featured', 'fort-weekly' ); ?></span>
+				<?php endif; ?>
+				<?php if ( $e['callout'] ) : ?>
+					<span class="fortw-flag fortw-flag--featured"><?php esc_html_e( 'Don’t miss', 'fort-weekly' ); ?></span>
 				<?php endif; ?>
 				<?php if ( $e['hold_from_newsletter'] ) : ?>
 					<span class="fortw-flag fortw-flag--held"><?php esc_html_e( 'Held from newsletter', 'fort-weekly' ); ?></span>

@@ -115,6 +115,15 @@ $principles = array(
 <div class="fort-columns">
 	<div class="fort-columns__main">
 
+		<?php if ( ! empty( $home['dont_miss'] ) ) : ?>
+			<section id="dont-miss" class="fort-section fort-dm-section">
+				<header class="fort-section__head fort-section__head--accent2">
+					<h2 class="fort-h2"><span class="fort-kicker fort-accent2"><?php esc_html_e( 'Plan ahead', 'fort' ); ?></span><?php esc_html_e( 'Don’t miss', 'fort' ); ?></h2>
+				</header>
+				<?php foreach ( $home['dont_miss'] as $e ) { fort_render_dont_miss_entry( $e ); } ?>
+			</section>
+		<?php endif; ?>
+
 		<?php if ( $home ) : ?>
 			<section id="this-week" class="fort-section">
 				<header class="fort-section__head fort-section__head--amber">
@@ -221,7 +230,7 @@ $principles = array(
 					<?php foreach ( $home['ongoing'] as $e ) : ?>
 						<a class="fort-card" href="<?php echo esc_url( fort_event_url( $e ) ); ?>">
 							<span class="fort-card__title"><?php echo esc_html( $e['title'] ); ?></span>
-							<?php if ( empty( $e['featured'] ) ) : ?><span class="fort-card__text"><?php echo esc_html( fort_summary( $e, 26 ) ); ?></span><?php else : ?><span class="fort-badge"><?php esc_html_e( 'FEATURED', 'fort' ); ?></span><?php endif; ?>
+							<?php if ( empty( $e['featured'] ) && empty( $e['called_out'] ) ) : ?><span class="fort-card__text"><?php echo esc_html( fort_summary( $e, 26 ) ); ?></span><?php else : ?><span class="fort-badge"><?php echo ! empty( $e['featured'] ) ? esc_html__( 'FEATURED', 'fort' ) : esc_html__( 'DON’T MISS', 'fort' ); ?></span><?php endif; ?>
 						</a>
 					<?php endforeach; ?>
 				</div>

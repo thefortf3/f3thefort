@@ -66,6 +66,12 @@ scheduled or sent in Mailchimp is left alone. Review, schedule and send in Mailc
 - **Add to calendar:** each event page has *iPhone · Outlook* (`/events/<slug>/?calendar=ics`,
   every upcoming date) and *Google · Android* (its next date). The newsletter's "Add to calendar"
   links go to those buttons. No time: an all-day event; no end: an hour.
+- **Don't miss** is for things that need more than a week's notice (a race sign-up, a party that
+  needs volunteers). An editor flags it ("Don't miss" in the events list, or the checkbox in the
+  Newsletter box); several can be on at once. It shows in full between Featured and This week, on
+  the homepage and in the newsletter, soonest first, as a This week entry on its own panel; its
+  usual place (Coming up / Ongoing) keeps a one-line link. Once its date reaches This week it's only
+  there. The featured event is never in Don't miss too.
 - **Things that run over several days** (a theme for the month, a week-long drive) have a **last
   day** as well as a date: the editor's "Last day" column, or the submit form's "Last day" box.
   Until it starts it sits at its first day in This week / Coming up, marked "Through Sat Nov 22";

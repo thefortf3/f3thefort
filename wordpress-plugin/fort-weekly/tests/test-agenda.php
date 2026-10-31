@@ -151,7 +151,7 @@ fortw_test(
 		$p = fortw_public_entry( $e, FORTW_T_TODAY, $fortw_t_strip_scripts );
 		$keys = array_keys( $p );
 		sort( $keys );
-		assert_same( array( 'description_html', 'featured', 'hero_image', 'id', 'is_past', 'leader', 'link', 'location', 'next_occurrence', 'occurrences', 'preblast_url', 'running', 'slug', 'summary', 'tags', 'title', 'upcoming_dates', 'video_url' ), $keys );
+		assert_same( array( 'called_out', 'description_html', 'featured', 'hero_image', 'id', 'is_past', 'leader', 'link', 'location', 'next_occurrence', 'occurrences', 'preblast_url', 'running', 'slug', 'summary', 'tags', 'title', 'upcoming_dates', 'video_url' ), $keys );
 		assert_true( false === strpos( json_encode( $p ), 'example.com' ), 'no submitter details' );
 		assert_same( '<p>Hi</p>', $p['description_html'] );
 		assert_same( null, $p['link'] );
@@ -306,5 +306,28 @@ fortw_test(
 		$threw = false;
 		try { fortw_normalize_occurrences( array( array( 'date' => '2026-10-17', 'end_date' => 'soon' ) ) ); } catch ( InvalidArgumentException $e ) { $threw = true; }
 		assert_true( $threw, 'a bad end date is refused' );
+	}
+);
+
+fortw_test(
+	'Don’t miss: flagged entries not yet in the week, soonest first; also kept in their usual place',
+	function () {
+		$entries = array(
+			fortw_t_entry( array( 'title' => 'Race sign-up', 'callout' => true, 'occurrences' => array( array( 'date' => '2026-11-14' ) ) ) ),
+			fortw_t_entry( array( 'title' => 'Christmas party', 'callout' => true, 'occurrences' => array( array( 'date' => '2026-12-12' ) ) ) ),
+			fortw_t_entry( array( 'title' => 'Thursday ruck', 'callout' => true, 'occurrences' => array( array( 'date' => '2026-10-22' ) ) ) ),
+			fortw_t_entry( array( 'title' => 'Coat drive', 'callout' => true, 'occurrences' => array( array( 'date' => '2026-10-10', 'end_date' => '2026-10-31' ) ) ) ),
+			fortw_t_entry( array( 'title' => 'Big one', 'callout' => true, 'featured' => true, 'occurrences' => array( array( 'date' => '2026-11-20' ) ) ) ),
+			fortw_t_entry( array( 'title' => 'Volunteer list', 'callout' => true ) ),
+			fortw_t_entry( array( 'title' => 'Not flagged', 'occurrences' => array( array( 'date' => '2026-11-15' ) ) ) ),
+		);
+		$sel = fortw_select_agenda( $entries, FORTW_T_TODAY );
+		assert_same( array( 'Race sign-up', 'Christmas party', 'Volunteer list' ), array_column( $sel['dont_miss'], 'title' ), 'not the one this week, the running one or the featured one; undated last' );
+		$up = array_column( $sel['coming_up'], 'called_out', 'title' );
+		assert_true( $up['Race sign-up'] && $up['Christmas party'] && ! $up['Not flagged'] && ! $up['Big one'], 'still in Coming up, marked' );
+		assert_same( array( 'Thursday ruck' ), array_column( $sel['this_week'][0]['entries'], 'title' ), 'in the week: only there, in full' );
+		assert_true( ! $sel['this_week'][0]['entries'][0]['called_out'] );
+		$issue = fortw_select_issue( $entries, '2026-11-07' ); // Covers Mon Nov 9 – Sun Nov 15.
+		assert_same( array( 'Christmas party', 'Volunteer list' ), array_column( $issue['dont_miss'], 'title' ), 'the race has reached the issue’s week' );
 	}
 );

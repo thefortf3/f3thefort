@@ -28,6 +28,7 @@ function fortw_meta_keys() {
 		'_fort_summary'           => 'string',  // Short newsletter write-up.
 		'_fort_featured'          => 'boolean', // At most one event at a time.
 		'_fort_hold'              => 'boolean', // On the site, but not in the newsletter.
+		'_fort_callout'           => 'boolean', // "Don't miss": called out until it reaches This week.
 		'_fort_preblast_requested' => 'boolean',
 		'_fort_preblast_post_id'  => 'integer',
 		'_fort_preblast_url'      => 'string',  // From the old app, for imported events.

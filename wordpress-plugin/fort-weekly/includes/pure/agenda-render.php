@@ -209,6 +209,31 @@ function fortw_nl_week_entry( $e, $ctx ) {
 }
 
 /**
+ * A "Don't miss" entry: as in This week (the same size and parts), on its own panel with the
+ * accent edge, and with its date in the top line since it isn't under a day.
+ */
+function fortw_nl_dont_miss_entry( $e, $ctx ) {
+	$next = $e['next_occurrence'];
+	$day  = '';
+	if ( $next ) {
+		$p   = fortw_date_parts( $next['date'] );
+		$day = fortw_nl_word( $p['dow'] ) . ' ' . fortw_nl_word( $p['mon'] ) . ' ' . $p['day'];
+	}
+	$img  = fortw_image_of( $e );
+	$meta = fortw_nl_meta_html( $e );
+	$url  = fortw_h( $ctx['entry_url']( $e ) );
+	$body = '
+        <div class="when dm-when">' . fortw_h( $next ? fortw_nl_meta( array( $day, fortw_nl_when( $next ) ) ) : 'Ongoing' ) . fortw_nl_tag_chip( $e ) . ( $e['is_new'] ? '<span class="new">New</span>' : '' ) . '</div>
+        <a class="title" href="' . $url . '">' . fortw_h( $e['title'] ) . '</a>
+        ' . ( '' !== $meta ? '<div class="meta">' . $meta . '</div>' : '' ) . '
+        <p class="sum">' . fortw_h( fortw_summary_of( $e ) ) . '</p>
+        ' . fortw_nl_also( $e['also'] ) . '
+        ' . fortw_nl_links( $e, $ctx );
+	return '
+    <table role="presentation" class="dm" width="100%"><tr><td class="dm-cell">' . fortw_nl_with_flyer( $body, $img ? '<a href="' . $url . '"><img class="thumb" src="' . fortw_h( $img ) . '" width="120" alt="' . fortw_h( $e['title'] ) . ' flyer"></a>' : '', 132 ) . '</td></tr></table>';
+}
+
+/**
  * $body with its flyer ($flyer: the linked <img>, or '') to the right, as on the homepage: two
  * real cells, which the phone layout stacks so the text keeps the width (the Featured card's way;
  * Gmail Android lets @media override a <td>'s layout, not inline CSS).
@@ -237,8 +262,8 @@ function fortw_nl_coming( $e, $ctx ) {
 	$p    = fortw_date_parts( ! empty( $e['running'] ) ? $e['next_occurrence']['end_date'] : $e['next_occurrence']['date'] );
 	$meta = fortw_nl_meta_html( $e, array( fortw_nl_when( $e['next_occurrence'] ) ) );
 	$url  = fortw_h( $ctx['entry_url']( $e ) );
-	if ( ! empty( $e['featured'] ) ) { // In full in the Featured card: here just its title, time and place.
-		$chips = '<span class="new">Featured</span>';
+	if ( ! empty( $e['featured'] ) || ! empty( $e['called_out'] ) ) { // In full above: here just its title, time and place.
+		$chips = '<span class="new">' . ( ! empty( $e['featured'] ) ? 'Featured' : 'Don’t miss' ) . '</span>';
 		$body  = '' !== $meta ? '<div class="meta">' . $meta . '</div>' : '';
 	} else {
 		$chips = fortw_nl_tag_chip( $e ) . ( $e['is_new'] ? '<span class="new">New</span>' : '' );
@@ -293,10 +318,12 @@ function fortw_nl_featured( $e, $ctx ) {
   </tr></table></div>';
 }
 
+/** A section with its heading. $accent: true for the accent rule, or a name for that variant ('dm'). */
 function fortw_nl_section( $title, $aside, $body, $accent = false ) {
+	$head = true === $accent ? ' sec-head--accent' : ( $accent ? ' sec-head--' . $accent : '' );
 	return '
   <div class="section">
-    <table role="presentation" class="sec-head' . ( $accent ? ' sec-head--accent' : '' ) . '" width="100%"><tr>
+    <table role="presentation" class="sec-head' . $head . '" width="100%"><tr>
       <td class="sec-title">' . fortw_h( $title ) . '</td>
       <td class="sec-aside" align="right">' . fortw_h( $aside ) . '</td>
     </tr></table>
@@ -447,6 +474,7 @@ function fortw_render_agenda( $template, $entries, $region, $today, $ctx ) {
 		fortw_nl_ledger( $region ),
 		fortw_nl_nantan( $region['nantan'] ?? null ),
 		$sel['featured'] ? fortw_nl_featured( $sel['featured'], $ctx ) : '',
+		$sel['dont_miss'] ? fortw_nl_section( 'Don’t miss', 'Plan ahead', implode( '', array_map( function ( $e ) use ( $ctx ) { return fortw_nl_dont_miss_entry( $e, $ctx ); }, $sel['dont_miss'] ) ), 'dm' ) : '',
 		$sel['this_week'] ? fortw_nl_section( 'This week', $rng, implode( '', array_map( function ( $d ) use ( $ctx ) { return fortw_nl_day( $d, $ctx ); }, $sel['this_week'] ) ), true ) : '',
 		$sel['happening_now'] ? fortw_nl_section( 'Happening now', count( $sel['happening_now'] ) . ' on now', implode( '', array_map( function ( $e ) use ( $ctx ) { return fortw_nl_coming( $e, $ctx ); }, $sel['happening_now'] ) ) ) : '',
 		$n ? fortw_nl_section( 'Coming up', $n . ' ' . ( 1 === $n ? 'event' : 'events' ), implode( '', array_map( function ( $e ) use ( $ctx ) { return fortw_nl_coming( $e, $ctx ); }, $sel['coming_up'] ) ) ) : '',
@@ -458,9 +486,9 @@ function fortw_render_agenda( $template, $entries, $region, $today, $ctx ) {
 				array_map(
 					function ( $e ) use ( $ctx ) {
 						$url = fortw_h( $ctx['entry_url']( $e ) );
-						if ( ! empty( $e['featured'] ) ) {
+						if ( ! empty( $e['featured'] ) || ! empty( $e['called_out'] ) ) {
 							return '
-      <div class="ongoing"><a class="title title--sm" href="' . $url . '">' . fortw_h( $e['title'] ) . '</a><span class="new">Featured</span></div>';
+      <div class="ongoing"><a class="title title--sm" href="' . $url . '">' . fortw_h( $e['title'] ) . '</a><span class="new">' . ( ! empty( $e['featured'] ) ? 'Featured' : 'Don’t miss' ) . '</span></div>';
 						}
 						return '
       <div class="ongoing"><a class="title title--sm" href="' . $url . '">' . fortw_h( $e['title'] ) . '</a>
