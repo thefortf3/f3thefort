@@ -2,7 +2,7 @@
 Theme Name: Fort
 Theme URI: https://f3thefort.com
 Description: F3 The Fort — the site The Fort Weekly newsletter summarizes. Events and region info come from the Fort Weekly plugin; workouts and backblast stats come from the stats API; posts and pages work as usual.
-Version: 0.5.0
+Version: 0.5.1
 Requires at least: 6.0
 Requires PHP: 8.3
 Author: F3 The Fort
@@ -434,7 +434,6 @@ button.fort-st-seg__opt { background: none; border: 0; border-bottom: 1px solid 
 .fort-st .fort-section__head .fort-h3 { font-size: 22px; }
 .fort-st-block { margin-bottom: 56px; min-width: 0; }
 .fort-st-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 56px; }
-.fort-st-grid--wide { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
 .fort-st__name { color: var(--text-bright); }
 .fort-st__name:hover { color: var(--amber-bright); }
 
@@ -547,25 +546,8 @@ button.fort-st-seg__opt { background: none; border: 0; border-bottom: 1px solid 
 .fort-st-ranks__n { font-family: var(--display); font-size: 30px; font-weight: 700; line-height: 1; color: var(--text-bright); }
 .fort-st-club { font-family: var(--display); font-size: 22px; font-weight: 600; color: var(--amber-bright); }
 
-/* The FNG challenge board */
-.fort-st-board { list-style: none; margin: 0 0 8px; padding: 0; }
-.fort-st-board > li { border-bottom: 1px solid var(--line); }
-.fort-st-board summary, .fort-st-board__plain { display: grid; grid-template-columns: 30px minmax(0, 1.2fr) minmax(60px, 1fr) 44px; align-items: center; gap: 14px; padding: 14px 0; list-style: none; cursor: pointer; }
-.fort-st-board summary::-webkit-details-marker { display: none; }
-.fort-st-board__plain { cursor: default; }
-.fort-st-board__rank { font-family: var(--mono); font-size: 12px; color: var(--text-mute); }
-.fort-st-board li:first-child .fort-st-board__rank { color: var(--amber-bright); }
-.fort-st-board__ao { font-family: var(--display); font-size: 19px; font-weight: 600; color: var(--text-bright); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fort-st-board__n { font-family: var(--display); font-size: 24px; font-weight: 700; color: var(--amber-bright); text-align: right; }
-.fort-st-board summary:hover .fort-st-board__ao { color: var(--amber-bright); }
-.fort-st-board details[open] summary .fort-st-board__ao { color: var(--amber-bright); }
-.fort-st-board__names { list-style: none; margin: 0 0 14px 44px; padding: 0; display: grid; gap: 6px; font-size: 15px; }
-.fort-st-board__names li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; }
-.fort-st-zeros { margin: 22px 0 10px; font-size: 15px; line-height: 1.8; color: var(--text-dim); }
-.fort-st-zeros .fort-label { display: block; margin-bottom: 4px; }
-
 @media (max-width: 860px) {
-	.fort-st-grid, .fort-st-grid--wide { grid-template-columns: minmax(0, 1fr); }
+	.fort-st-grid { grid-template-columns: minmax(0, 1fr); }
 	.fort-st-podium { grid-template-columns: minmax(0, 1fr); }
 	.fort-st-podium__spot { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "rank rank" "num name" "num meta"; column-gap: 18px; padding: 18px 20px; border-left: 0; border-top: 1px solid var(--line-2); }
 	.fort-st-podium__spot:first-child { border-top: 0; }

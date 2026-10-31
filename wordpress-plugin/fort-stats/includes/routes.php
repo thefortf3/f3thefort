@@ -24,7 +24,6 @@ add_action(
 			'/schedule'                     => fn( $r ) => fstats_get_schedule( $r['days'] ?? 7 ),
 			'/map'                          => fn( $r ) => fstats_get_map(),
 			'/fng'                          => fn( $r ) => fstats_get_fng(),
-			'/fng-challenge'                => fn( $r ) => fstats_get_fng_challenge(),
 		);
 		foreach ( $routes as $path => $get ) {
 			register_rest_route(

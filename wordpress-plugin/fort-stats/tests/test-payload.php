@@ -59,9 +59,6 @@ class FStats_Test_Source implements FStats_Source {
 	public function ao_breakdown( ?string $start_date = null, ?string $end_date = null ): array {
 		return array_map( fn( $p ) => array( 'ao_name' => $p[0], 'pax_posts' => $p[1] ), array( array( 'Dawn Patrol', 20 ), array( 'Minnow Pond', 19 ), array( '6 @ 6', 16 ), array( 'Other', 3 ) ) );
 	}
-	public function active_ao_names(): array {
-		return array( 'Alcatraz', 'Block Party', 'Q Source', 'The Hive' );
-	}
 
 	public function region_name(): string { return 'The Fort'; }
 	public function sync_status(): array { return array(); }
@@ -246,7 +243,7 @@ fortw_test(
 );
 
 fortw_test(
-	'FNG sheet: parsing, AO aliases, window and per-AO board',
+	'FNG sheet: parsing, AO aliases and the FNG stats',
 	function () {
 		$csv  = "Timestamp,First Name,Last Name,Email,F3 Name,EH'ed By,Workout Q's F3 Name,AO,Phone Number\n"
 			. "9/3/2026 6:12:01,A,B,a@x,Teflon,Stang,Bam Bam,Dawn Patrol (Tue),1\n"
@@ -257,11 +254,6 @@ fortw_test(
 		assert_same( array( '2026-09-01', '2026-09-03', '2026-10-02' ), array_column( $r, 'date' ) );
 		assert_same( array( 'Block Party', 'Dawn Patrol', '' ), array_column( $r, 'ao' ) );
 		assert_same( 'Name, With Comma', $r[2]['f3_name'] );
-		$board = fstats_fng_challenge_payload( new FStats_Test_Source(), $r, '2026-09-01', '2026-09-30' );
-		assert_same( array( 2, 1, 1, 0 ), array( $board['total_fngs'], $board['top_ehers'][0]['count'] - 1, $board['participating_aos'] - 1, $board['unattributed'] ) );
-		assert_same( array( 'Block Party', 'Dawn Patrol', 'Alcatraz', 'The Hive' ), array_column( $board['aos'], 'ao' ), 'scored AOs first, Q Source left off' );
-		assert_same( '(unnamed)', $board['aos'][0]['fngs'][0]['f3_name'] );
-		assert_same( 'September 2026', $board['month_label'] );
 		$f = fstats_fng_payload( $r, '2026-10-21' );
 		assert_same( array( 3, 3, 3, 1 ), array( $f['total'], $f['ytd'], $f['last90'], $f['last30'] ) );
 		assert_same( array( 'month' => '2026-09', 'count' => 2 ), $f['monthly'][0] );

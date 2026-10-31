@@ -144,9 +144,6 @@ class FStats_Rest_Source implements FStats_Source {
 	public function summary( ?string $start_date = null, ?string $end_date = null ): array {
 		return (array) $this->call( __FUNCTION__, func_get_args(), array( 'workouts' => 0, 'pax_posts' => 0, 'unique_pax' => 0, 'unique_qs' => 0 ) );
 	}
-	public function active_ao_names(): array {
-		return (array) $this->call( __FUNCTION__, func_get_args(), array() );
-	}
 	public function attendance_leaderboard( ?string $start_date = null, ?string $end_date = null, int $top_n = 25 ): array {
 		return (array) $this->call( __FUNCTION__, func_get_args(), array() );
 	}

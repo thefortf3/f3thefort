@@ -124,17 +124,6 @@ function fort_st_page( $view, $core ) {
 			return array_merge( $base, array( 'dek' => __( 'Who keeps showing up, week after week.', 'fort' ), 'render' => 'fort_st_streaks' ) );
 		case 'fngs':
 			return array_merge( $base, array( 'dek' => __( 'New guys, who brought them, and where they posted.', 'fort' ), 'render' => 'fort_st_fngs' ) );
-		case 'fng-challenge':
-			$ch = fort_stats_fng_challenge();
-			return array_merge(
-				$base,
-				array(
-					'kicker' => $ch ? sprintf( /* translators: %s: month */ __( 'FNG challenge · %s', 'fort' ), $ch['month_label'] ) : __( 'FNG challenge', 'fort' ),
-					'title'  => __( 'Which AO brings the most FNGs?', 'fort' ),
-					'dek'    => $ch ? sprintf( /* translators: 1: date, 2: date */ __( '%1$s to %2$s. Every AO starts at zero.', 'fort' ), fort_st_date( $ch['start_date'] ), fort_st_date( $ch['end_date'] ) ) : '',
-					'render' => fn( $c ) => fort_st_fng_challenge( $ch ),
-				)
-			);
 		default:
 			return array_merge( $base, array( 'dek' => __( 'Every post, Q and streak in The Fort, from the backblasts.', 'fort' ), 'render' => 'fort_st_leaderboard' ) );
 	}
@@ -148,12 +137,11 @@ function fort_st_date( $iso ) {
 /** The tabs between the views, and when the data last synced. */
 function fort_st_tabs( $view, $core ) {
 	$tabs    = array(
-		'leaderboard'   => __( 'Leaderboard', 'fort' ),
-		'aos'           => __( 'AOs', 'fort' ),
-		'trends'        => __( 'Trends', 'fort' ),
-		'streaks'       => __( 'Streaks', 'fort' ),
-		'fngs'          => __( 'FNGs', 'fort' ),
-		'fng-challenge' => __( 'FNG challenge', 'fort' ),
+		'leaderboard' => __( 'Leaderboard', 'fort' ),
+		'aos'         => __( 'AOs', 'fort' ),
+		'trends'      => __( 'Trends', 'fort' ),
+		'streaks'     => __( 'Streaks', 'fort' ),
+		'fngs'        => __( 'FNGs', 'fort' ),
 	);
 	$current = array( 'pax' => 'leaderboard', 'ao' => 'aos' )[ $view ] ?? $view;
 	echo '<nav class="fort-st-tabs" aria-label="' . esc_attr__( 'Stats', 'fort' ) . '"><div class="fort-st-tabs__list">';
@@ -631,76 +619,4 @@ function fort_st_fngs( $core ) {
 		</div>
 	</section>
 	<?php
-}
-
-// ── The FNG challenge ─────────────────────────────────────────────────────────────────────
-
-function fort_st_fng_challenge( $ch ) {
-	if ( ! $ch ) {
-		echo '<p class="fort-notice">' . esc_html__( 'The FNG challenge board can’t be loaded right now.', 'fort' ) . '</p>';
-		return;
-	}
-	fort_st_numbers(
-		array(
-			array( $ch['total_fngs'], __( 'FNGs', 'fort' ), 'amber' ),
-			array( $ch['participating_aos'], __( 'AOs on the board', 'fort' ), 'accent2' ),
-			array( $ch['total_aos'], __( 'AOs in the running', 'fort' ) ),
-		)
-	);
-	$max   = max( 1, ...array_map( fn( $a ) => (int) $a['count'], $ch['aos'] ?: array( array( 'count' => 0 ) ) ) );
-	$rank  = 0;
-	$prev  = null;
-	$zeros = array_values( array_filter( $ch['aos'], fn( $a ) => ! $a['count'] ) );
-	$board = array_values( array_filter( $ch['aos'], fn( $a ) => $a['count'] ) );
-	?>
-	<div class="fort-st-grid fort-st-grid--wide">
-		<section class="fort-st-block">
-			<header class="fort-section__head fort-section__head--amber"><h2 class="fort-h3"><?php esc_html_e( 'The board', 'fort' ); ?></h2><span class="fort-mono-dim"><?php esc_html_e( 'Open an AO for names', 'fort' ); ?></span></header>
-			<ol class="fort-st-board">
-				<?php foreach ( $board as $i => $a ) : ?>
-					<?php
-					if ( $a['count'] !== $prev ) {
-						$rank = $i + 1;
-						$prev = $a['count'];
-					}
-					?>
-					<li class="<?php echo $a['count'] ? '' : 'is-zero'; ?>">
-						<?php if ( $a['fngs'] ) : ?>
-							<details>
-								<summary><?php fort_st_board_row( $a, $rank, $max ); ?></summary>
-								<ul class="fort-st-board__names">
-									<?php foreach ( $a['fngs'] as $n ) : ?>
-										<li><span><?php echo esc_html( $n['f3_name'] ); ?></span><span class="fort-mono-dim"><?php echo esc_html( fort_st_date( $n['date'] ) . ( $n['eh'] ? ' · EH ' . $n['eh'] : '' ) ); ?></span></li>
-									<?php endforeach; ?>
-								</ul>
-							</details>
-						<?php else : ?>
-							<div class="fort-st-board__plain"><?php fort_st_board_row( $a, 0, $max ); ?></div>
-						<?php endif; ?>
-					</li>
-				<?php endforeach; ?>
-			</ol>
-			<?php if ( ! $board ) : ?>
-				<p class="fort-dim fort-empty"><?php esc_html_e( 'No FNGs yet. The first one puts an AO on the board.', 'fort' ); ?></p>
-			<?php endif; ?>
-			<?php if ( $zeros ) : ?>
-				<p class="fort-st-zeros"><span class="fort-label"><?php esc_html_e( 'Still at zero', 'fort' ); ?></span> <?php echo esc_html( implode( ' · ', array_column( $zeros, 'ao' ) ) ); ?></p>
-			<?php endif; ?>
-			<?php if ( $ch['unattributed'] ) : ?>
-				<p class="fort-dim"><?php /* translators: %d: count */ echo esc_html( sprintf( _n( '%d FNG had no AO on the sign-up sheet.', '%d FNGs had no AO on the sign-up sheet.', (int) $ch['unattributed'], 'fort' ), (int) $ch['unattributed'] ) ); ?></p>
-			<?php endif; ?>
-		</section>
-		<section class="fort-st-block">
-			<header class="fort-section__head fort-section__head--accent2"><h2 class="fort-h3"><?php esc_html_e( 'Top EHers', 'fort' ); ?></h2></header>
-			<?php fort_st_ranked( array_map( fn( $r ) => array( esc_html( $r['name'] ), $r['count'] ), $ch['top_ehers'] ?? array() ), __( 'FNGs', 'fort' ), 'accent2' ); ?>
-		</section>
-	</div>
-	<?php
-}
-
-function fort_st_board_row( $a, $rank, $max ) {
-	echo '<span class="fort-st-board__rank">' . ( $rank ? (int) $rank : '–' ) . '</span>'
-		. '<span class="fort-st-board__ao">' . esc_html( $a['ao'] ) . '</span>'
-		. fort_st_bar( fstats_pct( $a['count'], $max ), 'amber' ) // phpcs:ignore WordPress.Security.EscapeOutput
-		. '<span class="fort-st-board__n">' . (int) $a['count'] . '</span>';
 }

@@ -80,7 +80,7 @@ const paths = [
   '/backblasts/archive?per_page=60', '/backblasts/archive?ao=Alcatraz', '/backblasts/archive?month=2019-02', '/backblasts/archive?ao=Block%20Party&month=2025-06',
   '/backblasts/archive?type=Ruck', '/backblasts/archive?q=murph', '/backblasts/archive?q=100%25', '/backblasts/archive?q=a_b', '/backblasts/archive?q=%E2%80%99',
   '/backblasts/archive?month=Oct%202026', '/backblasts/archive?q=zzzznotfound',
-  '/backblasts/1', '/schedule?days=2', '/fng', '/fng-challenge',
+  '/backblasts/1', '/schedule?days=2', '/fng',
 ];
 
 // About 20 single backblasts from across the archive.

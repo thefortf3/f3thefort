@@ -9,9 +9,6 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/** Active, in-region orgs that aren't beatdown AOs (left off the FNG challenge board). */
-const FSTATS_NON_AO_ORGS = array( 'Q Source', 'ISS', 'In School Suspension', 'McGospel', 'Coffeeteria', 'The Testament', 'Hanging with Stang', 'La Grama' );
-
 /** The AO column is free text: common spellings → one name. */
 const FSTATS_FNG_AO_ALIASES = array(
 	'dawn patrol (tue)'  => 'Dawn Patrol',
@@ -81,31 +78,6 @@ function fstats_parse_fng_csv( $csv ) {
 
 function fstats_fng_in_range( array $records, $start, $end ) {
 	return array_values( array_filter( $records, fn( $r ) => $r['date'] >= $start && $r['date'] <= $end ) );
-}
-
-/** Records (already in a date window) → per-AO rows (ao, count, fngs), most FNGs first. Blank AOs are dropped. */
-function fstats_fng_leaderboard_by_ao( array $records ) {
-	$groups = array();
-	foreach ( $records as $r ) {
-		if ( '' === $r['ao'] ) {
-			continue;
-		}
-		$groups[ $r['ao'] ][] = $r;
-	}
-	$rows = array();
-	foreach ( $groups as $ao => $recs ) {
-		usort( $recs, fn( $a, $b ) => strcmp( $a['date'], $b['date'] ) );
-		$rows[] = array(
-			'ao'    => (string) $ao,
-			'count' => count( $recs ),
-			'fngs'  => array_map(
-				fn( $r ) => array( 'date' => $r['date'], 'f3_name' => '' !== $r['f3_name'] ? $r['f3_name'] : '(unnamed)', 'eh' => $r['eh'] ),
-				$recs
-			),
-		);
-	}
-	usort( $rows, fn( $a, $b ) => $b['count'] <=> $a['count'] ?: strcmp( mb_strtolower( $a['ao'] ), mb_strtolower( $b['ao'] ) ) );
-	return $rows;
 }
 
 /** Comparison key for AO names across the sheet and the stats data ("6 @ 6" = "6@6", "Sweep The Leg" = "Sweep the Leg"). */

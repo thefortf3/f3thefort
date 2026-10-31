@@ -323,55 +323,6 @@ function fstats_most_common( array $counts, $n = null ) {
 	return null === $n ? $pairs : array_slice( $pairs, 0, $n );
 }
 
-/** The FNG-by-AO challenge board for a date window. $records: fstats_parse_fng_csv() output. */
-function fstats_fng_challenge_payload( FStats_Source $db, array $records, $start, $end, $now = null ) {
-	$window = fstats_fng_in_range( $records, $start, $end );
-	$scored = fstats_fng_leaderboard_by_ao( $window );
-	$roster = array_values( array_filter( $db->active_ao_names(), fn( $n ) => ! in_array( $n, FSTATS_NON_AO_ORGS, true ) ) );
-
-	$scored_by_lc = array();
-	foreach ( $scored as $r ) {
-		$scored_by_lc[ mb_strtolower( $r['ao'] ) ] = $r;
-	}
-	$matched = array();
-	$aos     = array();
-	foreach ( $roster as $name ) {
-		$hit = $scored_by_lc[ mb_strtolower( $name ) ] ?? null;
-		if ( $hit ) {
-			$matched[ mb_strtolower( $name ) ] = true;
-			$aos[]                             = array( 'ao' => $name, 'count' => $hit['count'], 'fngs' => $hit['fngs'] );
-		} else {
-			$aos[] = array( 'ao' => $name, 'count' => 0, 'fngs' => array() );
-		}
-	}
-	foreach ( $scored as $r ) {
-		if ( ! isset( $matched[ mb_strtolower( $r['ao'] ) ] ) ) {
-			$aos[] = $r;
-		}
-	}
-	usort( $aos, fn( $a, $b ) => $b['count'] <=> $a['count'] ?: strcmp( mb_strtolower( $a['ao'] ), mb_strtolower( $b['ao'] ) ) );
-
-	$eh = array();
-	foreach ( $window as $r ) {
-		if ( '' !== $r['eh'] ) {
-			$eh[ $r['eh'] ] = ( $eh[ $r['eh'] ] ?? 0 ) + 1;
-		}
-	}
-
-	return array(
-		'generated_at'      => $now ?: fstats_now_iso(),
-		'start_date'        => $start,
-		'end_date'          => $end,
-		'month_label'       => gmdate( 'F Y', strtotime( $start . ' 00:00:00 UTC' ) ),
-		'total_fngs'        => count( $window ),
-		'participating_aos' => count( array_filter( $aos, fn( $a ) => $a['count'] > 0 ) ),
-		'total_aos'         => count( $aos ),
-		'unattributed'      => count( array_filter( $window, fn( $r ) => '' === $r['ao'] ) ),
-		'aos'               => $aos,
-		'top_ehers'         => array_map( fn( $p ) => array( 'name' => $p[0], 'count' => $p[1] ), fstats_most_common( $eh, 10 ) ),
-	);
-}
-
 /** FNG totals, windows, top EHers, by AO and month, and the latest 20. */
 function fstats_fng_payload( array $records, $today = null ) {
 	if ( ! $records ) {

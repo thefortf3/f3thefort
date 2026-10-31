@@ -3,7 +3,7 @@
  * Plugin Name:       Fort Stats
  * Plugin URI:        https://f3thefort.com
  * Description:       The Fort's workout stats (leaderboards, AOs, streaks, FNGs), backblasts and Q schedule, inside WordPress. Reads the stats Supabase project over HTTPS; replaces the separate stats.f3thefort.com server.
- * Version:           0.1.0
+ * Version:           0.1.1
  * Requires at least: 6.0
  * Requires PHP:      8.3
  * Author:            F3 The Fort
@@ -15,7 +15,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FORT_STATS_VERSION', '0.1.0' );
+define( 'FORT_STATS_VERSION', '0.1.1' );
 define( 'FORT_STATS_FILE', __FILE__ );
 define( 'FORT_STATS_DIR', __DIR__ );
 

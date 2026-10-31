@@ -26,9 +26,6 @@ interface FStats_Source {
 	/** array( workouts, pax_posts, unique_pax, unique_qs ) for a window (inclusive; null = open). */
 	public function summary( ?string $start_date = null, ?string $end_date = null ): array;
 
-	/** Names of active, in-region AOs, alphabetical. */
-	public function active_ao_names(): array;
-
 	/** Rows: user_id, f3_name, total_posts, qs, coqs — most posts first. */
 	public function attendance_leaderboard( ?string $start_date = null, ?string $end_date = null, int $top_n = 25 ): array;
 

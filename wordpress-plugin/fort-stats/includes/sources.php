@@ -3,9 +3,8 @@
  * The two other inputs, both over HTTPS: GloomSchedule (the Q schedule; port of the stats repo's
  * gloomschedule/client.py) and the FNG sign-up sheet (a published Google Sheet CSV).
  *
- * Settings: FORT_GS_API_ENDPOINT and FORT_GS_API_KEY in wp-config.php; the sheet's URL and the
- * FNG challenge's dates under Settings → Fort Stats (or FORT_FNG_SHEET_URL / FORT_FNG_START /
- * FORT_FNG_END).
+ * Settings: FORT_GS_API_ENDPOINT and FORT_GS_API_KEY in wp-config.php; the sheet's URL under
+ * Settings → Fort Stats (or FORT_FNG_SHEET_URL).
  *
  * @package FortStats
  */

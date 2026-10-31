@@ -3,7 +3,6 @@
 The Fort's stats site inside WordPress. It covers:
 
 - the dashboard (leaderboards, AOs, trends, streaks, FNGs) at **/stats/**;
-- the FNG challenge board at **/stats/fng-challenge/**;
 - the backblast feed, archive, single backblasts and Q schedule that the Fort theme shows;
 - the AO map data for the theme's **Find a workout** page (`fort_stats_map()`).
 
@@ -27,7 +26,6 @@ It replaces stats.f3thefort.com (the Flask app in the stats repo), so no separat
 | `/stats/trends/` | trends |
 | `/stats/streaks/` | streaks (`?type=`) |
 | `/stats/fngs/` | FNGs (`?when=all`) |
-| `/stats/fng-challenge/` | the FNG challenge board |
 
 A theme without `fort-stats.php` gets a plain leaderboard (`templates/dashboard.php`). `includes/pure/views.php` has the helpers the theme uses: ranks, search, one PAX, one AO, streak lists, month series.
 
@@ -39,7 +37,7 @@ f3thefort.com's host refuses outbound Postgres connections (ports 5432 and 6543)
 - **The page logic:** `includes/pure/` is a line-for-line port of the stats repo's `web/payload.py` and `web/fng_sheet.py`. For the same data it gives the same JSON as the Flask API.
 - **GloomSchedule** (the Q schedule) and the **FNG sign-up sheet** are fetched over HTTPS, as before.
 
-**Background refresh, so pages never wait.** Everything the homepage and the stats pages show is fetched by a background job (`includes/refresh.php`), never while a page is being built. That covers the Q schedule, the AO map, the backblast feed and last week's summary, the dashboard, streaks, the FNG sheet and the FNG challenge. Pages read the stored copy (the homepage answers in under 0.1 s), and a copy that's due for a refresh asks for one in the background.
+**Background refresh, so pages never wait.** Everything the homepage and the stats pages show is fetched by a background job (`includes/refresh.php`), never while a page is being built. That covers the Q schedule, the AO map, the backblast feed and last week's summary, the dashboard, streaks and the FNG sheet. Pages read the stored copy (the homepage answers in under 0.1 s), and a copy that's due for a refresh asks for one in the background.
 
 The job runs every 10 minutes:
 - the schedule (14 days), AO map, dashboard, streaks and FNG numbers refresh every hour;
@@ -73,8 +71,8 @@ Only what's opened on request is fetched live, and cached: archive pages and sea
      ```
    Fort Weekly's daily job uses the same mechanism. Locally, the `wpcron` service in `docker-compose.local.yml` plays this part.
 5. **Settings → Fort Stats:**
-   - enter the FNG sheet's published CSV link and the FNG challenge's dates;
-   - check that the three "set up" lines show ✓.
+   - enter the FNG sheet's published CSV link;
+   - check that the "set up" lines show ✓.
 
    "Refresh now" fetches everything straight away.
 
@@ -86,7 +84,7 @@ The theme and Fort Weekly read stats only from this plugin, and the nav's Stats 
 
 - `core`, `month/<YYYY-MM>`, `streaks`;
 - `backblasts?days=&limit=`, `backblasts/summary`, `backblasts/archive?page=&per_page=&ao=&month=&type=&q=`, `backblasts/<id>`;
-- `schedule?days=`, `fng`, `fng-challenge`;
+- `schedule?days=`, `fng`;
 - `map` (new; the Flask app has no equivalent), which returns the AO map.
 
 These routes are public and read-only.
@@ -118,5 +116,5 @@ The monthly Slack reports and the backblast reminders still run from the stats r
    `node scripts/local/stats-parity.mjs https://stats.f3thefort.com/api https://f3thefort.com/wp-json/fort-stats/v1`
    (after step 2).
 2. Add the constants on HostGator, upload and activate Fort Stats, and check /stats/ and the theme's pages.
-3. Redirect stats.f3thefort.com to https://f3thefort.com/stats/ (and `/fng-challenge` to `/stats/fng-challenge/`).
+3. Redirect stats.f3thefort.com to https://f3thefort.com/stats/ (and `/fng-challenge` to `/stats/fngs/`; the plugin dropped the FNG challenge board, and its old /stats/fng-challenge/ address redirects there too).
 4. Move the Slack jobs (see above), then retire the VPS.

@@ -38,7 +38,6 @@ function fstats_jobs() {
 		'core'          => array( fstats_ttl(), fn() => fstats_build( fn( $db ) => fstats_core_payload( $db ) ) ),
 		'streaks'       => array( fstats_ttl(), fn() => fstats_build( fn( $db ) => fstats_streaks_payload( $db ) ) ),
 		'fng'           => array( fstats_ttl(), fn() => fstats_fng_payload( fstats_kept_records() ) ),
-		'fng_challenge' => array( fstats_ttl(), fn() => fstats_build( fn( $db ) => fstats_fng_challenge_payload( $db, fstats_kept_records(), fstats_setting( 'fng_start' ) ?: '2026-09-01', fstats_setting( 'fng_end' ) ?: '2026-09-30' ) ) ),
 	);
 }
 

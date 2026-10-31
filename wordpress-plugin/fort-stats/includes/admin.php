@@ -1,7 +1,7 @@
 <?php
 /**
- * Settings → Fort Stats: the FNG sheet and challenge dates (not secrets; they change per
- * challenge), whether the connection is set up, and "Refresh now".
+ * Settings → Fort Stats: the FNG sheet (not a secret), whether the connection is set up, and
+ * "Refresh now".
  *
  * @package FortStats
  */
@@ -18,16 +18,9 @@ add_action(
 add_action(
 	'admin_init',
 	function () {
-		foreach ( array( 'fng_sheet_url' => 'esc_url_raw', 'fng_start' => 'fstats_sanitize_date', 'fng_end' => 'fstats_sanitize_date' ) as $name => $clean ) {
-			register_setting( 'fort-stats', 'fstats_' . $name, array( 'type' => 'string', 'sanitize_callback' => $clean, 'default' => '' ) );
-		}
+		register_setting( 'fort-stats', 'fstats_fng_sheet_url', array( 'type' => 'string', 'sanitize_callback' => 'esc_url_raw', 'default' => '' ) );
 	}
 );
-
-function fstats_sanitize_date( $v ) {
-	$v = trim( (string) $v );
-	return preg_match( '/^\d{4}-\d{2}-\d{2}$/', $v ) ? $v : '';
-}
 
 add_action(
 	'admin_post_fstats_refresh',
@@ -76,10 +69,6 @@ function fstats_settings_page() {
 			<table class="form-table" role="presentation">
 				<tr><th><label for="fstats_fng_sheet_url"><?php esc_html_e( 'Sign-up sheet (published CSV link)', 'fort-stats' ); ?></label></th>
 					<td><input class="large-text" type="url" id="fstats_fng_sheet_url" name="fstats_fng_sheet_url" value="<?php echo esc_attr( get_option( 'fstats_fng_sheet_url', '' ) ); ?>"></td></tr>
-				<tr><th><label for="fstats_fng_start"><?php esc_html_e( 'FNG challenge', 'fort-stats' ); ?></label></th>
-					<td><input type="date" id="fstats_fng_start" name="fstats_fng_start" value="<?php echo esc_attr( get_option( 'fstats_fng_start', '' ) ); ?>"> –
-						<input type="date" name="fstats_fng_end" value="<?php echo esc_attr( get_option( 'fstats_fng_end', '' ) ); ?>" aria-label="<?php esc_attr_e( 'Challenge end', 'fort-stats' ); ?>">
-						<p class="description"><?php esc_html_e( 'The dates the /stats/fng-challenge/ board counts.', 'fort-stats' ); ?></p></td></tr>
 			</table>
 			<?php submit_button(); ?>
 		</form>
@@ -99,17 +88,12 @@ function fstats_settings_page() {
 	<?php
 }
 
-// New FNG sheet or challenge dates: drop the copies built from the old ones and fetch again.
-foreach ( array( 'fstats_fng_sheet_url', 'fstats_fng_start', 'fstats_fng_end' ) as $fstats_opt ) {
-	add_action(
-		'update_option_' . $fstats_opt,
-		function () {
-			delete_option( 'fstats_kept_fng_challenge' );
-			if ( doing_action( 'update_option_fstats_fng_sheet_url' ) ) {
-				delete_option( 'fstats_kept_fng_sheet' );
-				delete_option( 'fstats_kept_fng' );
-			}
-			fstats_request_refresh();
-		}
-	);
-}
+// A new FNG sheet: drop the copies built from the old one and fetch again.
+add_action(
+	'update_option_fstats_fng_sheet_url',
+	function () {
+		delete_option( 'fstats_kept_fng_sheet' );
+		delete_option( 'fstats_kept_fng' );
+		fstats_request_refresh();
+	}
+);

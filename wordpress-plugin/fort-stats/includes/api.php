@@ -243,10 +243,6 @@ function fstats_get_fng() {
 	return fstats_from_kept( 'fng' );
 }
 
-function fstats_get_fng_challenge() {
-	return fstats_from_kept( 'fng_challenge' );
-}
-
 // ── Public: the payload, or null ──────────────────────────────────────────────────────────────
 
 function fort_stats_core() {
@@ -287,10 +283,6 @@ function fort_stats_map() {
 
 function fort_stats_fng() {
 	return fstats_get_fng()[1];
-}
-
-function fort_stats_fng_challenge() {
-	return fstats_get_fng_challenge()[1];
 }
 
 /** Forgets the on-request cache (Settings → Fort Stats → "Refresh now"); saved copies stay. */

@@ -1,7 +1,7 @@
 <?php
 /**
  * The stats pages (the Fort Stats plugin's /stats/… addresses): leaderboard, AOs, one AO, one
- * PAX, trends, streaks, FNGs and the FNG challenge board. Rendered here, in the theme's own
+ * PAX, trends, streaks and FNGs. Rendered here, in the theme's own
  * style, from the plugin's data (inc/stats.php).
  *
  * @package Fort
@@ -36,7 +36,7 @@ get_header();
 		<?php
 		if ( ! empty( $fort_page['missing'] ) ) {
 			echo '<p class="fort-dim fort-empty">' . esc_html__( 'We couldn’t find that one. It may not have posted in the data the stats come from.', 'fort' ) . '</p>';
-		} elseif ( ! $fort_core && 'fng-challenge' !== $fort_view ) {
+		} elseif ( ! $fort_core ) {
 			echo '<p class="fort-notice">' . esc_html__( 'Stats can’t be loaded right now. Check back in a few minutes.', 'fort' ) . '</p>';
 		} else {
 			call_user_func( $fort_page['render'], $fort_core );
