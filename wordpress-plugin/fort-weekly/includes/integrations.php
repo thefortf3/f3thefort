@@ -4,6 +4,7 @@
  * database): Groq for "write a summary for me". Slack and Mailchimp live alongside.
  *
  *   define( 'FORT_GROQ_API_KEY', '…' );
+ *   define( 'FORT_GROQ_MODEL', 'qwen/qwen3.8-27b' );   // optional: Groq retires models now and then
  *
  * @package FortWeekly
  */
@@ -12,6 +13,11 @@ defined( 'ABSPATH' ) || exit;
 
 function fortw_groq_configured() {
 	return defined( 'FORT_GROQ_API_KEY' ) && FORT_GROQ_API_KEY;
+}
+
+/** The Groq model to ask (llama-3.1-8b-instant, the old app's, was retired in 2026). */
+function fortw_groq_model() {
+	return defined( 'FORT_GROQ_MODEL' ) && FORT_GROQ_MODEL ? (string) FORT_GROQ_MODEL : 'qwen/qwen3.8-27b';
 }
 
 /** The newsletter app's teaser prompt, asking for plain text (the summary field isn't HTML). */
@@ -29,7 +35,7 @@ function fortw_groq_summary( $title, $text ) {
 			'headers' => array( 'Authorization' => 'Bearer ' . FORT_GROQ_API_KEY, 'Content-Type' => 'application/json' ),
 			'body'    => wp_json_encode(
 				array(
-					'model'       => 'llama-3.1-8b-instant',
+					'model'       => fortw_groq_model(),
 					'temperature' => 0.4,
 					'messages'    => array(
 						array( 'role' => 'system', 'content' => FORTW_GROQ_SYSTEM ),
@@ -40,11 +46,13 @@ function fortw_groq_summary( $title, $text ) {
 		)
 	);
 	if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
-		error_log( 'Fort Weekly: Groq summary failed: ' . ( is_wp_error( $response ) ? $response->get_error_message() : wp_remote_retrieve_response_code( $response ) ) );
+		// Groq's own message says what's wrong (e.g. "The model … does not exist" when one is retired).
+		error_log( 'Fort Weekly: Groq summary failed: ' . ( is_wp_error( $response ) ? $response->get_error_message() : wp_remote_retrieve_response_code( $response ) . ' ' . mb_substr( wp_remote_retrieve_body( $response ), 0, 300 ) ) );
 		return new WP_Error( 'fortw_groq', __( 'Could not write a summary just now. Try again, or write one.', 'fort-weekly' ) );
 	}
 	$data = json_decode( wp_remote_retrieve_body( $response ), true );
 	$out  = (string) ( $data['choices'][0]['message']['content'] ?? '' );
+	$out  = preg_replace( '/<think>.*?<\/think>/s', '', $out ); // Reasoning some models show first.
 	$out  = preg_replace( '/^```\w*\s*|\s*```$/', '', trim( $out ) );
 	$out  = trim( wp_strip_all_tags( $out ), " \t\n\r\"'" );
 	$out  = trim( preg_replace( '/[\[(][^\])]*\blink\b[^\])]*[\])]/i', '', $out ) ); // A made-up "[link]" placeholder.

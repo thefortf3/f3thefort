@@ -45,6 +45,7 @@ only administrators can import or delete. Give each approver their own account.
 | `FORT_MAILCHIMP_API_KEY` (`…-us10`), `FORT_MAILCHIMP_LIST_ID` | Save as Mailchimp draft | Button disabled |
 | `FORT_MAILCHIMP_FROM_NAME`, `FORT_MAILCHIMP_FROM_EMAIL` | Draft's sender | "The Fort Weekly", newsletter@f3thefort.com |
 | `FORT_GROQ_API_KEY` | "Write one for me" summaries | Button disabled |
+| `FORT_GROQ_MODEL` | Which Groq model writes them. Groq retires models now and then; if the button starts failing, the PHP error log names the problem, and a current model from console.groq.com goes here | `qwen/qwen3.8-27b` |
 | `FORT_SUBMITTER_EMAILS` (`true`) | Emailing submitters when they submit, and when their event (or their change) is approved | Logs what it would have sent |
 | `FORT_EMAIL_FROM` | Those emails' sender, e.g. `'The Fort Weekly <newsletter@f3thefort.com>'` | WordPress's default sender |
 | `FORT_CLIENT_IP_HEADER` | Per-visitor submit limit behind a proxy/CDN (e.g. `'HTTP_CF_CONNECTING_IP'`) | Uses the connecting address |
