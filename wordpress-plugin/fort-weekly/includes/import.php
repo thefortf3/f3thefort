@@ -12,6 +12,13 @@
  * (the app's public address, https://submit.f3thefort.com by default), and image links inside
  * descriptions are pointed at the copies.
  *
+ * Copying images is slow on shared hosting (WordPress makes every smaller size, and plugins may
+ * add their own copies), so an import is a job that runs in steps: fortw_import_start() checks
+ * the file, fortw_import_run() works until its time is up and records where it stopped. The
+ * wp-admin screen runs one short step per page load; the CLI runs them all at once. Each copied
+ * image is tagged with its source URL as soon as WordPress creates it, so a step that dies
+ * part-way never downloads that image again, and the next step finishes its missing sizes.
+ *
  * @package FortWeekly
  */
 
@@ -22,42 +29,103 @@ function fortw_importing() {
 	return ! empty( $GLOBALS['fortw_importing'] );
 }
 
+/** Thrown by the image copier when a step's time is up; the step stops and the next one resumes. */
+class FortW_Import_Paused extends Exception {}
+
 /**
- * Runs an import. $data: the decoded export. $opts: dry_run (bool), uploads_base (URL).
- * Returns a report: counts per kind plus a list of warnings.
+ * Runs a whole import at once (the CLI). $data: the decoded export. $opts: dry_run (bool),
+ * update_existing (bool), uploads_base (URL). Returns a report: counts per kind plus warnings.
  */
 function fortw_import( $data, $opts = array() ) {
-	$opts   = wp_parse_args( $opts, array( 'dry_run' => false, 'update_existing' => false, 'uploads_base' => 'https://submit.f3thefort.com' ) );
-	$dry    = (bool) $opts['dry_run'];
-	$update = (bool) $opts['update_existing'];
-	$report = array(
-		'events_created' => 0, 'events_updated' => 0, 'events_skipped' => 0, 'tags_created' => 0, 'tags_updated' => 0,
-		'images_copied' => 0, 'images_reused' => 0, 'region' => false, 'warnings' => array(),
+	$job = fortw_import_start( $data, $opts );
+	while ( ! fortw_import_run( $job ) ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement
+	}
+	return $job['report'];
+}
+
+/** A new import job for fortw_import_run(); a file that isn't an export gives a finished job with a warning. */
+function fortw_import_start( $data, $opts = array() ) {
+	$opts = wp_parse_args( $opts, array( 'dry_run' => false, 'update_existing' => false, 'uploads_base' => 'https://submit.f3thefort.com' ) );
+	$job  = array(
+		'opts'         => array(
+			'dry_run'         => (bool) $opts['dry_run'],
+			'update_existing' => (bool) $opts['update_existing'],
+			'uploads_base'    => (string) $opts['uploads_base'],
+		),
+		'data'         => $data,
+		'phase'        => 'tags',
+		'next'         => 0,
+		'first_import' => ! get_option( 'fort_weekly_region' ),
+		'images'       => array(), // Source URL => attachment id, for images settled during this job.
+		'report'       => array(
+			'events_created' => 0, 'events_updated' => 0, 'events_skipped' => 0, 'tags_created' => 0, 'tags_updated' => 0,
+			'images_copied' => 0, 'images_reused' => 0, 'region' => false, 'warnings' => array(),
+		),
 	);
 	if ( ! is_array( $data ) || ( $data['format'] ?? '' ) !== 'fort-weekly-export' || (int) ( $data['version'] ?? 0 ) !== 1 ) {
-		$report['warnings'][] = __( 'This is not a Fort Weekly export (version 1).', 'fort-weekly' );
-		return $report;
+		$job['report']['warnings'][] = __( 'This is not a Fort Weekly export (version 1).', 'fort-weekly' );
+		$job['phase']                = 'done';
+		$job['data']                 = null;
 	}
+	return $job;
+}
 
+/**
+ * Works on an import job until it's finished or $seconds have passed (0: no limit), always
+ * finishing at least one event or image. $checkpoint( $job ), if given, is called after each
+ * event so the job can be saved: if the page dies, the next step loses at most that one event's
+ * progress. Returns true once the job is done.
+ */
+function fortw_import_run( &$job, $seconds = 0, $checkpoint = null ) {
+	if ( 'done' === $job['phase'] ) {
+		return true;
+	}
+	$dry      = $job['opts']['dry_run'];
+	$update   = $job['opts']['update_existing'];
+	$deadline = ( $seconds && ! $dry ) ? microtime( true ) + $seconds : 0; // A dry run downloads nothing and is quick.
 	$GLOBALS['fortw_importing'] = true;
-	$images = new FortW_Image_Copier( $opts['uploads_base'], $dry, $report );
+	$images = new FortW_Image_Copier( $job['opts']['uploads_base'], $dry, $job['report'], $job['images'], $deadline );
 	try {
-		$first_import = ! get_option( 'fort_weekly_region' );
-		fortw_import_tags( $data['tags'] ?? array(), $dry, $update, $report );
-		foreach ( $data['entries'] ?? array() as $e ) {
-			fortw_import_entry( $e, $dry, $update, $images, $report );
+		if ( 'tags' === $job['phase'] ) {
+			fortw_import_tags( $job['data']['tags'] ?? array(), $dry, $update, $job['report'] );
+			$job['phase'] = 'entries';
 		}
-		if ( $update || $first_import ) {
-			fortw_import_region( $data['region'] ?? array(), $dry, $images, $report );
+		if ( 'entries' === $job['phase'] ) {
+			$entries = array_values( (array) ( $job['data']['entries'] ?? array() ) );
+			$started = $job['next'];
+			while ( $job['next'] < count( $entries ) ) {
+				if ( $deadline && $job['next'] > $started && microtime( true ) >= $deadline ) {
+					return false;
+				}
+				fortw_import_entry( $entries[ $job['next'] ], $dry, $update, $images, $job['report'] );
+				++$job['next'];
+				if ( $checkpoint ) {
+					$checkpoint( $job );
+				}
+			}
+			$job['phase'] = ( $update || $job['first_import'] ) ? 'region' : 'done';
 		}
+		if ( 'region' === $job['phase'] ) {
+			fortw_import_region( $job['data']['region'] ?? array(), $dry, $images, $job['report'] );
+			$job['phase'] = 'done';
+		}
+	} catch ( FortW_Import_Paused $paused ) {
+		return false;
 	} finally {
 		$GLOBALS['fortw_importing'] = false;
 		$images->done();
 	}
+	$job['data'] = null; // It holds submitters' contact details: don't keep it once it's used.
 	if ( ! $dry ) {
 		update_option( 'fortw_next_dates_day', '', false ); // Recompute every sort key on the next read.
 	}
-	return $report;
+	return true;
+}
+
+/** Of a job's entries, how many are done and how many there are, for a progress line. */
+function fortw_import_progress( $job ) {
+	$total = is_array( $job['data'] ) ? count( (array) ( $job['data']['entries'] ?? array() ) ) : 0;
+	return array( min( $job['next'], $total ), $total );
 }
 
 function fortw_import_tags( $tags, $dry, $update, &$report ) {
@@ -131,7 +199,9 @@ function fortw_import_entry( $e, $dry, $update, $images, &$report ) {
 		$report['events_skipped']++;
 		return;
 	}
-	$report[ $existing ? 'events_updated' : 'events_created' ]++;
+	// Counted once the event is written: a step that runs out of time part-way through its images
+	// does the whole event again next step (the images already copied are reused).
+	$counter = $existing ? 'events_updated' : 'events_created';
 
 	$occ = array();
 	try {
@@ -139,9 +209,10 @@ function fortw_import_entry( $e, $dry, $update, $images, &$report ) {
 	} catch ( InvalidArgumentException $ex ) {
 		$report['warnings'][] = sprintf( '%s: dates skipped (%s)', $title, $ex->getMessage() );
 	}
-	$hero = $e['hero_image'] ? $images->attachment_for( $e['hero_image'], $title ) : 0;
+	$hero = ! empty( $e['hero_image'] ) ? $images->attachment_for( $e['hero_image'], $title ) : 0;
 	if ( $dry ) {
 		$images->rewrite_html( (string) ( $e['description'] ?? '' ) ); // Counts the images it would copy.
+		$report[ $counter ]++;
 		return;
 	}
 
@@ -155,6 +226,7 @@ function fortw_import_entry( $e, $dry, $update, $images, &$report ) {
 		'post_status'   => fortw_import_status( $e ),
 		'post_date_gmt' => $created,
 		'post_date'     => get_date_from_gmt( $created ),
+		'meta_input'    => array( '_fort_legacy_id' => $legacy ), // With the post, so a re-run never makes it twice.
 	);
 	$id = wp_insert_post( wp_slash( $postarr ), true );
 	if ( is_wp_error( $id ) ) {
@@ -205,6 +277,7 @@ function fortw_import_entry( $e, $dry, $update, $images, &$report ) {
 	} else {
 		delete_post_thumbnail( $id );
 	}
+	$report[ $counter ]++;
 }
 
 function fortw_import_region( $r, $dry, $images, &$report ) {
@@ -247,21 +320,32 @@ class FortW_Image_Copier {
 	private $base;
 	private $dry;
 	private $report;
-	private $seen = array();
+	private $seen;
+	private $deadline;
+	private $worked  = false; // Whether this step has already copied an image or made its sizes.
+	private $tagging = '';    // The source URL being copied, while WordPress creates its attachment.
 
-	public function __construct( $uploads_base, $dry, &$report ) {
-		$this->base   = untrailingslashit( (string) $uploads_base );
-		$this->dry    = $dry;
-		$this->report = &$report;
+	/**
+	 * $seen: source URL => attachment id for images already settled in this import (kept between
+	 * steps). $deadline: when to stop starting slow work (microtime; 0 = never).
+	 */
+	public function __construct( $uploads_base, $dry, &$report, &$seen = array(), $deadline = 0 ) {
+		$this->base     = untrailingslashit( (string) $uploads_base );
+		$this->dry      = $dry;
+		$this->report   = &$report;
+		$this->seen     = &$seen;
+		$this->deadline = $deadline;
 		// The app may be on a private address or an unusual port (e.g. the local stack); allow that
 		// one host for the import's downloads only.
 		add_filter( 'http_request_host_is_external', array( $this, 'allow_source_host' ), 10, 2 );
 		add_filter( 'http_allowed_safe_ports', array( $this, 'allow_source_port' ) );
+		add_action( 'add_attachment', array( $this, 'tag_new_attachment' ) );
 	}
 
 	public function done() {
 		remove_filter( 'http_request_host_is_external', array( $this, 'allow_source_host' ), 10 );
 		remove_filter( 'http_allowed_safe_ports', array( $this, 'allow_source_port' ) );
+		remove_action( 'add_attachment', array( $this, 'tag_new_attachment' ) );
 	}
 
 	public function allow_source_host( $external, $host ) {
@@ -276,6 +360,25 @@ class FortW_Image_Copier {
 		return $ports;
 	}
 
+	/**
+	 * Tags the attachment being copied with its source URL the moment WordPress creates it, before
+	 * the slow part (making its smaller sizes). If the page dies during that, the next step finds
+	 * the image instead of downloading it again. Attachments other plugins add alongside (such as
+	 * a WebP copy) have a different file type and are left alone.
+	 */
+	public function tag_new_attachment( $id ) {
+		if ( '' === $this->tagging ) {
+			return;
+		}
+		$ext  = function ( $path ) {
+			return str_replace( 'jpeg', 'jpg', strtolower( pathinfo( (string) $path, PATHINFO_EXTENSION ) ) );
+		};
+		if ( $ext( get_attached_file( $id ) ) === $ext( wp_parse_url( $this->tagging, PHP_URL_PATH ) ) ) {
+			update_post_meta( $id, '_fort_source_url', $this->tagging );
+			$this->tagging = '';
+		}
+	}
+
 	/** The app URL for an image reference, or '' if it isn't one of the app's uploads. */
 	private function source_url( $ref ) {
 		$ref = trim( (string) $ref );
@@ -286,6 +389,23 @@ class FortW_Image_Copier {
 			return '';
 		}
 		return $ref;
+	}
+
+	/**
+	 * Before slow work: stops the step if its time is up and it has already done some (so every
+	 * step makes progress), and gives this piece of work a fresh PHP time limit.
+	 */
+	private function slow_work() {
+		if ( $this->deadline && $this->worked && microtime( true ) >= $this->deadline ) {
+			throw new FortW_Import_Paused();
+		}
+		$this->worked = true;
+		if ( function_exists( 'set_time_limit' ) ) {
+			@set_time_limit( 300 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors -- some hosts forbid it; then their limit stands.
+		}
+		require_once ABSPATH . 'wp-admin/includes/media.php';
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/image.php';
 	}
 
 	/** The media-library attachment id for an image reference, copying it the first time. 0 if not possible. */
@@ -309,24 +429,46 @@ class FortW_Image_Copier {
 			)
 		);
 		if ( $existing ) {
+			$id = (int) $existing[0];
+			if ( ! $this->dry ) {
+				$this->finish_sizes( $id );
+			}
 			$this->report['images_reused']++;
-			return $this->seen[ $url ] = (int) $existing[0];
+			return $this->seen[ $url ] = $id;
 		}
-		$this->report['images_copied']++;
 		if ( $this->dry ) {
+			$this->report['images_copied']++;
 			return $this->seen[ $url ] = 0;
 		}
-		require_once ABSPATH . 'wp-admin/includes/media.php';
-		require_once ABSPATH . 'wp-admin/includes/file.php';
-		require_once ABSPATH . 'wp-admin/includes/image.php';
-		$id = media_sideload_image( $url, 0, $title, 'id' );
+		$this->slow_work();
+		$this->tagging = $url;
+		try {
+			$id = media_sideload_image( $url, 0, $title, 'id' );
+		} finally {
+			$this->tagging = '';
+		}
 		if ( is_wp_error( $id ) ) {
-			$this->report['images_copied']--;
 			$this->report['warnings'][] = sprintf( 'Image %s: %s', $url, $id->get_error_message() );
 			return $this->seen[ $url ] = 0;
 		}
 		update_post_meta( $id, '_fort_source_url', $url );
+		$this->report['images_copied']++;
 		return $this->seen[ $url ] = (int) $id;
+	}
+
+	/**
+	 * Makes the smaller sizes an image is missing: a copy whose page died part-way through. Tried
+	 * twice at most; after that the image is used as it is (WordPress falls back to the full size).
+	 */
+	private function finish_sizes( $id ) {
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+		$tries = (int) get_post_meta( $id, '_fort_size_tries', true );
+		if ( $tries >= 2 || ! wp_get_missing_image_subsizes( $id ) ) {
+			return;
+		}
+		$this->slow_work();
+		update_post_meta( $id, '_fort_size_tries', $tries + 1 );
+		wp_update_image_subsizes( $id );
 	}
 
 	/** Points <img src> / <a href> at the app's uploads to their media-library copies. */

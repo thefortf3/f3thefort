@@ -104,6 +104,11 @@ WP Mail SMTP with a real mailbox) first, or WordPress's mail may land in spam.
    `wp fort-weekly import <file> [--dry-run]`.
    - **Flyers** the app hosts are copied into the media library from `https://submit.f3thefort.com`
      (or the address you enter), and description images are pointed at the copies.
+   - **It works in steps.** Copying flyers is slow on shared hosting, so the screen works for about
+     20 seconds per page load and then moves on by itself; leave it open until it says the import
+     is finished. If a page dies anyway (a host time limit), open Fort Weekly → Import again and
+     press **Continue**: nothing is done twice, and an image cut off part-way gets its missing sizes
+     made rather than being copied again.
    - **Running it again** only adds events that aren't here yet, so edits made in WordPress
      survive. Tick "Overwrite events…" (`--update-existing`) to replace them from the file.
 
