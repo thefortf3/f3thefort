@@ -285,6 +285,16 @@ fortw_test(
 		assert_same( array( 'Next month' ), array_column( $home['coming_up'], 'title' ) );
 		assert_same( array( 'Next month', 'Starts Thursday', 'Starts today', 'Theme of the month', 'Turkey drive' ), fortw_t_titles( $home ), 'the one that ended is gone' );
 
+		$mon = fortw_select_agenda( array( fortw_t_entry( array( 'title' => 'Started Monday', 'occurrences' => array( array( 'date' => '2026-10-19', 'end_date' => '2026-10-25' ) ) ) ) ), FORTW_T_TODAY );
+		assert_same( array(), $mon['happening_now'], 'started this week (Mon–Sun): not yet Happening now' );
+		assert_same( array( '2026-10-19' ), array_column( $mon['this_week'], 'date' ), 'stays in This week at its start date' );
+		assert_same( '2026-10-19', $mon['range']['from'], 'This week reaches back to show it' );
+		$next_week = fortw_select_agenda( $entries, '2026-10-26' );
+		assert_true( in_array( 'Starts Thursday', array_column( $next_week['happening_now'], 'title' ), true ), 'the week after it started: Happening now' );
+		assert_same( '2026-10-19', fortw_monday_of( '2026-10-20' ) );
+		assert_same( '2026-10-19', fortw_monday_of( '2026-10-19' ) );
+		assert_same( '2026-10-19', fortw_monday_of( '2026-10-25' ) );
+
 		$issue = fortw_select_issue( $entries, FORTW_T_TODAY ); // Covers Mon Oct 26 – Sun Nov 1.
 		assert_same( array( 'Starts Thursday', 'Theme of the month' ), array_column( $issue['happening_now'], 'title' ), 'started before the issue’s Monday and still running then' );
 		assert_same( array(), $issue['this_week'], 'the drive and "starts today" are over by the issue’s week' );

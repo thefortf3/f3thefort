@@ -19,6 +19,11 @@ function fortw_issue_week( $today ) {
 	return array( 'from' => fortw_add_days( $sunday, 1 ), 'to' => fortw_add_days( $sunday, 7 ) );
 }
 
+/** The Monday of $iso's week (Monday–Sunday). */
+function fortw_monday_of( $iso ) {
+	return fortw_add_days( $iso, 1 - (int) gmdate( 'N', strtotime( $iso . ' 00:00:00 UTC' ) ) );
+}
+
 /** The newsletter's selection: fortw_select_agenda() over the issue's Monday–Sunday week. */
 function fortw_select_issue( $entries, $today ) {
 	return fortw_select_agenda( $entries, $today, fortw_issue_week( $today ) );
@@ -33,9 +38,10 @@ function fortw_select_issue( $entries, $today ) {
  *   Like the featured entry they're also in the lists below, marked 'called_out' (a short line
  *   there). Once one's date is within $week (or it's running) it's only in its usual place.
  * - this_week: next date within $week (default: the next 7 days from $today), grouped by date.
- * - happening_now: things running over several days that started before $week (a month's theme,
- *   a week-long drive), ending soonest first. Until then they sit at their start date like any
- *   event.
+ * - happening_now: things running over several days that started before the week (a month's
+ *   theme, a week-long drive), ending soonest first. Until then they sit at their start date like
+ *   any event, and stay there while that date is in the week: Monday–Sunday, $week's Monday for
+ *   the newsletter and this one for the website (so This week can reach back to it).
  * - coming_up: every later next date, in date order.
  * - ongoing: entries with no dates at all.
  * Each entry appears once, at its next date; 'also' lists its later dates; 'running' marks one in
@@ -47,6 +53,7 @@ function fortw_select_issue( $entries, $today ) {
 function fortw_select_agenda( $entries, $today, $week = null ) {
 	$week_from = $week['from'] ?? $today;
 	$week_end  = $week['to'] ?? fortw_add_days( $today, FORTW_THIS_WEEK_DAYS - 1 );
+	$monday    = fortw_monday_of( $week_from ); // Started before this: Happening now.
 	$new_since = fortw_add_days( $today, -6 );
 	if ( $week_from > $today ) {
 		$entries = array_map(
@@ -67,9 +74,9 @@ function fortw_select_agenda( $entries, $today, $week = null ) {
 			}
 		)
 	);
-	$decorate = function ( $e ) use ( $new_since, $week_from ) {
+	$decorate = function ( $e ) use ( $new_since, $monday ) {
 		$next      = $e['next_occurrence'];
-		$e['running'] = $next && fortw_is_running( $next, $week_from ); // In Happening now.
+		$e['running'] = $next && fortw_is_running( $next, $monday ); // In Happening now.
 		$e['also'] = $next ? array_values( array_map( function ( $o ) { return $o['date']; }, array_filter( $e['occurrences'], function ( $o ) use ( $next ) { return $o['date'] > $next['date']; } ) ) ) : array();
 		$e['is_new'] = ! empty( $e['approved_at'] ) && substr( $e['approved_at'], 0, 10 ) >= $new_since;
 		return $e;
@@ -148,6 +155,7 @@ function fortw_select_agenda( $entries, $today, $week = null ) {
 		'happening_now' => $now,
 		'coming_up'     => $coming_up,
 		'ongoing'   => $ongoing,
-		'range'     => array( 'from' => $week_from, 'to' => $week_end ),
+		// From its first day shown: one that started earlier this week reaches back before $today.
+		'range'     => array( 'from' => $this_week && $this_week[0]['date'] < $week_from ? $this_week[0]['date'] : $week_from, 'to' => $week_end ),
 	);
 }

@@ -2,7 +2,7 @@
 Theme Name: Fort
 Theme URI: https://f3thefort.com
 Description: F3 The Fort — the site The Fort Weekly newsletter summarizes. Events and region info come from the Fort Weekly plugin; workouts and backblast stats come from the stats API; posts and pages work as usual.
-Version: 0.5.3
+Version: 0.5.4
 Requires at least: 6.0
 Requires PHP: 8.3
 Author: F3 The Fort
@@ -167,8 +167,8 @@ a:hover { color: var(--link-hover); }
 .fort-day__mon { display: none; font-family: var(--mono); font-size: 11px; color: var(--text-mute); letter-spacing: 0.06em; }
 .fort-day__entries { display: flex; flex-direction: column; gap: 36px; }
 .fort-week-entry { display: flex; flex-wrap: wrap; gap: 24px; }
-/* Don't miss: This week's entries, each on a panel with the second accent's edge. */
-.fort-dm { background: var(--panel); border-left: 3px solid var(--accent2); padding: 20px 22px; margin-top: 14px; }
+/* Don't miss: This week's entries, each on a quiet panel (the accent edge is Featured's). */
+.fort-dm { background: var(--panel); padding: 20px 22px; margin-top: 14px; }
 .fort-week-entry__body { flex: 999 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 8px; max-width: 64ch; }
 .fort-when { font-family: var(--mono); font-size: 12px; color: var(--text-mute); }
 .fort-when .fort-badge { margin-left: 10px; padding: 2px 7px; }
@@ -781,3 +781,6 @@ button.fort-st-seg__opt { background: none; border: 0; border-bottom: 1px solid 
 
 /* Don't miss: its date line in the second accent (after the Volt block, which colours .fort-when). */
 .fort-dm .fort-when.fort-dm__when { color: var(--accent2); }
+
+/* Featured: the second accent's edge, so it stays stronger than Don't miss (after the Volt block, which sets its border). */
+:root:not([data-fort-style]) .fort-featured { border-left: 3px solid var(--accent2); }

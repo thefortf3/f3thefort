@@ -132,16 +132,9 @@ function fortw_nl_also( $dates ) {
 	return '<div class="also">Also ' . fortw_h( implode( ', ', $shown ) ) . ( count( $dates ) > 3 ? ' +' . ( count( $dates ) - 3 ) . ' more' : '' ) . '</div>';
 }
 
-/**
- * "Add to calendar ↗" for an event with a date: to its page's calendar buttons (an email can't
- * tell an iPhone from an Android to pick the right one itself). '' for an ongoing event.
- */
-function fortw_nl_cal_link( $e, $ctx ) {
-	return empty( $e['next_occurrence'] ) ? '' : '<a class="lnk" href="' . fortw_h( $ctx['entry_url']( $e ) . '#add-to-calendar' ) . '">Add to calendar ↗</a>';
-}
-
 function fortw_nl_links( $e, $ctx ) {
-	$out = array_filter( array( '<a class="lnk" href="' . fortw_h( $ctx['entry_url']( $e ) ) . '">Details ↗</a>', fortw_nl_cal_link( $e, $ctx ) ) );
+	// No "Add to calendar" in the email: the event's page (Details) has the calendar buttons.
+	$out = array( '<a class="lnk" href="' . fortw_h( $ctx['entry_url']( $e ) ) . '">Details ↗</a>' );
 	if ( ! empty( $e['preblast_url'] ) ) {
 		$out[] = '<a class="lnk" href="' . fortw_h( $e['preblast_url'] ) . '">Pre-blast ↗</a>';
 	}
@@ -272,7 +265,7 @@ function fortw_nl_coming( $e, $ctx ) {
 		$body  = '<p class="sum sum--sm">' . fortw_h( fortw_summary_of( $e, 170 ) ) . '</p>
         ' . ( '' !== $meta ? '<div class="meta">' . $meta . '</div>' : '' ) . '
         ' . fortw_nl_also( $e['also'] ) . '
-        <div class="links"><a class="lnk" href="' . $url . '">Details ↗</a>' . ( '' !== fortw_nl_cal_link( $e, $ctx ) ? '<span class="sp"> </span>' . fortw_nl_cal_link( $e, $ctx ) : '' ) . '</div>';
+        <div class="links"><a class="lnk" href="' . $url . '">Details ↗</a></div>';
 	}
 	return '
     <table role="presentation" class="row" width="100%"><tr>
@@ -309,7 +302,7 @@ function fortw_nl_featured( $e, $ctx ) {
       ' . ( '' !== $meta ? '<div class="fmeta">' . $meta . '</div>' : '' ) . '
       ' . fortw_nl_also( $e['also'] ) . '
       ' . implode( '', array_map( function ( $p ) { return '<p class="sum">' . fortw_h( $p ) . '</p>'; }, fortw_writeup_of( $e ) ) ) . '
-      <div class="links"><a class="btn" href="' . $url . '">Details ↗</a>' . ( '' !== fortw_nl_cal_link( $e, $ctx ) ? '<span class="sp"> </span>' . fortw_nl_cal_link( $e, $ctx ) : '' ) . ( fortw_is_http_url( $e['link'] ?? '' ) ? '<span class="sp"> </span><a class="lnk" href="' . fortw_h( $e['link'] ) . '">Link ↗</a>' : '' ) . '</div>
+      <div class="links"><a class="btn" href="' . $url . '">Details ↗</a>' . ( fortw_is_http_url( $e['link'] ?? '' ) ? '<span class="sp"> </span><a class="lnk" href="' . fortw_h( $e['link'] ) . '">Link ↗</a>' : '' ) . '</div>
     </td>';
 	$media = $img ? '
     <td class="feat-media" valign="top" width="256"><a href="' . $url . '"><img class="hero" src="' . fortw_h( $img ) . '" width="240" alt="' . fortw_h( $e['title'] ) . '"></a></td>' : '';
