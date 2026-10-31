@@ -5,5 +5,6 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p dist
 rm -f dist/fort-theme.zip
-(cd wordpress-theme && zip -qr ../dist/fort-theme.zip fort -x '*.DS_Store')
+# Only the files git tracks (a new file must be added to git first), so no leftovers ship.
+(cd wordpress-theme && git ls-files -- fort | zip -q ../dist/fort-theme.zip -@)
 echo "Built dist/fort-theme.zip ($(du -h dist/fort-theme.zip | cut -f1))"

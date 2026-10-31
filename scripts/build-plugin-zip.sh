@@ -10,8 +10,10 @@ cd "$(dirname "$0")/.."
 BUILD="$(mktemp -d)"
 trap 'rm -rf "$BUILD"' EXIT
 mkdir -p dist "$BUILD/fort-weekly" "$BUILD/fort-stats"
-# Copy the plugin without its local vendor/ (rebuilt clean below), tests or dev files.
-tar -C wordpress-plugin/fort-weekly --exclude=./vendor --exclude=./tests --exclude='*.DS_Store' -cf - . | tar -C "$BUILD/fort-weekly" -xf -
+# Copy only the files git tracks (a new file must be added to git first), so leftovers such as
+# folders a Docker run created never ship. Not vendor/ (rebuilt clean below) or the tests.
+git -C wordpress-plugin/fort-weekly ls-files -z -- . ':!tests' ':!vendor' \
+  | tar -C wordpress-plugin/fort-weekly --null -T - -cf - | tar -C "$BUILD/fort-weekly" -xf -
 docker run --rm -u "$(id -u):$(id -g)" -v "$BUILD/fort-weekly":/app -w /app -e COMPOSER_HOME=/tmp/composer \
   composer:2 install --no-dev --no-interaction --no-progress --optimize-autoloader --quiet
 rm -f "$BUILD/fort-weekly/composer.json" "$BUILD/fort-weekly/composer.lock"
@@ -21,7 +23,8 @@ rm -f dist/fort-weekly.zip
 echo "Built dist/fort-weekly.zip ($(du -h dist/fort-weekly.zip | cut -f1))"
 
 # Fort Stats has no dependencies.
-tar -C wordpress-plugin/fort-stats --exclude=./tests --exclude='*.DS_Store' -cf - . | tar -C "$BUILD/fort-stats" -xf -
+git -C wordpress-plugin/fort-stats ls-files -z -- . ':!tests' \
+  | tar -C wordpress-plugin/fort-stats --null -T - -cf - | tar -C "$BUILD/fort-stats" -xf -
 rm -f dist/fort-stats.zip
 (cd "$BUILD" && zip -qr "$OLDPWD/dist/fort-stats.zip" fort-stats)
 echo "Built dist/fort-stats.zip ($(du -h dist/fort-stats.zip | cut -f1))"
