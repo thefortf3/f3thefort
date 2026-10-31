@@ -45,7 +45,7 @@ only administrators can import or delete. Give each approver their own account.
 | `FORT_MAILCHIMP_API_KEY` (`…-us10`), `FORT_MAILCHIMP_LIST_ID` | Save as Mailchimp draft | Button disabled |
 | `FORT_MAILCHIMP_FROM_NAME`, `FORT_MAILCHIMP_FROM_EMAIL` | Draft's sender | "The Fort Weekly", newsletter@f3thefort.com |
 | `FORT_GROQ_API_KEY` | "Write one for me" summaries | Button disabled |
-| `FORT_SUBMITTER_EMAILS` (`true`) | Emailing submitters when their event (or their change) is approved | Logs what it would have sent |
+| `FORT_SUBMITTER_EMAILS` (`true`) | Emailing submitters when they submit, and when their event (or their change) is approved | Logs what it would have sent |
 | `FORT_EMAIL_FROM` | Those emails' sender, e.g. `'The Fort Weekly <newsletter@f3thefort.com>'` | WordPress's default sender |
 | `FORT_CLIENT_IP_HEADER` | Per-visitor submit limit behind a proxy/CDN (e.g. `'HTTP_CF_CONNECTING_IP'`) | Uses the connecting address |
 | `FORT_WEEKLY_TZ` | What "today" is | `America/New_York` |
@@ -69,8 +69,8 @@ scheduled or sent in Mailchimp is left alone. Review, schedule and send in Mailc
 ## Submitters editing their events
 
 Every event sent through the form gets a **private edit link** (`/submit/?edit=…`). It shows on
-the thank-you page, and it's in the "your event is live" email if they gave an address. The link
-opens the form filled in with the event's current details.
+the thank-you page, and it's in both emails below if they gave an address. The link opens the form
+filled in with the event's current details.
 
 - **Not approved yet:** an edit simply updates the submission.
 - **Already live:** the edit becomes a **proposed change** in Needs approval, labelled "Change to
@@ -84,9 +84,15 @@ opens the form filled in with the event's current details.
 - **Resetting:** editors can see, copy or reset a link in the event's "Submitted by" box. Resetting
   stops the old link working.
 
-**Emails:** the submitter gets one when the event is approved, and again when a change is. Nothing
-is sent unless `FORT_SUBMITTER_EMAILS` is `true`. On HostGator, set up an SMTP plugin (e.g.
-WP Mail SMTP with a real mailbox) first, or WordPress's mail may land in spam.
+**Emails** to the submitter, if they gave an address:
+- **"We got your event"** straight after they submit, with the edit link, so a mistake can be fixed
+  before an editor gets to it.
+- **"Your event is live"** when it's approved (once per event; an event approved while emails were
+  off or failing gets it the next time it's approved).
+- **"Your changes are live"** when a change they made through the link is approved.
+
+Nothing is sent unless `FORT_SUBMITTER_EMAILS` is `true` (unquoted). On HostGator, set up an SMTP
+plugin (e.g. WP Mail SMTP with a real mailbox) first, or WordPress's mail may land in spam.
 
 ## Moving the data from the old app
 

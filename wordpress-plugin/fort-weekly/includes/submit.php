@@ -153,6 +153,7 @@ function fortw_handle_submission() {
 	}
 
 	fortw_notify_new_submission( $post_id );
+	fortw_email_submitter( $post_id, 'received' ); // "We got your event", with the private edit link.
 	fortw_submit_redirect( array( 'submitted' => '1', 'fort_link' => fortw_edit_param( $post_id ) ) );
 }
 

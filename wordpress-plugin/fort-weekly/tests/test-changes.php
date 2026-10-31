@@ -53,7 +53,7 @@ fortw_test(
 );
 
 fortw_test(
-	'submitter emails: live and changes, with the event and edit links',
+	'submitter emails: received, live and changes, with the event and edit links',
 	function () {
 		list( $subject, $body ) = fortw_submitter_email( 'live', 'Ruck and Roll', 'Slash', 'https://s/events/ruck/', 'https://s/submit/?edit=1-x', 'F3 The Fort' );
 		assert_same( 'Your event is live: Ruck and Roll', $subject );
@@ -62,5 +62,10 @@ fortw_test(
 		list( $subject2, $body2 ) = fortw_submitter_email( 'changes', 'Ruck', '', 'u', 'e', 'F3 The Fort' );
 		assert_same( 'Your changes are live: Ruck', $subject2 );
 		assert_true( 0 === strpos( $body2, 'Thanks! Your changes to "Ruck"' ), $body2 );
+		list( $subject3, $body3 ) = fortw_submitter_email( 'received', 'Ruck and Roll', 'Slash', 'https://s/events/ruck/', 'https://s/submit/?edit=1-x', 'F3 The Fort' );
+		assert_same( 'We got your event: Ruck and Roll', $subject3 );
+		assert_true( 0 === strpos( $body3, 'Thanks, Slash! We have "Ruck and Roll".' ), $body3 );
+		assert_true( false !== strpos( $body3, "\nhttps://s/submit/?edit=1-x\n" ), 'has the edit link' );
+		assert_true( false === strpos( $body3, 'https://s/events/ruck/' ), 'no link to the not-yet-public event page' );
 	}
 );

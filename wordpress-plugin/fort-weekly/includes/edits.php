@@ -263,15 +263,17 @@ function fortw_email_submitter( $event_id, $kind ) {
 	return fortw_mail( $to, $subject, $body );
 }
 
-// "Your event is live" once per event, for events that came in through the form.
+// "Your event is live" once per event, for events that came in through the form. Marked as sent
+// only once it has gone, so an event approved while emails were off (or failing) gets it next time.
 add_action(
 	'fortw_event_approved',
 	function ( $post_id ) {
 		if ( fortw_is_change( $post_id ) || 'form' !== get_post_meta( $post_id, '_fort_origin', true ) || get_post_meta( $post_id, '_fort_live_email_sent', true ) ) {
 			return;
 		}
-		update_post_meta( $post_id, '_fort_live_email_sent', current_time( 'mysql', true ) );
-		fortw_email_submitter( $post_id, 'live' );
+		if ( fortw_email_submitter( $post_id, 'live' ) ) {
+			update_post_meta( $post_id, '_fort_live_email_sent', current_time( 'mysql', true ) );
+		}
 	},
 	20
 );

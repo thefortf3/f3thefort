@@ -77,11 +77,22 @@ function fortw_when_text( $occurrences ) {
 }
 
 /**
- * The submitter emails: 'live' (the event was approved) or 'changes' (their edit was approved).
- * Returns array( subject, body ) as plain text.
+ * The submitter emails: 'received' (just submitted), 'live' (the event was approved) or 'changes'
+ * (their edit was approved). Returns array( subject, body ) as plain text.
  */
 function fortw_submitter_email( $kind, $title, $name, $event_url, $edit_url, $site_name ) {
 	$hi = '' !== trim( (string) $name ) ? 'Thanks, ' . trim( $name ) . '!' : 'Thanks!';
+	if ( 'received' === $kind ) {
+		// Not on the site yet, so no link to it: just the edit link, to fix anything before it's approved.
+		return array(
+			'We got your event: ' . $title,
+			$hi . ' We have "' . $title . '". An editor will look at it soon, and we will email you again when it is on the site.' . "\n\n"
+			. "Spotted a mistake, or need to change something? Use your private edit link:\n"
+			. $edit_url . "\n\n"
+			. "Keep this link to yourself: anyone with it can change your event.\n\n"
+			. '— ' . $site_name . "\n",
+		);
+	}
 	if ( 'changes' === $kind ) {
 		$subject = 'Your changes are live: ' . $title;
 		$lead    = $hi . ' Your changes to "' . $title . '" have been approved and are on the site now.';
