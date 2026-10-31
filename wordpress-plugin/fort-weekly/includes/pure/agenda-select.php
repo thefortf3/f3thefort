@@ -29,9 +29,13 @@ function fortw_select_issue( $entries, $today ) {
  * - featured: the (single) featured entry, shown in the Featured card and again in the lists
  *   below with 'featured' => true (the renderers show it there as a short line).
  * - this_week: next date within $week (default: the next 7 days from $today), grouped by date.
+ * - happening_now: things running over several days that started before $week (a month's theme,
+ *   a week-long drive), ending soonest first. Until then they sit at their start date like any
+ *   event.
  * - coming_up: every later next date, in date order.
  * - ongoing: entries with no dates at all.
- * Each entry appears once, at its next date; 'also' lists its later dates.
+ * Each entry appears once, at its next date; 'also' lists its later dates; 'running' marks one in
+ * happening_now.
  * 'is_new': approved within the last week (since the previous weekly issue).
  * $week: array( 'from' => ..., 'to' => ... ). A week starting after $today leaves out dates
  * before it (they'll have passed by the time the issue arrives).
@@ -59,8 +63,9 @@ function fortw_select_agenda( $entries, $today, $week = null ) {
 			}
 		)
 	);
-	$decorate = function ( $e ) use ( $new_since ) {
+	$decorate = function ( $e ) use ( $new_since, $week_from ) {
 		$next      = $e['next_occurrence'];
+		$e['running'] = $next && fortw_is_running( $next, $week_from ); // In Happening now.
 		$e['also'] = $next ? array_values( array_map( function ( $o ) { return $o['date']; }, array_filter( $e['occurrences'], function ( $o ) use ( $next ) { return $o['date'] > $next['date']; } ) ) ) : array();
 		$e['is_new'] = ! empty( $e['approved_at'] ) && substr( $e['approved_at'], 0, 10 ) >= $new_since;
 		return $e;
@@ -93,7 +98,12 @@ function fortw_select_agenda( $entries, $today, $week = null ) {
 
 	$this_week = array();
 	$coming_up = array();
+	$now       = array();
 	foreach ( $dated as $e ) {
+		if ( $e['running'] ) {
+			$now[] = $e;
+			continue;
+		}
 		$date = $e['next_occurrence']['date'];
 		if ( $date > $week_end ) {
 			$coming_up[] = $e;
@@ -107,13 +117,16 @@ function fortw_select_agenda( $entries, $today, $week = null ) {
 		$this_week[ $last ]['entries'][] = $e;
 	}
 
+	usort( $now, function ( $a, $b ) { return strcmp( $a['next_occurrence']['end_date'], $b['next_occurrence']['end_date'] ) ?: strcmp( $a['title'], $b['title'] ); } );
+
 	$ongoing = array_values( array_filter( $rest, function ( $e ) { return ! $e['next_occurrence']; } ) );
 	usort( $ongoing, function ( $a, $b ) { return strcmp( $a['title'], $b['title'] ); } );
 
 	return array(
 		'featured'  => $featured ? $decorate( $featured ) : null,
-		'this_week' => $this_week,
-		'coming_up' => $coming_up,
+		'this_week'     => $this_week,
+		'happening_now' => $now,
+		'coming_up'     => $coming_up,
 		'ongoing'   => $ongoing,
 		'range'     => array( 'from' => $week_from, 'to' => $week_end ),
 	);

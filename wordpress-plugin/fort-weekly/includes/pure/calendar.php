@@ -4,7 +4,8 @@
  * Google Calendar link (Android). Times are the stored 24-hour "HHMM" ones (read again with
  * fortw_parse_time() for any saved before they were converted), in the region's timezone
  * (FORT_WEEKLY_TZ). No time, or one that can't be read: an all-day event. A start with no end:
- * an hour long. An end before the start: the next morning.
+ * an hour long. An end before the start: the next morning. One that runs over several days (an
+ * end_date): all day, from its first day to its last.
  *
  * @package FortWeekly
  */
@@ -18,6 +19,9 @@ defined( 'ABSPATH' ) || defined( 'FORTW_TESTING' ) || exit;
 function fortw_cal_span( $occ ) {
 	$tz    = new DateTimeZone( FORT_WEEKLY_TZ );
 	$day   = new DateTimeImmutable( $occ['date'] . ' 00:00:00', $tz );
+	if ( ! empty( $occ['end_date'] ) ) {
+		return array( 'all_day' => true, 'start' => $day, 'end' => ( new DateTimeImmutable( $occ['end_date'] . ' 00:00:00', $tz ) )->modify( '+1 day' ) );
+	}
 	$start = fortw_parse_time( (string) ( $occ['start_time'] ?? '' ) );
 	if ( null === $start ) {
 		return array( 'all_day' => true, 'start' => $day, 'end' => $day->modify( '+1 day' ) );

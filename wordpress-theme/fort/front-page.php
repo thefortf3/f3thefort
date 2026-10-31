@@ -130,6 +130,17 @@ $principles = array(
 			</section>
 		<?php endif; ?>
 
+		<?php if ( ! empty( $home['happening_now'] ) ) : ?>
+			<section id="happening-now" class="fort-section">
+				<header class="fort-section__head fort-section__head--amber">
+					<h2 class="fort-h2"><span class="fort-kicker"><?php esc_html_e( 'On now', 'fort' ); ?></span><?php esc_html_e( 'Happening now', 'fort' ); ?></h2>
+				</header>
+				<div class="fort-coming-grid">
+					<?php foreach ( $home['happening_now'] as $e ) { fort_render_coming_row( $e ); } ?>
+				</div>
+			</section>
+		<?php endif; ?>
+
 		<?php
 		// Today's and tomorrow's workouts (GloomSchedule, via the stats API). Independent of the
 		// events, so it shows even when the calendar is empty.

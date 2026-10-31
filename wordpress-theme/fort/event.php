@@ -37,11 +37,11 @@ get_header();
 			<dt><?php esc_html_e( 'When', 'fort' ); ?></dt>
 			<dd>
 				<?php if ( $e['upcoming_dates'] ) : ?>
-					<?php foreach ( $e['upcoming_dates'] as $o ) : $p = fort_date_parts( $o['date'] ); ?>
-						<span class="fort-facts__date"><?php echo esc_html( $p['long'] ); ?><?php $t = fort_time_label( $o ); echo $t ? ' <span class="fort-mono-dim">' . esc_html( $t ) . '</span>' : ''; ?></span>
+					<?php foreach ( $e['upcoming_dates'] as $o ) : ?>
+						<span class="fort-facts__date"><?php echo esc_html( fort_date_span( $o ) ); ?><?php $t = fort_time_label( $o ); echo $t ? ' <span class="fort-mono-dim">' . esc_html( $t ) . '</span>' : ''; ?></span>
 					<?php endforeach; ?>
-				<?php elseif ( $e['occurrences'] ) : $o = end( $e['occurrences'] ); $p = fort_date_parts( $o['date'] ); ?>
-					<span class="fort-facts__date"><?php echo esc_html( $p['long'] ); ?> <span class="fort-mono-dim"><?php esc_html_e( '(past)', 'fort' ); ?></span></span>
+				<?php elseif ( $e['occurrences'] ) : $o = end( $e['occurrences'] ); ?>
+					<span class="fort-facts__date"><?php echo esc_html( fort_date_span( $o ) ); ?> <span class="fort-mono-dim"><?php esc_html_e( '(past)', 'fort' ); ?></span></span>
 				<?php else : ?>
 					<?php esc_html_e( 'Ongoing', 'fort' ); ?>
 				<?php endif; ?>

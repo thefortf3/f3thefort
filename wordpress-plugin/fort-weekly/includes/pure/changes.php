@@ -58,7 +58,7 @@ function fortw_change_rows( $live, $proposed ) {
 	return $rows;
 }
 
-/** "Sat Oct 24 0700–0800" style summary of an event's dates, for comparing and emails. */
+/** "Sat Oct 24 0700–0800" style summary of an event's dates (one running several days: "Sat Oct 17 – Sat Oct 24"), for comparing and emails. */
 function fortw_when_text( $occurrences ) {
 	if ( ! $occurrences ) {
 		return 'Ongoing';
@@ -69,7 +69,12 @@ function fortw_when_text( $occurrences ) {
 			function ( $o ) {
 				$p = fortw_date_parts( $o['date'] );
 				$t = $o['start_time'] ? ' ' . $o['start_time'] . ( $o['end_time'] ? '–' . $o['end_time'] : '' ) : '';
-				return ucfirst( strtolower( $p['dow'] ) ) . ' ' . ucfirst( strtolower( $p['mon'] ) ) . ' ' . $p['day'] . $t;
+				$u = '';
+				if ( ! empty( $o['end_date'] ) ) {
+					$q = fortw_date_parts( $o['end_date'] );
+					$u = ' – ' . ucfirst( strtolower( $q['dow'] ) ) . ' ' . ucfirst( strtolower( $q['mon'] ) ) . ' ' . $q['day'];
+				}
+				return ucfirst( strtolower( $p['dow'] ) ) . ' ' . ucfirst( strtolower( $p['mon'] ) ) . ' ' . $p['day'] . $u . $t;
 			},
 			$occurrences
 		)

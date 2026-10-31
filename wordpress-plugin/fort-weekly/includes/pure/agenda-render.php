@@ -104,6 +104,20 @@ function fortw_nl_time( $occ ) {
 	return $occ['end_time'] ? $occ['start_time'] . '–' . preg_replace( '/:/', '', $occ['end_time'], 1 ) : $occ['start_time'];
 }
 
+/** "Through Sat Nov 22" for something that runs over several days, else ''. */
+function fortw_nl_through( $occ ) {
+	if ( empty( $occ['end_date'] ) ) {
+		return '';
+	}
+	$p = fortw_date_parts( $occ['end_date'] );
+	return 'Through ' . fortw_nl_word( $p['dow'] ) . ' ' . fortw_nl_word( $p['mon'] ) . ' ' . $p['day'];
+}
+
+/** The time and, for a multi-day one, its last day: "0600 · Through Sat Nov 22". */
+function fortw_nl_when( $occ ) {
+	return implode( ' · ', array_filter( array( fortw_nl_time( $occ ), fortw_nl_through( $occ ) ), 'strlen' ) );
+}
+
 function fortw_nl_also( $dates ) {
 	if ( ! $dates ) {
 		return '';
@@ -179,13 +193,13 @@ function fortw_nl_featured_line( $e, $ctx, $time ) {
 
 function fortw_nl_week_entry( $e, $ctx ) {
 	if ( ! empty( $e['featured'] ) ) {
-		return fortw_nl_featured_line( $e, $ctx, fortw_nl_time( $e['next_occurrence'] ) );
+		return fortw_nl_featured_line( $e, $ctx, fortw_nl_when( $e['next_occurrence'] ) );
 	}
 	$img  = fortw_image_of( $e );
 	$meta = fortw_nl_meta_html( $e );
 	$url  = fortw_h( $ctx['entry_url']( $e ) );
 	$body = '
-        <div class="when">' . fortw_h( fortw_nl_time( $e['next_occurrence'] ) ) . fortw_nl_tag_chip( $e ) . ( $e['is_new'] ? '<span class="new">New</span>' : '' ) . '</div>
+        <div class="when">' . fortw_h( fortw_nl_when( $e['next_occurrence'] ) ) . fortw_nl_tag_chip( $e ) . ( $e['is_new'] ? '<span class="new">New</span>' : '' ) . '</div>
         <a class="title" href="' . $url . '">' . fortw_h( $e['title'] ) . '</a>
         ' . ( '' !== $meta ? '<div class="meta">' . $meta . '</div>' : '' ) . '
         <p class="sum">' . fortw_h( fortw_summary_of( $e ) ) . '</p>
@@ -218,9 +232,10 @@ function fortw_nl_day( $day, $ctx ) {
     </tr></table>';
 }
 
+/** A row in Coming up, or in Happening now (where the date shown is its last day). */
 function fortw_nl_coming( $e, $ctx ) {
-	$p    = fortw_date_parts( $e['next_occurrence']['date'] );
-	$meta = fortw_nl_meta_html( $e, array( fortw_nl_time( $e['next_occurrence'] ) ) );
+	$p    = fortw_date_parts( ! empty( $e['running'] ) ? $e['next_occurrence']['end_date'] : $e['next_occurrence']['date'] );
+	$meta = fortw_nl_meta_html( $e, array( fortw_nl_when( $e['next_occurrence'] ) ) );
 	$url  = fortw_h( $ctx['entry_url']( $e ) );
 	if ( ! empty( $e['featured'] ) ) { // In full in the Featured card: here just its title, time and place.
 		$chips = '<span class="new">Featured</span>';
@@ -252,8 +267,11 @@ function fortw_nl_featured( $e, $ctx ) {
 	$when = '';
 	if ( $e['next_occurrence'] ) {
 		// The day, date and time large above the title (the flyer may not say them).
-		$p    = fortw_date_parts( $e['next_occurrence']['date'] );
-		$when = fortw_nl_meta( array( fortw_nl_word( $p['long_dow'] ) . ', ' . fortw_nl_word( $p['mon'] ) . ' ' . $p['day'], fortw_nl_time( $e['next_occurrence'] ) ) );
+		$next = $e['next_occurrence'];
+		$p    = fortw_date_parts( ! empty( $e['running'] ) ? $next['end_date'] : $next['date'] );
+		$day  = fortw_nl_word( $p['long_dow'] ) . ', ' . fortw_nl_word( $p['mon'] ) . ' ' . $p['day'];
+		// Running already: how long it's on for. Otherwise its first day, and its last if it has one.
+		$when = ! empty( $e['running'] ) ? 'Through ' . $day : fortw_nl_meta( array( $day, fortw_nl_when( $next ) ) );
 	}
 	$url  = fortw_h( $ctx['entry_url']( $e ) );
 	// The flyer beside the write-up: two real cells, which the phone layout stacks (the old
@@ -430,6 +448,7 @@ function fortw_render_agenda( $template, $entries, $region, $today, $ctx ) {
 		fortw_nl_nantan( $region['nantan'] ?? null ),
 		$sel['featured'] ? fortw_nl_featured( $sel['featured'], $ctx ) : '',
 		$sel['this_week'] ? fortw_nl_section( 'This week', $rng, implode( '', array_map( function ( $d ) use ( $ctx ) { return fortw_nl_day( $d, $ctx ); }, $sel['this_week'] ) ), true ) : '',
+		$sel['happening_now'] ? fortw_nl_section( 'Happening now', count( $sel['happening_now'] ) . ' on now', implode( '', array_map( function ( $e ) use ( $ctx ) { return fortw_nl_coming( $e, $ctx ); }, $sel['happening_now'] ) ) ) : '',
 		$n ? fortw_nl_section( 'Coming up', $n . ' ' . ( 1 === $n ? 'event' : 'events' ), implode( '', array_map( function ( $e ) use ( $ctx ) { return fortw_nl_coming( $e, $ctx ); }, $sel['coming_up'] ) ) ) : '',
 		$sel['ongoing'] ? fortw_nl_section(
 			'Ongoing',

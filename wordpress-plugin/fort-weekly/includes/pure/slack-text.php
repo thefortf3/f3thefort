@@ -22,7 +22,10 @@ function fortw_slack_message( $entry, $who, $review_url ) {
 	$dates = array();
 	foreach ( array_slice( $entry['occurrences'], 0, 3 ) as $o ) {
 		$p       = fortw_date_parts( $o['date'] );
-		$dates[] = ucfirst( strtolower( $p['dow'] ) ) . ', ' . ucfirst( strtolower( $p['mon'] ) ) . ' ' . $p['day'] . ( $o['start_time'] ? ' ' . $o['start_time'] : '' );
+		$q       = ! empty( $o['end_date'] ) ? fortw_date_parts( $o['end_date'] ) : null;
+		$dates[] = ucfirst( strtolower( $p['dow'] ) ) . ', ' . ucfirst( strtolower( $p['mon'] ) ) . ' ' . $p['day']
+			. ( $q ? ' – ' . ucfirst( strtolower( $q['dow'] ) ) . ', ' . ucfirst( strtolower( $q['mon'] ) ) . ' ' . $q['day'] : '' )
+			. ( $o['start_time'] ? ' ' . $o['start_time'] : '' );
 	}
 	$when  = $dates ? implode( ', ', $dates ) . ( count( $entry['occurrences'] ) > 3 ? ' +' . ( count( $entry['occurrences'] ) - 3 ) . ' more' : '' ) : 'No date (ongoing)';
 	$title = fortw_slack_text( $entry['title'], 160 );

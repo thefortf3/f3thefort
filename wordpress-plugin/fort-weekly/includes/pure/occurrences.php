@@ -103,7 +103,9 @@ function fortw_parse_time_range( $start, $end = '' ) {
 }
 
 /**
- * Validates and normalises a list of occurrences (arrays with date, start_time, end_time):
+ * Validates and normalises a list of occurrences (arrays with date, start_time, end_time, and an
+ * optional end_date for something that runs over several days, like a month's theme or a week-long
+ * drive; one on or before date is dropped):
  * times become 24-hour "HHMM" (fortw_parse_time_range(); one that can't be read is kept as
  * typed, capped at 40 characters; "0000" alone or 0000–2359 means no time), exact duplicates
  * (same date and start time) are dropped, and the list is sorted by date then start time.
@@ -134,12 +136,20 @@ function fortw_normalize_occurrences( $list ) {
 			$start = null; // A placeholder for "all day".
 			$end   = null;
 		}
+		$until = isset( $o['end_date'] ) && is_string( $o['end_date'] ) ? trim( $o['end_date'] ) : '';
+		if ( '' !== $until && ! fortw_is_iso_date( $until ) ) {
+			throw new InvalidArgumentException( 'Invalid end date: ' . $until );
+		}
 		$key   = $date . '|' . $start;
 		if ( isset( $seen[ $key ] ) ) {
 			continue;
 		}
 		$seen[ $key ] = true;
-		$out[]        = array( 'date' => $date, 'start_time' => $start, 'end_time' => $end );
+		$row          = array( 'date' => $date, 'start_time' => $start, 'end_time' => $end );
+		if ( $until > $date ) {
+			$row['end_date'] = $until; // Only when it runs over several days.
+		}
+		$out[] = $row;
 	}
 	usort(
 		$out,
@@ -150,19 +160,37 @@ function fortw_normalize_occurrences( $list ) {
 	return $out;
 }
 
-/** The first occurrence on/after $today, or null if every date has passed (or there are none). */
+/** An occurrence's last day: its end_date when it runs over several days, else its date. */
+function fortw_last_day( $o ) {
+	return ! empty( $o['end_date'] ) ? $o['end_date'] : $o['date'];
+}
+
+/** True while a multi-day occurrence has started before $day and not yet ended. */
+function fortw_is_running( $o, $day ) {
+	return ! empty( $o['end_date'] ) && $o['date'] < $day && $o['end_date'] >= $day;
+}
+
+/**
+ * The first occurrence that hasn't finished by $today (one still running counts), or null if
+ * every date has passed (or there are none).
+ */
 function fortw_next_occurrence( $occurrences, $today ) {
 	foreach ( $occurrences as $o ) {
-		if ( $o['date'] >= $today ) {
+		if ( fortw_last_day( $o ) >= $today ) {
 			return $o;
 		}
 	}
 	return null;
 }
 
-/** The occurrences on/after $today. */
+/** The occurrences that haven't finished by $today. */
 function fortw_upcoming_dates( $occurrences, $today ) {
-	return array_values( array_filter( $occurrences, function ( $o ) use ( $today ) { return $o['date'] >= $today; } ) );
+	return array_values( array_filter( $occurrences, function ( $o ) use ( $today ) { return fortw_last_day( $o ) >= $today; } ) );
+}
+
+/** The last day of any of the occurrences ('' for none). */
+function fortw_final_day( $occurrences ) {
+	return $occurrences ? max( array_map( 'fortw_last_day', $occurrences ) ) : '';
 }
 
 /**
@@ -184,15 +212,16 @@ function fortw_lifecycle( $entry, $today ) {
 }
 
 /**
- * The value stored in _fort_next_date for sorting and querying: the next date, or '9999-12-31'
- * for an undated (ongoing) entry, or '0000-00-00' once every date has passed.
+ * The value stored in _fort_next_date for sorting and querying: the next date (today for one
+ * already running), or '9999-12-31' for an undated (ongoing) entry, or '0000-00-00' once every
+ * date has passed.
  */
 function fortw_next_date_key( $occurrences, $today ) {
 	if ( ! $occurrences ) {
 		return '9999-12-31';
 	}
 	$next = fortw_next_occurrence( $occurrences, $today );
-	return $next ? $next['date'] : '0000-00-00';
+	return $next ? max( $next['date'], $today ) : '0000-00-00';
 }
 
 /**
@@ -219,8 +248,8 @@ function fortw_compare_entries_main( $a, $b ) {
 	if ( $bn ) {
 		return 1;
 	}
-	$al = $a['occurrences'] ? end( $a['occurrences'] )['date'] : null;
-	$bl = $b['occurrences'] ? end( $b['occurrences'] )['date'] : null;
+	$al = $a['occurrences'] ? fortw_final_day( $a['occurrences'] ) : null;
+	$bl = $b['occurrences'] ? fortw_final_day( $b['occurrences'] ) : null;
 	if ( ! $al && ! $bl ) {
 		return strcmp( $a['title'], $b['title'] );
 	}

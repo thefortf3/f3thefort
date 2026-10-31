@@ -36,6 +36,27 @@ function fort_time_label( $occ ) {
 	return empty( $occ['end_time'] ) ? $occ['start_time'] : $occ['start_time'] . '–' . str_replace( ':', '', $occ['end_time'] );
 }
 
+/** "Through Sat Nov 22" for something that runs over several days, else ''. */
+function fort_through_label( $occ ) {
+	if ( empty( $occ['end_date'] ) ) {
+		return '';
+	}
+	$p = fort_date_parts( $occ['end_date'] );
+	/* translators: %s: a date, e.g. "Sat Nov 22" */
+	return sprintf( __( 'Through %s', 'fort' ), ucwords( strtolower( $p['dow'] . ' ' . $p['mon'] ) ) . ' ' . $p['day'] );
+}
+
+/** "Saturday, October 17" or, for one running several days, "Saturday, October 17 – Saturday, October 24". */
+function fort_date_span( $occ ) {
+	$a = fort_date_parts( $occ['date'] )['long'];
+	return empty( $occ['end_date'] ) ? $a : $a . ' – ' . fort_date_parts( $occ['end_date'] )['long'];
+}
+
+/** The time and, for a multi-day one, its last day: "0600 · Through Sat Nov 22". */
+function fort_when_label( $occ ) {
+	return implode( ' · ', array_filter( array( fort_time_label( $occ ), fort_through_label( $occ ) ) ) );
+}
+
 function fort_event_url( $entry ) {
 	return home_url( '/events/' . rawurlencode( $entry['slug'] ) . '/' );
 }
@@ -64,7 +85,7 @@ function fort_tag_chip( $entry ) {
 function fort_entry_meta( $entry, $with_time = false ) {
 	$bits = array();
 	if ( $with_time && ! empty( $entry['next_occurrence'] ) ) {
-		$bits[] = fort_time_label( $entry['next_occurrence'] );
+		$bits[] = fort_when_label( $entry['next_occurrence'] );
 	}
 	if ( ! empty( $entry['location'] ) ) {
 		$bits[] = $entry['location'];

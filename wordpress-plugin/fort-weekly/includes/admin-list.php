@@ -584,7 +584,13 @@ add_filter(
 function fortw_render_event_cell( $e, $post ) {
 	$today = fortw_today();
 	$next  = $e['next_occurrence'];
-	if ( $next ) {
+	if ( $next && fortw_is_running( $next, $today ) ) { // Started, runs until its last day.
+		$p    = fortw_date_parts( $next['end_date'] );
+		$tone = 'today';
+		$top  = __( 'NOW', 'fort-weekly' );
+		$mid  = (string) $p['day'];
+		$low  = $p['mon'];
+	} elseif ( $next ) {
 		$p    = fortw_date_parts( $next['date'] );
 		$soon = $next['date'] <= fortw_add_days( $today, FORTW_THIS_WEEK_DAYS - 1 );
 		$tone = $next['date'] === $today ? 'today' : ( $soon ? 'soon' : 'later' );
@@ -606,6 +612,11 @@ function fortw_render_event_cell( $e, $post ) {
 	$when = array();
 	if ( $next && $next['start_time'] ) {
 		$when[] = $next['end_time'] ? $next['start_time'] . '–' . $next['end_time'] : $next['start_time'];
+	}
+	if ( $next && ! empty( $next['end_date'] ) ) {
+		$q = fortw_date_parts( $next['end_date'] );
+		/* translators: 1: weekday, 2: month, 3: day */
+		$when[] = sprintf( __( 'Through %1$s %2$s %3$d', 'fort-weekly' ), $q['dow'], $q['mon'], $q['day'] );
 	}
 	foreach ( array( $e['location'], $e['leader'] ? 'Q: ' . $e['leader'] : '' ) as $bit ) {
 		if ( $bit ) {

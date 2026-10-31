@@ -155,3 +155,24 @@ fortw_test(
 		assert_same( 'F3 The Fort Weekly Newsletter - 10/25/2026', fortw_campaign_subject( '2026-10-25' ) );
 	}
 );
+
+fortw_test(
+	'newsletter: Happening now sits between This week and Coming up, showing each one’s last day',
+	function () {
+		$entries = array(
+			fortw_t_entry( array( 'title' => 'Theme of the month', 'occurrences' => array( array( 'date' => '2026-10-01', 'end_date' => '2026-11-30' ) ) ) ),
+			fortw_t_entry( array( 'title' => 'Wednesday thing', 'occurrences' => array( array( 'date' => '2026-10-28' ) ) ) ),
+			fortw_t_entry( array( 'title' => 'Turkey drive', 'occurrences' => array( array( 'date' => '2026-10-30', 'end_date' => '2026-11-06' ) ) ) ),
+			fortw_t_entry( array( 'title' => 'Later', 'occurrences' => array( array( 'date' => '2026-11-20' ) ) ) ),
+		);
+		$ctx  = array( 'site_url' => 'https://s', 'submit_url' => 'https://s/submit/', 'year' => '2026', 'entry_url' => function ( $e ) { return 'https://s/events/' . $e['id'] . '/'; } );
+		$html = fortw_render_agenda( '{{BODY}}', $entries, array(), FORTW_T_TODAY, $ctx );
+		$week = strpos( $html, '>This week<' );
+		$now  = strpos( $html, '>Happening now<' );
+		$up   = strpos( $html, '>Coming up<' );
+		assert_true( false !== $week && false !== $now && false !== $up && $week < $now && $now < $up, 'This week, then Happening now, then Coming up' );
+		assert_true( false !== strpos( substr( $html, $now, $up - $now ), 'Theme of the month' ), 'the month’s theme is on now' );
+		assert_true( false !== strpos( substr( $html, $now, $up - $now ), 'Through Mon Nov 30' ), 'with its last day' );
+		assert_true( false !== strpos( substr( $html, $week, $now - $week ), 'Turkey drive' ) && false !== strpos( $html, 'Through Fri Nov 6' ), 'the drive starting this week sits at its first day, marked with its last' );
+	}
+);

@@ -17,7 +17,7 @@ function fort_render_week_entry( $e ) {
 		?>
 		<article class="fort-week-entry">
 			<div class="fort-week-entry__body">
-				<div class="fort-when"><?php echo esc_html( fort_time_label( $e['next_occurrence'] ?? array() ) ); ?><span class="fort-badge"><?php esc_html_e( 'FEATURED', 'fort' ); ?></span></div>
+				<div class="fort-when"><?php echo esc_html( fort_when_label( $e['next_occurrence'] ?? array() ) ); ?><span class="fort-badge"><?php esc_html_e( 'FEATURED', 'fort' ); ?></span></div>
 				<h3 class="fort-entry-title"><a href="<?php echo esc_url( fort_event_url( $e ) ); ?>"><?php echo esc_html( $e['title'] ); ?></a></h3>
 			</div>
 		</article>
@@ -29,7 +29,7 @@ function fort_render_week_entry( $e ) {
 	?>
 	<article class="fort-week-entry<?php echo $img ? ' has-thumb' : ''; ?>">
 		<div class="fort-week-entry__body">
-			<div class="fort-when"><?php echo esc_html( fort_time_label( $e['next_occurrence'] ?? array() ) ); ?><?php echo fort_tag_chip( $e ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in helper ?></div>
+			<div class="fort-when"><?php echo esc_html( fort_when_label( $e['next_occurrence'] ?? array() ) ); ?><?php echo fort_tag_chip( $e ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in helper ?></div>
 			<h3 class="fort-entry-title"><a href="<?php echo esc_url( fort_event_url( $e ) ); ?>"><?php echo esc_html( $e['title'] ); ?></a></h3>
 			<?php if ( $meta ) : ?><div class="fort-meta"><?php echo esc_html( $meta ); ?></div><?php endif; ?>
 			<p class="fort-summary"><?php echo esc_html( fort_summary( $e, 34 ) ); ?></p>
@@ -55,9 +55,12 @@ function fort_render_day( $day ) {
 	<?php
 }
 
-/** A compact "Coming up" row (the featured entry without its summary). */
+/**
+ * A compact "Coming up" row (the featured entry without its summary). In "Happening now" the date
+ * shown is the day it ends.
+ */
 function fort_render_coming_row( $e ) {
-	$p    = fort_date_parts( $e['next_occurrence']['date'] );
+	$p    = fort_date_parts( ! empty( $e['running'] ) ? $e['next_occurrence']['end_date'] : $e['next_occurrence']['date'] );
 	$more = max( 0, count( $e['upcoming_dates'] ?? array() ) - 1 );
 	?>
 	<a class="fort-coming" href="<?php echo esc_url( fort_event_url( $e ) ); ?>">

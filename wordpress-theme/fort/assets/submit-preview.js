@@ -56,7 +56,8 @@
     if (date) {
       var line = document.createElement('span');
       line.className = 'fort-facts__date';
-      line.textContent = date;
+      var until = longDate(val('f-until'));
+      line.textContent = until && val('f-until') > val('f-date') ? date + ' – ' + until : date;
       var start = oneLine(val('f-start'));
       var end = oneLine(val('f-end')).replace(':', '');
       if (start) {

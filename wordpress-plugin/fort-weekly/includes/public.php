@@ -109,7 +109,8 @@ function fort_weekly_entries( $args = array() ) {
 					return false;
 				}
 				$dates = array_column( $e['occurrences'], 'date' );
-				if ( $args['from'] && ! array_filter( $dates, function ( $d ) use ( $args ) { return $d >= $args['from']; } ) ) {
+				$lasts = array_map( 'fortw_last_day', $e['occurrences'] ); // Something running several days counts until its last.
+				if ( $args['from'] && ! array_filter( $lasts, function ( $d ) use ( $args ) { return $d >= $args['from']; } ) ) {
 					return false;
 				}
 				if ( $args['to'] && ! array_filter( $dates, function ( $d ) use ( $args ) { return $d <= $args['to']; } ) ) {

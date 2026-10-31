@@ -31,7 +31,7 @@ function fortw_t_titles( $sel ) {
 	foreach ( $sel['this_week'] as $d ) {
 		$out = array_merge( $out, array_column( $d['entries'], 'title' ) );
 	}
-	$out = array_merge( $out, array_column( $sel['coming_up'], 'title' ), array_column( $sel['ongoing'], 'title' ) );
+	$out = array_merge( $out, array_column( $sel['happening_now'] ?? array(), 'title' ), array_column( $sel['coming_up'], 'title' ), array_column( $sel['ongoing'], 'title' ) );
 	sort( $out );
 	return $out;
 }
@@ -151,7 +151,7 @@ fortw_test(
 		$p = fortw_public_entry( $e, FORTW_T_TODAY, $fortw_t_strip_scripts );
 		$keys = array_keys( $p );
 		sort( $keys );
-		assert_same( array( 'description_html', 'featured', 'hero_image', 'id', 'is_past', 'leader', 'link', 'location', 'next_occurrence', 'occurrences', 'preblast_url', 'slug', 'summary', 'tags', 'title', 'upcoming_dates', 'video_url' ), $keys );
+		assert_same( array( 'description_html', 'featured', 'hero_image', 'id', 'is_past', 'leader', 'link', 'location', 'next_occurrence', 'occurrences', 'preblast_url', 'running', 'slug', 'summary', 'tags', 'title', 'upcoming_dates', 'video_url' ), $keys );
 		assert_true( false === strpos( json_encode( $p ), 'example.com' ), 'no submitter details' );
 		assert_same( '<p>Hi</p>', $p['description_html'] );
 		assert_same( null, $p['link'] );
@@ -265,5 +265,46 @@ fortw_test(
 		assert_same( array( 'from' => '2026-10-26', 'to' => '2026-11-01' ), $sel['range'] );
 		$home = fortw_select_agenda( array( fortw_t_entry( array( 'title' => 'Sat', 'occurrences' => array( array( 'date' => '2026-10-24' ) ) ) ) ), FORTW_T_TODAY );
 		assert_same( array( '2026-10-24' ), array_column( $home['this_week'], 'date' ), 'the website keeps the next 7 days' );
+	}
+);
+
+fortw_test(
+	'things that run over several days: at their start date until they start, then Happening now',
+	function () {
+		$entries = array(
+			fortw_t_entry( array( 'title' => 'Turkey drive', 'occurrences' => array( array( 'date' => '2026-10-17', 'end_date' => '2026-10-24' ) ) ) ),
+			fortw_t_entry( array( 'title' => 'Theme of the month', 'occurrences' => array( array( 'date' => '2026-10-01', 'end_date' => '2026-10-31' ) ) ) ),
+			fortw_t_entry( array( 'title' => 'Starts Thursday', 'occurrences' => array( array( 'date' => '2026-10-22', 'end_date' => '2026-10-29' ) ) ) ),
+			fortw_t_entry( array( 'title' => 'Starts today', 'occurrences' => array( array( 'date' => '2026-10-20', 'end_date' => '2026-10-23' ) ) ) ),
+			fortw_t_entry( array( 'title' => 'Next month', 'occurrences' => array( array( 'date' => '2026-11-10', 'end_date' => '2026-11-20' ) ) ) ),
+			fortw_t_entry( array( 'title' => 'Over', 'occurrences' => array( array( 'date' => '2026-10-01', 'end_date' => '2026-10-19' ) ) ) ),
+		);
+		$home = fortw_select_agenda( $entries, FORTW_T_TODAY );
+		assert_same( array( 'Turkey drive', 'Theme of the month' ), array_column( $home['happening_now'], 'title' ), 'started before today, ending soonest first' );
+		assert_same( array( '2026-10-20', '2026-10-22' ), array_column( $home['this_week'], 'date' ), 'one starting today or later this week sits at its start date' );
+		assert_same( array( 'Next month' ), array_column( $home['coming_up'], 'title' ) );
+		assert_same( array( 'Next month', 'Starts Thursday', 'Starts today', 'Theme of the month', 'Turkey drive' ), fortw_t_titles( $home ), 'the one that ended is gone' );
+
+		$issue = fortw_select_issue( $entries, FORTW_T_TODAY ); // Covers Mon Oct 26 – Sun Nov 1.
+		assert_same( array( 'Starts Thursday', 'Theme of the month' ), array_column( $issue['happening_now'], 'title' ), 'started before the issue’s Monday and still running then' );
+		assert_same( array(), $issue['this_week'], 'the drive and "starts today" are over by the issue’s week' );
+	}
+);
+
+fortw_test(
+	'end dates: kept when after the start, counted in the next date, sort key and last day',
+	function () {
+		$occ = fortw_normalize_occurrences( array( array( 'date' => '2026-10-17', 'end_date' => '2026-10-24' ), array( 'date' => '2026-11-01', 'end_date' => '2026-11-01' ) ) );
+		assert_same( '2026-10-24', $occ[0]['end_date'] );
+		assert_true( ! isset( $occ[1]['end_date'] ), 'an end date on the start day means one day' );
+		assert_same( '2026-10-17', fortw_next_occurrence( $occ, '2026-10-20' )['date'], 'still running counts as next' );
+		assert_same( '2026-10-20', fortw_next_date_key( $occ, '2026-10-20' ), 'running: sorts as today' );
+		assert_same( '2026-11-01', fortw_next_date_key( $occ, '2026-10-25' ) );
+		assert_same( '2026-11-01', fortw_final_day( $occ ) );
+		assert_same( '2026-10-24', fortw_final_day( array( $occ[0] ) ) );
+		assert_true( fortw_is_running( $occ[0], '2026-10-18' ) && ! fortw_is_running( $occ[0], '2026-10-17' ) && ! fortw_is_running( $occ[0], '2026-10-25' ) );
+		$threw = false;
+		try { fortw_normalize_occurrences( array( array( 'date' => '2026-10-17', 'end_date' => 'soon' ) ) ); } catch ( InvalidArgumentException $e ) { $threw = true; }
+		assert_true( $threw, 'a bad end date is refused' );
 	}
 );

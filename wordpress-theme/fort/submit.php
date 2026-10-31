@@ -126,6 +126,7 @@ get_header();
 		<?php else : ?>
 			<div class="fort-field-row">
 				<div class="fort-field<?php echo in_array( 'date', $fields, true ) ? ' is-invalid' : ''; ?>"><label for="f-date"><?php esc_html_e( 'Date', 'fort' ); ?></label><input id="f-date" name="start_date" type="date" value="<?php echo esc_attr( $v( 'date' ) ); ?>"></div>
+				<div class="fort-field<?php echo in_array( 'end_date', $fields, true ) ? ' is-invalid' : ''; ?>"><label for="f-until"><?php esc_html_e( 'Last day', 'fort' ); ?> <span class="fort-dim"><?php esc_html_e( '(if it runs several days)', 'fort' ); ?></span></label><input id="f-until" name="end_date" type="date" value="<?php echo esc_attr( $v( 'end_date' ) ); ?>"></div>
 				<div class="fort-field"><label for="f-start"><?php esc_html_e( 'Start', 'fort' ); ?></label><input id="f-start" name="start_time" placeholder="0530" maxlength="40" value="<?php echo esc_attr( $v( 'start_time' ) ); ?>"></div>
 				<div class="fort-field"><label for="f-end"><?php esc_html_e( 'End', 'fort' ); ?></label><input id="f-end" name="end_time" placeholder="0630" maxlength="40" value="<?php echo esc_attr( $v( 'end_time' ) ); ?>"></div>
 			</div>

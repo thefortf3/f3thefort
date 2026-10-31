@@ -36,6 +36,7 @@ function fortw_public_entry( $e, $today, $sanitize ) {
 		'next_occurrence'  => $e['next_occurrence'] ? $e['next_occurrence'] : null,
 		'upcoming_dates'   => fortw_upcoming_dates( $occ, $today ),
 		'is_past'          => $occ && ! $e['next_occurrence'],
+		'running'          => ! empty( $e['running'] ),
 	);
 }
 
@@ -44,7 +45,8 @@ function fortw_is_public( $e ) {
 }
 
 /**
- * The homepage: featured, this week (by day), coming up, ongoing, the tags in use, region info.
+ * The homepage: featured, this week (by day), happening now, coming up, ongoing, the tags in use,
+ * region info.
  * The site shows held entries; holding only affects the newsletter.
  */
 function fortw_build_home( $entries, $tags, $region, $today, $sanitize, $generated_at ) {
@@ -65,6 +67,7 @@ function fortw_build_home( $entries, $tags, $region, $today, $sanitize, $generat
 		'range'        => $sel['range'],
 		'featured'     => $sel['featured'] ? $pub( $sel['featured'] ) : null,
 		'this_week'    => array_map( function ( $d ) use ( $pub ) { return array( 'date' => $d['date'], 'entries' => array_map( $pub, $d['entries'] ) ); }, $sel['this_week'] ),
+		'happening_now' => array_map( $pub, $sel['happening_now'] ),
 		'coming_up'    => array_map( $pub, $sel['coming_up'] ),
 		'ongoing'      => array_map( $pub, $sel['ongoing'] ),
 		'tags'         => array_values( array_map( function ( $t ) { return array( 'label' => $t['label'], 'slug' => $t['slug'], 'color' => $t['color'] ); }, array_filter( $tags, function ( $t ) { return $t['count'] > 0; } ) ) ),

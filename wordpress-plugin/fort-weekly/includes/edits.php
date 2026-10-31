@@ -314,6 +314,7 @@ function fort_weekly_edit_form( $param ) {
 		'dates_editable'  => count( $occ ) <= 1,
 		'dates_text'      => fortw_when_text( $occ ),
 		'date'            => $occ ? $occ[0]['date'] : '',
+		'end_date'        => $occ ? (string) ( $occ[0]['end_date'] ?? '' ) : '',
 		'start_time'      => $occ ? (string) $occ[0]['start_time'] : '',
 		'end_time'        => $occ ? (string) $occ[0]['end_time'] : '',
 		'location'        => $meta( '_fort_location' ),

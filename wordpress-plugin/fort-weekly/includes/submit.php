@@ -62,6 +62,7 @@ function fortw_handle_submission() {
 	};
 	$title       = $field( 'title', 160 );
 	$date        = $field( 'start_date', 10 );
+	$until       = $field( 'end_date', 10 ); // Optional last day, for something that runs several days.
 	$description = fortw_submission_html( isset( $_POST['description'] ) ? (string) wp_unslash( $_POST['description'] ) : '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- cleaned by fortw_submission_html
 	$errors      = array();
 	if ( '' === $title ) {
@@ -75,6 +76,9 @@ function fortw_handle_submission() {
 	}
 	if ( '' !== $date && ! fortw_is_iso_date( $date ) ) {
 		$errors[] = 'date';
+	}
+	if ( '' !== $until && ( ! fortw_is_iso_date( $until ) || '' === $date || $until < $date ) ) {
+		$errors[] = 'end_date'; // A last day needs a first day, on or before it.
 	}
 	if ( $errors ) {
 		fortw_submit_redirect( array( 'fort_error' => 'missing', 'fields' => implode( ',', $errors ) ) );
@@ -138,7 +142,7 @@ function fortw_handle_submission() {
 			update_post_meta( $post_id, $key, $value );
 		}
 	}
-	$occ = $date ? array( array( 'date' => $date, 'start_time' => $field( 'start_time', 40 ), 'end_time' => $field( 'end_time', 40 ) ) ) : array();
+	$occ = $date ? array( array( 'date' => $date, 'end_date' => $field( 'end_date', 10 ), 'start_time' => $field( 'start_time', 40 ), 'end_time' => $field( 'end_time', 40 ) ) ) : array();
 	fortw_set_occurrences( $post_id, $occ );
 	// phpcs:enable
 
@@ -171,7 +175,7 @@ function fortw_handle_submitter_edit( $event, $field, $title, $date, $descriptio
 	// Events with several dates (set by an editor) keep their dates; the form only edits one.
 	$occ = null;
 	if ( count( fortw_get_occurrences( $event->ID ) ) <= 1 ) {
-		$occ = $date ? array( array( 'date' => $date, 'start_time' => $field( 'start_time', 40 ), 'end_time' => $field( 'end_time', 40 ) ) ) : array();
+		$occ = $date ? array( array( 'date' => $date, 'end_date' => $field( 'end_date', 10 ), 'start_time' => $field( 'start_time', 40 ), 'end_time' => $field( 'end_time', 40 ) ) ) : array();
 	}
 	$flyer = ! empty( $_POST['remove_flyer'] ) ? 'remove' : 'keep';
 	// phpcs:enable

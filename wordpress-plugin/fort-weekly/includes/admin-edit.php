@@ -43,12 +43,14 @@ function fortw_box_dates( $post ) {
 	$occ[] = array( 'date' => '', 'start_time' => '', 'end_time' => '' ); // One blank row to add a date.
 	?>
 	<p class="description"><?php esc_html_e( 'One row per date. No dates at all = an ongoing item. Times are saved in 24-hour form: 6:30am becomes 0630, 6-7pm becomes 1800–1900.', 'fort-weekly' ); ?></p>
+	<p class="description"><?php esc_html_e( 'Runs over several days (a theme for the month, a week-long drive)? Give it a last day: it shows on its first day, then under "Happening now" until the last day passes.', 'fort-weekly' ); ?></p>
 	<table class="fortw-rows widefat striped" data-fortw-rows="occ">
-		<thead><tr><th><?php esc_html_e( 'Date', 'fort-weekly' ); ?></th><th><?php esc_html_e( 'Start', 'fort-weekly' ); ?></th><th><?php esc_html_e( 'End', 'fort-weekly' ); ?></th><th></th></tr></thead>
+		<thead><tr><th><?php esc_html_e( 'Date', 'fort-weekly' ); ?></th><th><?php esc_html_e( 'Last day', 'fort-weekly' ); ?></th><th><?php esc_html_e( 'Start', 'fort-weekly' ); ?></th><th><?php esc_html_e( 'End', 'fort-weekly' ); ?></th><th></th></tr></thead>
 		<tbody>
 			<?php foreach ( $occ as $i => $o ) : ?>
 				<tr>
 					<td><input type="date" name="fortw_occ[<?php echo (int) $i; ?>][date]" value="<?php echo esc_attr( $o['date'] ); ?>"></td>
+					<td><input type="date" name="fortw_occ[<?php echo (int) $i; ?>][end_date]" value="<?php echo esc_attr( (string) ( $o['end_date'] ?? '' ) ); ?>" aria-label="<?php esc_attr_e( 'Last day (optional)', 'fort-weekly' ); ?>"></td>
 					<td><input type="text" name="fortw_occ[<?php echo (int) $i; ?>][start_time]" value="<?php echo esc_attr( (string) $o['start_time'] ); ?>" placeholder="0530" maxlength="40" size="10"></td>
 					<td><input type="text" name="fortw_occ[<?php echo (int) $i; ?>][end_time]" value="<?php echo esc_attr( (string) $o['end_time'] ); ?>" placeholder="0630" maxlength="40" size="10"></td>
 					<td><button type="button" class="button-link fortw-remove-row" aria-label="<?php esc_attr_e( 'Remove this date', 'fort-weekly' ); ?>">✕</button></td>
@@ -177,7 +179,7 @@ add_action(
 		$rows = array();
 		foreach ( (array) ( $post['fortw_occ'] ?? array() ) as $row ) {
 			if ( '' !== trim( (string) ( $row['date'] ?? '' ) ) ) {
-				$rows[] = array( 'date' => (string) $row['date'], 'start_time' => sanitize_text_field( (string) ( $row['start_time'] ?? '' ) ), 'end_time' => sanitize_text_field( (string) ( $row['end_time'] ?? '' ) ) );
+				$rows[] = array( 'date' => (string) $row['date'], 'end_date' => sanitize_text_field( (string) ( $row['end_date'] ?? '' ) ), 'start_time' => sanitize_text_field( (string) ( $row['start_time'] ?? '' ) ), 'end_time' => sanitize_text_field( (string) ( $row['end_time'] ?? '' ) ) );
 			}
 		}
 		try {
